@@ -18,6 +18,7 @@ using System.Windows.Media;
 using XenoKit.Helper;
 using XenoKit.Inspector;
 using XenoKit.Engine.Animation;
+using Xv2CoreLib.AnimationFramework;
 
 namespace XenoKit.Controls
 {
@@ -479,8 +480,11 @@ namespace XenoKit.Controls
         }
         #endregion
 
+        //public AnimationFile AnimFile { get; set; }
+
         public AnimationTabView()
         {
+            //AnimFile = new AnimationFile((EAN_File)FileManager.Instance.GetParsedFileFromGame("chara/GOK/GOK.ean"));
             InitializeComponent();
             DataContext = this;
             Game.GameUpdate += SceneManager_UpdateEvent;

@@ -5,6 +5,7 @@
              d1p1:Ignorable="d" 
              xmlns:controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
              xmlns:converters="clr-namespace:LB_Common.Converters;assembly=LB_Common"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              DispatcherUnhandledException="Application_DispatcherUnhandledException"
              xmlns:d1p1="http://schemas.openxmlformats.org/markup-compatibility/2006"
              Startup="Application_Startup">
@@ -30,6 +31,81 @@
                                     <Setter Property="Opacity" Value="0.75" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="ExpandableDataGridHeaderStyle" TargetType="{x:Type DataGridRowHeader}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Gray5}" />
+                <Setter Property="BorderThickness" Value="0 0 1 0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type DataGridRowHeader}">
+                            <Grid>
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="0,0,0,0" Background="{DynamicResource MahApps.Brushes.Accent}">
+                                    <ToggleButton x:Name="ExpanderToggleButton" Focusable="False"
+                                                    IsChecked="{Binding Path=DetailsVisibility,
+                                                    RelativeSource={RelativeSource AncestorType=DataGridRow},
+                                                    Converter={StaticResource visibilityConverter},
+                                                    Mode=TwoWay}"
+                                                    Style="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}"
+                                                    Foreground="Transparent" Background="Transparent" BorderBrush="Transparent"
+                                                    Width="{Binding Path=RowHeaderWidth, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>    
+                                </Grid>
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0">
+                                    <iconPacks:PackIconMaterialLight Kind="ArrowDown" Width="12" Height="12" VerticalAlignment="Center"
+                                                     Visibility="{Binding Path=DetailsVisibility, 
+                                                     RelativeSource={RelativeSource AncestorType=DataGridRow},
+                                                     Converter={StaticResource inverseVisibilityConverter}}"
+                                                     HorizontalAlignment="Center"/>
+                                    <iconPacks:PackIconMaterialLight Kind="ArrowUp" Width="12" Height="12" VerticalAlignment="Center"
+                                                     Visibility="{Binding Path=DetailsVisibility, 
+                                                     RelativeSource={RelativeSource AncestorType=DataGridRow}}"
+                                                     HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="ExpandableDataGridHeaderStyle2" TargetType="{x:Type DataGridRowHeader}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Gray5}" />
+                <Setter Property="BorderThickness" Value="0 0 1 0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type DataGridRowHeader}">
+                            <Grid>
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="0,0,0,0" Background="{DynamicResource MahApps.Brushes.Accent}">
+                                    <ToggleButton x:Name="ExpanderToggleButton" Focusable="False"
+                                        IsChecked="{Binding DataContext.IsExpanded, 
+                                                            RelativeSource={RelativeSource AncestorType=DataGridRow}, 
+                                                            Mode=TwoWay}"
+                                        Style="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}"
+                                        Foreground="Transparent" Background="Transparent" BorderBrush="Transparent"
+                                        Width="{Binding Path=RowHeaderWidth, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                                </Grid>
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0">
+                                    <iconPacks:PackIconMaterialLight Kind="ArrowDown" Width="12" Height="12" VerticalAlignment="Center"
+                                         Visibility="{Binding Path=DetailsVisibility, 
+                                         RelativeSource={RelativeSource AncestorType=DataGridRow},
+                                         Converter={StaticResource inverseVisibilityConverter}}"
+                                         HorizontalAlignment="Center"/>
+                                    <iconPacks:PackIconMaterialLight Kind="ArrowUp" Width="12" Height="12" VerticalAlignment="Center"
+                                         Visibility="{Binding Path=DetailsVisibility, 
+                                         RelativeSource={RelativeSource AncestorType=DataGridRow}}"
+                                         HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Grid>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

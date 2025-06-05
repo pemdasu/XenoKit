@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:XenoKit.Controls"
              xmlns:editor="clr-namespace:XenoKit.Editor"
+             xmlns:anim="clr-namespace:XenoKit.Views.AnimationViews"
              xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
              xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"
              xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
@@ -224,7 +225,7 @@
             </Grid>
         </Grid>
 
-        <Grid Grid.Row="4" Margin="0, 2">
+        <Grid Grid.Row="4" Margin="0, 2" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="*"/>
@@ -339,6 +340,10 @@
                 </DataGrid.ContextMenu>
             </DataGrid>
 
+        </Grid>
+
+        <Grid Grid.Row="4" Margin="0, 2" Visibility="Visible">
+            <anim:AnimationEditor CurrentAnimation="{Binding ElementName=UserControl, Path=AnimFile.Animations[0]}"/>
         </Grid>
     </Grid>
 </UserControl>

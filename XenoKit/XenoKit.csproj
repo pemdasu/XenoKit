@@ -655,6 +655,11 @@
     <Compile Include="ViewModel\BCS\BcsSkeletonDataViewModel.cs" />
     <Compile Include="ViewModel\EMD\EmdAABBViewModel.cs" />
     <Compile Include="ViewModel\EMD\EmdTextureViewModel.cs" />
+    <Compile Include="Views\AnimationViews\AnimationEditor.xaml.cs">
+      <DependentUpon>AnimationEditor.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\AnimationViews\AnimationNodeRow.cs" />
+    <Compile Include="Views\AnimationViews\AnimationNodeRowItem.cs" />
     <Compile Include="Views\AudioTab.xaml.cs">
       <DependentUpon>AudioTab.xaml</DependentUpon>
     </Compile>
@@ -1099,6 +1104,10 @@
       <Link>Views\EEPK Organiser\View\Vectors\CustomVector4.xaml</Link>
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\AnimationViews\AnimationEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\AudioTab.xaml">
       <SubType>Designer</SubType>
