@@ -386,6 +386,7 @@ namespace XenoKit.Inspector
                 AllEanEntities.Remove(ean);
             }
 
+            TabManager.RemoveTabsForParent(file);
             file.Dispose();
             InternalRemoveFile(file, Entities);
         }
@@ -509,12 +510,14 @@ namespace XenoKit.Inspector
 
             foreach(InspectorEntity item in entities)
             {
-                if(item is MeshInspectorEntity)
+                TabManager.RemoveTabsForParent(item);
+
+                if (item is MeshInspectorEntity)
                 {
                     SceneManager.MainGameBase.RenderSystem.RemoveRenderEntity(item);
                 }
 
-                if(item.ChildEntities != null)
+                if (item.ChildEntities != null)
                     InternalRemoveAllRenderEntities(item.ChildEntities);
             }
         }

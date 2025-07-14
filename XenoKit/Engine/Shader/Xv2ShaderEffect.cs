@@ -32,21 +32,6 @@ namespace XenoKit.Engine.Shader
         public const int PS_USER_CB = 5;
         public const int CB_PS_BOOL = 8;
 
-        //Default materials to use when none is found:
-        private static EmmMaterial _defaultRedMaterial = null;
-        private static Xv2ShaderEffect _defaultCharaMaterial = null;
-        public static Xv2ShaderEffect DefaultCharacterMaterial
-        {
-            get
-            {
-                if (_defaultCharaMaterial == null)
-                {
-                    _defaultCharaMaterial = CreateDefaultMaterial(ShaderType.Chara, SceneManager.MainGameBase);
-                }
-                return _defaultCharaMaterial;
-            }
-        }
-
         protected GameBase GameBase;
 
         public ShaderType ShaderType { get; protected set; }
@@ -1285,22 +1270,6 @@ namespace XenoKit.Engine.Shader
             return state;
         }
 
-        public static Xv2ShaderEffect CreateDefaultMaterial(ShaderType type, GameBase gameBase)
-        {
-            if(_defaultRedMaterial == null)
-            {
-                _defaultRedMaterial = new EmmMaterial();
-                _defaultRedMaterial.ShaderProgram = "RED";
-                _defaultRedMaterial.Name = "default";
-                _defaultRedMaterial.DecompileParameters();
-                _defaultRedMaterial.DecompiledParameters.BackFace = 1;
-                _defaultRedMaterial.DecompiledParameters.ForceWireframeMode = true;
-            }
-
-            return gameBase.CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(_defaultRedMaterial, gameBase, ShaderType.Chara);
-            //return new Xv2ShaderEffect(mat, type, gameBase);
-        }
-
         //Auto-updating
         private void DecompiledParameters_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -1472,6 +1441,23 @@ namespace XenoKit.Engine.Shader
                 g_vTexTile23_VS?.SetVector4(texTile23);
             }
         }
+    
+        public static Xv2ShaderEffect[] LoadMaterials(EMM_File emmFile, ShaderType shaderType, GameBase game)
+        {
+            if (emmFile == null)
+                return new Xv2ShaderEffect[0];
+
+            Xv2ShaderEffect[] materials = new Xv2ShaderEffect[emmFile.Materials.Count];
+
+            for(int i = 0; i < emmFile.Materials.Count; i++)
+            {
+                materials[i] = game.CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(emmFile.Materials[i], game, shaderType);
+            }
+
+            return materials;
+        }
+    
+        
     }
 
     public enum ShaderType

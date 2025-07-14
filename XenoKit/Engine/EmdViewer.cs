@@ -108,7 +108,7 @@ namespace XenoKit.Engine
                 GraphicsDevice.Textures[4] = DytTexture[0].Texture;
             }
 
-            Model?.Draw(Matrix.Identity, 0, Materials, Textures, DytTexture, 0);
+            //Model?.Draw(Matrix.Identity, 0, Materials, Textures, DytTexture, 0);
 
             //Now apply axis correction
             GraphicsDevice.SetRenderTarget(RenderTargetPost.RenderTarget);
@@ -137,12 +137,12 @@ namespace XenoKit.Engine
 
             if (Model != null)
             {
-                Model.ModelChanged -= RefreshMaterialsEvent;
+                Model.MaterialsChanged -= RefreshMaterialsEvent;
             }
 
             //Model = Xv2ModelFile.LoadCharaEmd(this, EmdFile);
-            Model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(EmdFile, this);
-            Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
+            //Model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(EmdFile, this);
+            //Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
 
             if (EmbFile != null)
             {
@@ -170,14 +170,14 @@ namespace XenoKit.Engine
                 DytTexture = null;
             }
 
-            Model.ModelChanged += RefreshMaterialsEvent;
+            Model.MaterialsChanged += RefreshMaterialsEvent;
         }
 
         public void ClearInstance()
         {
             if (Model != null)
             {
-                Model.ModelChanged -= RefreshMaterialsEvent;
+                Model.MaterialsChanged -= RefreshMaterialsEvent;
             }
 
             if (Textures != null)
@@ -196,7 +196,7 @@ namespace XenoKit.Engine
 
         private void RefreshMaterialsEvent(object sender, EventArgs e)
         {
-            Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
+            //Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
         }
 
     }

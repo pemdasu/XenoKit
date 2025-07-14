@@ -1,0 +1,328 @@
+﻿<UserControl x:Class="XenoKit.Views.ModelSceneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+             xmlns:model="clr-namespace:XenoKit.Engine.Model"
+             xmlns:undoRedo="clr-namespace:Xv2CoreLib.Resource.UndoRedo;assembly=Xv2CoreLib"
+             xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:emd="clr-namespace:Xv2CoreLib.EMD;assembly=Xv2CoreLib"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:local="clr-namespace:XenoKit.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="500" d:DesignWidth="600" Name="UserControl">
+    <UserControl.Resources>
+        <lbUtils:BindingProxy x:Key="Proxy" Data="{Binding}" />
+        <ObjectDataProvider x:Key="AddressModeEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="emd:EMD_TextureSamplerDef+AddressMode"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="FilteringEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="emd:EMD_TextureSamplerDef+Filtering"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TreeView x:Name="treeView" lbUtils:TreeViewMultipleSelectionAttached.IsMultipleSelection="True" lbUtils:TreeViewMultipleSelectionAttached.SelectedItems="{Binding ElementName=UserControl, Path=ModelScene.SelectedItems}"
+                  Margin="5" Grid.RowSpan="2" ItemsSource="{Binding ElementName=UserControl, Path=EmdFile.Models.Binding}" SelectedItemChanged="TreeView_SelectedItemChanged" TreeViewItem.Selected="treeView_Selected"
+                  BorderBrush="{DynamicResource MahApps.Brushes.Accent3}" BorderThickness="1">
+            <TreeView.Resources>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Style.Triggers>
+                        <Trigger Property="lbUtils:TreeViewMultipleSelectionAttached.IsItemSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.DataGrid.Selection.Background}" />
+                            <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Badged.Foreground}" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+                
+                <HierarchicalDataTemplate DataType="{x:Type emd:EMD_Model}" ItemsSource="{Binding Meshes.Binding}">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Background="{DynamicResource MahApps.Brushes.Accent4}" Margin="0,0,5,0" Orientation="Horizontal">
+                            <TextBlock Text="MODEL" Margin="5, 0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" Tag="{Binding DataContext, ElementName=UserControl}" ToolTip="Model"/>
+                        <StackPanel.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Delete" Command="{Binding Source={StaticResource Proxy}, Path=Data.DeleteModelCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Copy" Command="{Binding Source={StaticResource Proxy}, Path=Data.CopyModelCommand}"/>
+                                <MenuItem Header="Paste" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteCommand}"/>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type emd:EMD_Mesh}" ItemsSource="{Binding Submeshes.Binding}">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Background="{DynamicResource MahApps.Brushes.Accent3}" Margin="0,0,5,0" Orientation="Horizontal">
+                            <TextBlock Text="MESH" Margin="5, 0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" Tag="{Binding DataContext, ElementName=UserControl}" ToolTip="Mesh"/>
+                        <StackPanel.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Delete" Command="{Binding Source={StaticResource Proxy}, Path=Data.DeleteMeshCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Copy" Command="{Binding Source={StaticResource Proxy}, Path=Data.CopyMeshCommand}"/>
+                                <MenuItem Header="Paste" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteCommand}"/>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type emd:EMD_Submesh}" ItemsSource="{Binding TextureSamplerDefs.Binding}">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Background="{DynamicResource MahApps.Brushes.Accent2}" Margin="0,0,5,0" Orientation="Horizontal">
+                            <TextBlock Text="SUBMESH" Margin="5, 0"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MinWidth="100" Tag="{Binding DataContext, ElementName=UserControl}" ToolTip="Submesh"/>
+                        <StackPanel.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Add Texture" Command="{Binding Source={StaticResource Proxy}, Path=Data.AddTextureCommand}"/>
+                                <MenuItem Header="Delete" Command="{Binding Source={StaticResource Proxy}, Path=Data.DeleteSubmeshCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Copy" Command="{Binding Source={StaticResource Proxy}, Path=Data.CopySubmeshCommand}"/>
+                                <MenuItem Header="Paste" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteCommand}"/>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type emd:EMD_TextureSamplerDef}">
+                    <StackPanel>
+                        <TextBlock Text="Texture Sampler" MinWidth="100" Tag="{Binding DataContext, ElementName=UserControl}" ToolTip="Texture Samplers are responsible for telling the shaders what textures to apply to this submesh."/>
+                        <StackPanel.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Add" Command="{Binding Source={StaticResource Proxy}, Path=Data.AddTextureCommand}"/>
+                                <MenuItem Header="Delete" Command="{Binding Source={StaticResource Proxy}, Path=Data.DeleteTextureCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Copy" Command="{Binding Source={StaticResource Proxy}, Path=Data.CopyTextureCommand}"/>
+                                <MenuItem Header="Paste" Command="{Binding Source={StaticResource Proxy}, Path=Data.PasteCommand}"/>
+                            </ContextMenu>
+                        </StackPanel.ContextMenu>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+
+            </TreeView.Resources>
+            <TreeView.InputBindings>
+                <KeyBinding Key="Delete" Command="{Binding ElementName=UserControl, Path=DeleteCommand}"/>
+                <KeyBinding Key="F" Command="{Binding ElementName=UserControl, Path=LookAtObjectCommand}"/>
+                <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=CopyCommand}"/>
+                <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding ElementName=UserControl, Path=PasteCommand}"/>
+            </TreeView.InputBindings>
+        </TreeView>
+
+        <StackPanel Grid.Column="1" Margin="5">
+            <Grid Visibility="{Binding ElementName=UserControl, Path=ModelNameVisibility}">
+                <StackPanel>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Name"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=SelectedModelName, UpdateSourceTrigger=LostFocus, ElementName=UserControl}"/>
+                    </Grid>
+                </StackPanel>
+
+            </Grid>
+            <Grid Grid.Row="1" Grid.Column="1" Visibility="{Binding ElementName=UserControl, Path=MeshNameVisibility}">
+                <StackPanel>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Name"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=SelectedMeshName, UpdateSourceTrigger=LostFocus, ElementName=UserControl}"/>
+                    </Grid>
+                </StackPanel>
+
+            </Grid>
+            <Grid Grid.Row="1" Grid.Column="1" Visibility="{Binding ElementName=UserControl, Path=SubmeshNameVisibility}">
+                <StackPanel>
+                    <Grid Margin="3,5,0,0" Width="330" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Name"/>
+                        <TextBox Grid.Column="1" Text="{Binding Path=SelectedSubmeshName, ElementName=UserControl}"/>
+                        <Button Grid.Column="2" Margin="5" Command="{Binding ElementName=UserControl, Path=GotoMaterialCommand}" CommandParameter="0" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="Open the material associated with this submesh in the Material Editor">
+                            <iconPacks:PackIconMaterialDesign Kind="KeyboardArrowRight"/>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+            </Grid>
+            <Grid Visibility="{Binding ElementName=UserControl, Path=TransformVisibility}">
+                <StackPanel MaxWidth="335" HorizontalAlignment="Left" Margin="5, 10">
+                    <TextBlock Text="Position" HorizontalAlignment="Center"/>
+                    <Grid Margin="3,10,0,0" Width="338" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="X"/>
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="2" Content="Y"/>
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="4" Content="Z"/>
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                    </Grid>
+
+                    <TextBlock Text="Rotation" HorizontalAlignment="Center"/>
+                    <Grid Margin="3,10,0,0" Width="335" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="X"/>
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="2" Content="Y"/>
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="4" Content="Z"/>
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                    </Grid>
+
+                    <TextBlock Text="Scale" HorizontalAlignment="Center"/>
+                    <Grid Margin="3,10,0,0" Width="335" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="21"/>
+                            <ColumnDefinition Width="62"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Content="X"/>
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="2" Content="Y"/>
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                        <Label Grid.Column="4" Content="Z"/>
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+
+                    </Grid>
+
+
+                </StackPanel>
+
+            </Grid>
+            <Grid Visibility="{Binding ElementName=UserControl, Path=TextureVisibility}">
+                <StackPanel>
+                    <Grid Margin="3,3" Width="420" HorizontalAlignment="Left" Visibility="{Binding ElementName=UserControl, Path=TextureViewModel.TextureSelectorVisibility}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="275"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Texture" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Column="1" MinHeight="40" SelectedItem="{Binding Path=TextureViewModel.SelectedEmbEntry, ElementName=UserControl}" ItemsSource="{Binding ElementName=UserControl, Path=ModelScene.EmbFile.Entry.Binding}" Controls:TextBoxHelper.Watermark="No Texture Assigned">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Canvas Height="120">
+                                        <Grid Background="White" Height="120" Width="120" Canvas.Left="8">
+                                            <Image Source="{Binding Texture}"/>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Name}" Canvas.Left="146" Canvas.Top="52"/>
+                                    </Canvas>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="2" Margin="5" Command="{Binding ElementName=UserControl, Path=GotoTextureCommand}" CommandParameter="0" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="20" Height="20" ToolTip="View the selected texture in the Texture Viewer.">
+                            <iconPacks:PackIconMaterialDesign Kind="KeyboardArrowRight"/>
+                        </Button>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left" Visibility="{Binding ElementName=UserControl, Path=TextureViewModel.TextureIndexVisibility}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Texture Index"/>
+                        <Controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="128" Value="{Binding Path=TextureViewModel.EmbIndex, UpdateSourceTrigger=Default, ElementName=UserControl}"/>
+                    </Grid>
+                    <WrapPanel>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Filtering Min"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Source={StaticResource ResourceKey=FilteringEnum}}" SelectedItem="{Binding ElementName=UserControl, Path=TextureViewModel.FilteringMin}"/>
+                        </Grid>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Filtering Mag"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Source={StaticResource ResourceKey=FilteringEnum}}" SelectedItem="{Binding ElementName=UserControl, Path=TextureViewModel.FilteringMag}"/>
+                        </Grid>
+                    </WrapPanel>
+                    <WrapPanel>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Address Mode U"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Source={StaticResource ResourceKey=AddressModeEnum}}" SelectedItem="{Binding ElementName=UserControl, Path=TextureViewModel.AddressModeU}"/>
+                        </Grid>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Address Mode V"/>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding Source={StaticResource ResourceKey=AddressModeEnum}}" SelectedItem="{Binding ElementName=UserControl, Path=TextureViewModel.AddressModeV}"/>
+                        </Grid>
+                    </WrapPanel>
+                    <WrapPanel>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Scale U"/>
+                            <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=TextureViewModel.ScaleU}" StringFormat="0.00" Interval="0.01"/>
+                        </Grid>
+                        <Grid Margin="3,5,0,0" Width="200" HorizontalAlignment="Left">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Scale V"/>
+                            <Controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=TextureViewModel.ScaleV}" StringFormat="0.00" Interval="0.01"/>
+                        </Grid>
+                    </WrapPanel>
+                </StackPanel>
+
+            </Grid>
+
+        </StackPanel>
+        
+    </Grid>
+</UserControl>

@@ -150,7 +150,7 @@ namespace XenoKit.Engine.Vfx.Particle
             if (compiledMat == null)
             {
                 //No material was found for this Submesh. Use default.
-                compiledMat = Xv2ShaderEffect.CreateDefaultMaterial(ShaderType.Default, GameBase);
+                compiledMat = DefaultShaders.Red;
             }
 
             Material = compiledMat;

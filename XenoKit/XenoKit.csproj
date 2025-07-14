@@ -151,32 +151,11 @@
     <Reference Include="SharpDX, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpDX.4.2.0\lib\net45\SharpDX.dll</HintPath>
     </Reference>
-    <Reference Include="SharpDX.D3DCompiler, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.D3DCompiler.4.2.0\lib\net45\SharpDX.D3DCompiler.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.Direct2D1, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.Direct2D1.4.0.1\lib\net45\SharpDX.Direct2D1.dll</HintPath>
-    </Reference>
     <Reference Include="SharpDX.Direct3D11, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpDX.Direct3D11.4.2.0\lib\net45\SharpDX.Direct3D11.dll</HintPath>
     </Reference>
-    <Reference Include="SharpDX.Direct3D9, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.Direct3D9.4.0.1\lib\net45\SharpDX.Direct3D9.dll</HintPath>
-    </Reference>
     <Reference Include="SharpDX.DXGI, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpDX.DXGI.4.2.0\lib\net45\SharpDX.DXGI.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.Mathematics, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.Mathematics.4.0.1\lib\net45\SharpDX.Mathematics.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.MediaFoundation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.MediaFoundation.4.0.1\lib\net45\SharpDX.MediaFoundation.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.XAudio2, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.XAudio2.4.0.1\lib\net45\SharpDX.XAudio2.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpDX.XInput, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpDX.XInput.4.0.1\lib\net45\SharpDX.XInput.dll</HintPath>
     </Reference>
     <Reference Include="Shim, Version=2.0.1.0, Culture=neutral, PublicKeyToken=c55ec16d10c4b366, processorArchitecture=MSIL">
       <HintPath>..\packages\shim.2.0.1\lib\net40\Shim.dll</HintPath>
@@ -509,9 +488,13 @@
     </Compile>
     <Compile Include="DialogSettings.cs" />
     <Compile Include="Editor\Data\CustomAvatar.cs" />
+    <Compile Include="Editor\Data\SerializedModel.cs" />
     <Compile Include="Editor\LocalSettings.cs" />
+    <Compile Include="Editor\TabManager.cs" />
     <Compile Include="Engine\Animation\ISkinned.cs" />
     <Compile Include="Engine\Character\ActorController.cs" />
+    <Compile Include="Engine\Collision\AabbNode.cs" />
+    <Compile Include="Engine\Collision\AabbTree.cs" />
     <Compile Include="Engine\Collision\BacHitbox.cs" />
     <Compile Include="Engine\FrameRateCounter.cs" />
     <Compile Include="Engine\Gizmo\EntityTransformGizmo.cs" />
@@ -522,10 +505,12 @@
     <Compile Include="Engine\Model\CollsionMeshBatchDraw.cs" />
     <Compile Include="Engine\Model\Lod.cs" />
     <Compile Include="Engine\Model\LodGroup.cs" />
+    <Compile Include="Engine\Model\ModelScene.cs" />
     <Compile Include="Engine\Objects\InfiniteWorldGrid.cs" />
     <Compile Include="Engine\Rendering\YBSPostFilterStep.cs" />
     <Compile Include="Engine\Rendering\YBSPostProcess.cs" />
     <Compile Include="Engine\Scripting\Simulation.cs" />
+    <Compile Include="Engine\Shader\DefaultShaders.cs" />
     <Compile Include="Engine\Stage\StageCollider.cs" />
     <Compile Include="Engine\Stage\StageColliderInstance.cs" />
     <Compile Include="Engine\Stage\StageCollisionGroup.cs" />
@@ -538,6 +523,7 @@
     <Compile Include="Engine\Vertex\ConvexVertex.cs" />
     <Compile Include="Engine\Vertex\VertexPositionTexture5.cs" />
     <Compile Include="Engine\View\CameraBase.cs" />
+    <Compile Include="Helper\WindowHelper.cs" />
     <Compile Include="Inspector\InspectorEntity\EanInspectorEntity.cs" />
     <Compile Include="Inspector\InspectorEntity\InspectorEntity.cs" />
     <Compile Include="Inspector\InspectorEntity\MaterialInspectorEntity.cs" />
@@ -629,6 +615,11 @@
     <Compile Include="Engine\View\SimpleCamera.cs" />
     <Compile Include="Helper\Find.cs" />
     <Compile Include="Helper\ViewHelpers.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="ViewModel\BAC\BACType0ViewModel.cs" />
     <Compile Include="ViewModel\BAC\BACType10ViewModel.cs" />
     <Compile Include="ViewModel\BAC\BACType11ViewModel.cs" />
@@ -807,9 +798,6 @@
     <Compile Include="Views\AnimationTabView.xaml.cs">
       <DependentUpon>AnimationTabView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\EmdViewer.xaml.cs">
-      <DependentUpon>EmdViewer.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Views\GameView.xaml.cs">
       <DependentUpon>GameView.xaml</DependentUpon>
     </Compile>
@@ -818,6 +806,9 @@
     </Compile>
     <Compile Include="Views\LogView.xaml.cs">
       <DependentUpon>LogView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ModelScene\ModelSceneView.xaml.cs">
+      <DependentUpon>ModelSceneView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\OutlinerView.xaml.cs">
       <DependentUpon>OutlinerView.xaml</DependentUpon>
@@ -1303,10 +1294,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Views\EmdViewer.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Views\GameView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -1316,6 +1303,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\LogView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\ModelScene\ModelSceneView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -1417,11 +1408,6 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
@@ -1429,14 +1415,15 @@
     </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <EmbeddedResource Include="Resources\DefaultEmb" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

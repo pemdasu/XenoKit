@@ -26,6 +26,7 @@ namespace XenoKit.Engine.Stage
                 }
             }
 
+            /*
             if (SceneManager.CollisionMeshVisible)
             {
                 foreach(var collider in ColliderInstances)
@@ -33,6 +34,7 @@ namespace XenoKit.Engine.Stage
                     collider.Draw(Transform, true);
                 }
             }
+            */
         }
 
         public void DrawSimple()

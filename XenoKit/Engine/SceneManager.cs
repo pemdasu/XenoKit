@@ -8,6 +8,7 @@ using System.Timers;
 using XenoKit.Editor;
 using XenoKit.Engine.Audio;
 using XenoKit.Engine.Gizmo;
+using XenoKit.Engine.Model;
 using XenoKit.Engine.View;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
@@ -33,7 +34,8 @@ namespace XenoKit.Engine
         CAC = 10,
         Inspector = 11,
         InspectorAnimation = 12,
-        Stage = 13
+        Stage = 13,
+        DynamicTab
     }
 
     public enum BcsEditorTabs
@@ -80,6 +82,12 @@ namespace XenoKit.Engine
         InspectorAnimation
     }
 
+    public enum DynamicTabs
+    {
+        None,
+        ModelScene
+    }
+
     public static class SceneManager
     {
         public static GameBase MainGameBase => MainGameInstance;
@@ -112,8 +120,10 @@ namespace XenoKit.Engine
         #region SceneState
         public static EditorTabs PrevSceneState = EditorTabs.Nothing;
         public static EditorTabs CurrentSceneState = 0;
+        public static DynamicTabs CurrentDynamicTab = DynamicTabs.None;
         public static bool IsOnEffectTab = false;
         public static bool IsOnInspectorTab = false;
+        public static bool UseRenderScene = false;
 
         public static Vector4 SystemTime; //Seconds elsapsed while "IsPlaying". For use in DBXV2 Shaders.
         public static Vector4 ScreenSize;
@@ -134,105 +144,133 @@ namespace XenoKit.Engine
 
             IsOnEffectTab = false;
             IsOnInspectorTab = false;
+            CurrentDynamicTab = DynamicTabs.None;
+            UseRenderScene = false;
+            MainGameBase?.RenderSystem.SetRenderScene(null);
 
             //Set default actor values
             ActorsEnable[0] = true;
             ActorsEnable[1] = false;
             ActorsEnable[2] = false;
 
-            switch (mainTab)
+            if(mainTabIdx >= (int)MainEditorTabs.DynamicTab)
             {
-                case MainEditorTabs.Action:
-                    CurrentSceneState = EditorTabs.Action;
-                    ActorsEnable[1] = true;
-                    break;
-                case MainEditorTabs.Animation:
-                    CurrentSceneState = EditorTabs.Animation;
-                    break;
-                case MainEditorTabs.Audio:
-                    CurrentSceneState = audioTabIdx > 0 ? EditorTabs.Audio_VOX : EditorTabs.Audio_SE;
-                    ActorsEnable[0] = false;
-                    break;
-                case MainEditorTabs.BCS:
-                    switch (bcsTab)
-                    {
-                        case BcsEditorTabs.Bodies:
-                            CurrentSceneState = EditorTabs.BCS_Bodies;
-                            break;
-                        case BcsEditorTabs.Colors:
-                            CurrentSceneState = EditorTabs.BCS_Colors;
-                            break;
-                        case BcsEditorTabs.Files:
-                            CurrentSceneState = EditorTabs.BCS_Files;
-                            break;
-                        case BcsEditorTabs.Header:
-                            CurrentSceneState = EditorTabs.BCS_Header;
-                            break;
-                        case BcsEditorTabs.PartSet:
-                            CurrentSceneState = EditorTabs.BCS_PartSet;
-                            break;
-                        case BcsEditorTabs.SkeletonData1:
-                            CurrentSceneState = EditorTabs.BCS_SkeletonData1;
-                            break;
-                        case BcsEditorTabs.SkeletonData2:
-                            CurrentSceneState = EditorTabs.BCS_SkeletonData2;
-                            break;
-                    }
-                    break;
-                case MainEditorTabs.Camera:
-                    CurrentSceneState = EditorTabs.Camera;
-                    break;
-                case MainEditorTabs.Effect:
-                    IsOnEffectTab = true;
+                ActorsEnable[0] = false;
 
-                    switch (effectTabIdx)
+                //On a dynamic tab
+                DynamicTab dynamicTab = TabManager.GetSelectedDynamicTab();
+
+                if(dynamicTab != null)
+                {
+                    if(dynamicTab.Context is ModelScene modelScene)
                     {
-                        case 0:
-                            CurrentSceneState = EditorTabs.Effect;
-                            break;
-                        case 1:
-                            CurrentSceneState = EditorTabs.Effect_PBIND;
-                            ActorsEnable[0] = false;
-                            break;
-                        case 2:
-                            CurrentSceneState = EditorTabs.Effect_TBIND;
-                            ActorsEnable[0] = false;
-                            break;
-                        case 3:
-                            CurrentSceneState = EditorTabs.Effect_CBIND;
-                            break;
-                        case 4:
-                            CurrentSceneState = EditorTabs.Effect_EMO;
-                            ActorsEnable[0] = false;
-                            break;
-                        case 5:
-                            CurrentSceneState = EditorTabs.Effect_LIGHT;
-                            break;
+                        CurrentDynamicTab = DynamicTabs.ModelScene;
+                        UseRenderScene = true;
+                        MainGameBase.RenderSystem.SetRenderScene(modelScene);
                     }
-                    break;
-                case MainEditorTabs.Hitbox:
-                    CurrentSceneState = EditorTabs.Hitbox;
-                    break;
-                case MainEditorTabs.Projectile:
-                    CurrentSceneState = EditorTabs.Projectile;
-                    break;
-                case MainEditorTabs.State:
-                    CurrentSceneState = EditorTabs.State;
-                    break;
-                case MainEditorTabs.System:
-                    CurrentSceneState = EditorTabs.System;
-                    break;
-                case MainEditorTabs.CAC:
-                    CurrentSceneState = EditorTabs.CAC;
-                    break;
-                case MainEditorTabs.Inspector:
-                    CurrentSceneState = EditorTabs.Inspector;
-                    IsOnInspectorTab = true;
-                    break;
-                case MainEditorTabs.InspectorAnimation:
-                    CurrentSceneState = EditorTabs.InspectorAnimation;
-                    IsOnInspectorTab = true;
-                    break;
+                }
+                else
+                {
+                    Log.Add("Could not find the DynamicTab", LogType.Warning);
+                }
+            }
+            else
+            {
+                switch (mainTab)
+                {
+                    case MainEditorTabs.Action:
+                        CurrentSceneState = EditorTabs.Action;
+                        ActorsEnable[1] = true;
+                        break;
+                    case MainEditorTabs.Animation:
+                        CurrentSceneState = EditorTabs.Animation;
+                        break;
+                    case MainEditorTabs.Audio:
+                        CurrentSceneState = audioTabIdx > 0 ? EditorTabs.Audio_VOX : EditorTabs.Audio_SE;
+                        ActorsEnable[0] = false;
+                        break;
+                    case MainEditorTabs.BCS:
+                        switch (bcsTab)
+                        {
+                            case BcsEditorTabs.Bodies:
+                                CurrentSceneState = EditorTabs.BCS_Bodies;
+                                break;
+                            case BcsEditorTabs.Colors:
+                                CurrentSceneState = EditorTabs.BCS_Colors;
+                                break;
+                            case BcsEditorTabs.Files:
+                                CurrentSceneState = EditorTabs.BCS_Files;
+                                break;
+                            case BcsEditorTabs.Header:
+                                CurrentSceneState = EditorTabs.BCS_Header;
+                                break;
+                            case BcsEditorTabs.PartSet:
+                                CurrentSceneState = EditorTabs.BCS_PartSet;
+                                break;
+                            case BcsEditorTabs.SkeletonData1:
+                                CurrentSceneState = EditorTabs.BCS_SkeletonData1;
+                                break;
+                            case BcsEditorTabs.SkeletonData2:
+                                CurrentSceneState = EditorTabs.BCS_SkeletonData2;
+                                break;
+                        }
+                        break;
+                    case MainEditorTabs.Camera:
+                        CurrentSceneState = EditorTabs.Camera;
+                        break;
+                    case MainEditorTabs.Effect:
+                        IsOnEffectTab = true;
+
+                        switch (effectTabIdx)
+                        {
+                            case 0:
+                                CurrentSceneState = EditorTabs.Effect;
+                                break;
+                            case 1:
+                                CurrentSceneState = EditorTabs.Effect_PBIND;
+                                ActorsEnable[0] = false;
+                                break;
+                            case 2:
+                                CurrentSceneState = EditorTabs.Effect_TBIND;
+                                ActorsEnable[0] = false;
+                                break;
+                            case 3:
+                                CurrentSceneState = EditorTabs.Effect_CBIND;
+                                break;
+                            case 4:
+                                CurrentSceneState = EditorTabs.Effect_EMO;
+                                ActorsEnable[0] = false;
+                                break;
+                            case 5:
+                                CurrentSceneState = EditorTabs.Effect_LIGHT;
+                                break;
+                        }
+                        break;
+                    case MainEditorTabs.Hitbox:
+                        CurrentSceneState = EditorTabs.Hitbox;
+                        break;
+                    case MainEditorTabs.Projectile:
+                        CurrentSceneState = EditorTabs.Projectile;
+                        break;
+                    case MainEditorTabs.State:
+                        CurrentSceneState = EditorTabs.State;
+                        break;
+                    case MainEditorTabs.System:
+                        CurrentSceneState = EditorTabs.System;
+                        break;
+                    case MainEditorTabs.CAC:
+                        CurrentSceneState = EditorTabs.CAC;
+                        break;
+                    case MainEditorTabs.Inspector:
+                        CurrentSceneState = EditorTabs.Inspector;
+                        IsOnInspectorTab = true;
+                        break;
+                    case MainEditorTabs.InspectorAnimation:
+                        CurrentSceneState = EditorTabs.InspectorAnimation;
+                        IsOnInspectorTab = true;
+                        break;
+                }
+
             }
 
             if (CurrentSceneState == EditorTabs.Action)
@@ -743,7 +781,7 @@ namespace XenoKit.Engine
 
         public static bool IsOnTab(params EditorTabs[] tabs)
         {
-            if (tabs == null) return false;
+            if (tabs == null || CurrentDynamicTab != DynamicTabs.None) return false;
             return tabs.Contains(CurrentSceneState);
         }
         #endregion

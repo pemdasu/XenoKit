@@ -16,6 +16,10 @@ using XenoKit.Editor;
 using XenoKit.Engine.Textures;
 using Microsoft.Xna.Framework.Graphics;
 using System.IO;
+using System.Web.ModelBinding;
+using XenoKit.Engine.Model;
+using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMM;
 
 namespace XenoKit.Views
 {
@@ -150,14 +154,21 @@ namespace XenoKit.Views
             }
             else if (SelectedItem is MeshInspectorEntity mesh)
             {
-                if(mesh.EmdFile == null)
+                if(mesh.EmoFile != null)
                 {
-                    MessageBox.Show("The Model Viewer currently only supports EMD models.", "Not Supported", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("The Model Viewer currently does not support EMO files.", "Not Supported", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                EmdViewer modelViewer = new EmdViewer(mesh.EmdFile, mesh.TextureFile?.EmbFile, mesh.DytFile?.EmbFile, mesh.MaterialFile?.EmmFile, mesh.Name);
-                modelViewer.Show();
+                ModelScene modelScene = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<ModelScene>(mesh.Model, SceneManager.MainGameBase);
+                modelScene.SetFiles(Engine.Shader.ShaderType.Chara, mesh.TextureFile?.EmbFile, mesh.MaterialFile?.EmmFile, mesh.DytFile?.EmbFile);
+                modelScene.SetPaths(false, mesh.Path, mesh.TextureFile?.Path, mesh.MaterialFile?.Path, mesh.DytFile?.Path);
+
+                if (!TabManager.FocusTab(modelScene))
+                {
+                    ModelSceneView modelSceneView = new ModelSceneView(modelScene);
+                    TabManager.AddTab($"{Path.GetFileName(mesh.Path)}", modelSceneView, modelScene, mesh, null);
+                }
             }
         }
 

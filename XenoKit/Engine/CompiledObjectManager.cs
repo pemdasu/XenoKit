@@ -95,6 +95,10 @@ namespace XenoKit.Engine
                     {
                         result = new Vfx.Particle.ParticleEmissionData(particleNode, gameInstance);
                     }
+                    else if (typeof(T) == typeof(ModelScene) && key is Xv2ModelFile model)
+                    {
+                        result = new ModelScene(gameInstance, model);
+                    }
                     else
                     {
                         Log.Add($"GetCompiledObject<{typeof(T)}>: key and source combination not valid (source: {key.GetType()}).", LogType.Error);

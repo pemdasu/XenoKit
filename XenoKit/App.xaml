@@ -17,6 +17,13 @@
 
             <BitmapImage x:Key="gridlines" UriSource="Resources/transparent_checkerboard.png" />
 
+            <Style x:Key="UnderlinedTabControl" TargetType="controls:MetroTabControl">
+                <Setter Property="controls:TabControlHelper.UnderlinePlacement" Value="Top" />
+                <Setter Property="controls:TabControlHelper.Underlined" Value="SelectedTabItem" />
+                <Setter Property="controls:TabControlHelper.UnderlineBrush" Value="{DynamicResource MahApps.Brushes.Accent}" />
+                <Setter Property="controls:TabControlHelper.UnderlineMouseOverBrush" Value="Transparent" />
+            </Style>
+            
             <Style x:Key="ButtonNoGlow" TargetType="Button">
                 <Setter Property="OverridesDefaultStyle" Value="True" />
                 <Setter Property="Cursor" Value="Hand" />

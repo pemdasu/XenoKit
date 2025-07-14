@@ -22,6 +22,7 @@ using XenoKit.Windows;
 using Xv2CoreLib;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.SAV;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace XenoKit
 {
@@ -59,12 +60,14 @@ namespace XenoKit
         #endregion
 
         private bool ErrorMessageCurrentDisplayed = false;
+        public Stopwatch sw;
 
         public MainWindow()
         {
 #if DEBUG
             DebugMenuVisible = Visibility.Visible;
 #endif
+            sw = Stopwatch.StartNew();
 
             //Force en-US culture accross whole application to ensure error messages will always be in english
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -99,6 +102,7 @@ namespace XenoKit
             //Main Tab visibility. It should be invisible when nothing in the outliner is selected.
             mainTabControl.Visibility = Visibility.Hidden;
             Files.SelectedItemChanged += Files_SelectedMoveChanged;
+            TabManager.SetTabContext(mainTabControl);
 
             //Update title
             Title += $" ({SettingsManager.Instance.CurrentVersionString})";
@@ -107,6 +111,8 @@ namespace XenoKit
             eepkEditor.SelectedEffectTabChanged += EepkEditor_SelectedEffectTabChanged;
 
             Closing += MainWindow_Closing;
+
+            Log.Add("Init finished at " + sw.Elapsed, LogType.Debug);
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
@@ -187,12 +193,14 @@ namespace XenoKit
 
         private async Task AsyncInit()
         {
+            Log.Add("AsyncInit start at " + sw.Elapsed, LogType.Debug);
             Files.Instance.Initialize(this);
 
             //Check for updates silently
 #if !DEBUG
             CheckForUpdate(false);
 #endif
+
         }
 
         private void RegisterEvents()

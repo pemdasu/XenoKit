@@ -27,7 +27,7 @@ namespace XenoKit.Engine.Stage
                 ColliderInstances.Add(new StageColliderInstance(colliderInstance.ColliderInstances[i], stageCollider.Colliders[i]));
             }
 
-            Transform = colliderInstance.Matrix != null ? colliderInstance.Matrix.ToMonoMatrix() : Matrix.Identity;
+            Transform = colliderInstance.Matrix != null ? colliderInstance.Matrix.ToXna() : Matrix.Identity;
         }
 
         public void Draw(Matrix world, bool isEnabled)

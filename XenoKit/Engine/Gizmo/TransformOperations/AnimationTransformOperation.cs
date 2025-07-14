@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using XenoKit.Controls;
 using XenoKit.Engine.Animation;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.Resource.UndoRedo;

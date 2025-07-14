@@ -85,9 +85,10 @@
 
         <_controls:GameView x:Name="monoGameView" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Column="2"/>
 
-        <TabControl BorderBrush="{DynamicResource MahApps.Brushes.Gray.SemiTransparent}" BorderThickness="1" x:Name="mainTabControl" Grid.Column="0" Grid.Row="1" SelectionChanged="MainTabControl_SelectionChanged" HorizontalAlignment="Stretch" Margin="10,5.2,9.855,28.327" VerticalAlignment="Stretch" Grid.RowSpan="3">
+        <Controls:MetroTabControl Style="{DynamicResource UnderlinedTabControl}" BorderBrush="{DynamicResource MahApps.Brushes.Gray.SemiTransparent}" BorderThickness="1" x:Name="mainTabControl" Grid.Column="0" Grid.Row="1" 
+                    SelectionChanged="MainTabControl_SelectionChanged" HorizontalAlignment="Stretch" Margin="10,5.2,9.855,28.327" VerticalAlignment="Stretch" Grid.RowSpan="3">
             <Controls:MetroTabItem Header="BCS" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.BcsVisibility}" >
-                <TabControl x:Name="bcsTabControl" Controls:TabControlHelper.Underlined="TabItems" SelectionChanged="MainTabControl_SelectionChanged">
+                <Controls:MetroTabControl x:Name="bcsTabControl" Style="{DynamicResource UnderlinedTabControl}" SelectionChanged="MainTabControl_SelectionChanged">
                     <Controls:MetroTabItem Header="Part Sets" Controls:HeaderedControlHelper.HeaderFontSize="14">
                         <Grid>
                             <_views:BcsPartSetView/>
@@ -123,7 +124,7 @@
                             <_views:BcsCharaFilesView/>
                         </Grid>
                     </Controls:MetroTabItem>
-                </TabControl>
+                </Controls:MetroTabControl>
             </Controls:MetroTabItem>
             
             <Controls:MetroTabItem Header="Animation" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.AnimationVisibility}">
@@ -180,10 +181,11 @@
             </Controls:MetroTabItem>
 
             <Controls:MetroTabItem Header="Stage" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.IsStage}">
-               
+                <_views:StageView HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed"/>
 
             </Controls:MetroTabItem>
-        </TabControl>
+            
+        </Controls:MetroTabControl>
 
         <Controls:MetroTabControl x:Name="sceneTab" Grid.Column="1" Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.ColumnSpan="2" Margin="5.145,0, 0, 10" BorderBrush="{DynamicResource MahApps.Brushes.Gray.SemiTransparent}" BorderThickness="1">
 

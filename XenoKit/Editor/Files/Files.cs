@@ -29,6 +29,7 @@ using Xv2CoreLib.SAV;
 using Xv2CoreLib.Resource.UndoRedo;
 using Xv2CoreLib.SPM;
 using XenoKit.Engine.Stage;
+using ControlzEx.Standard;
 
 namespace XenoKit.Editor
 {
@@ -57,7 +58,7 @@ namespace XenoKit.Editor
         }
         #endregion
 
-        private MetroWindow window = null;
+        private MainWindow window = null;
 
         public AsyncObservableCollection<OutlinerItem> OutlinerItems { get; set; } = new AsyncObservableCollection<OutlinerItem>();
 
@@ -90,9 +91,17 @@ namespace XenoKit.Editor
         {
             get
             {
-                var str = SelectedItem?.GetSaveContextFileName();
+                if(SceneManager.CurrentDynamicTab != DynamicTabs.None)
+                {
+                    DynamicTab tab = TabManager.GetSelectedDynamicTab();
+                    return tab.Context.CanSave() ? $"_Save File ({tab.Context.GetSaveContextFileName()})" : "Save File (N/A)";
+                }
+                else
+                {
+                    var str = SelectedItem?.GetSaveContextFileName();
 
-                return str == null ? $"Save File (N/A)" : $"_Save File ({str})";
+                    return str == null ? $"Save File (N/A)" : $"_Save File ({str})";
+                }
             }
         }
         public string SaveCurrentMenuString
@@ -116,20 +125,25 @@ namespace XenoKit.Editor
             var controller = await window.ShowProgressAsync("Initializing", "Reading game files...", false, DialogSettings.Default);
             controller.SetIndeterminate();
 
+            Log.Add("CreateViewerMode at " + window.sw.Elapsed, LogType.Debug);
             OutlinerItems.Add(new OutlinerItem(true, OutlinerItem.OutlinerItemType.Inspector, false));
+            Log.Add("CreateViewerMode finished at " + window.sw.Elapsed, LogType.Debug);
 
             try
             {
                 await Task.Run(() =>
                 {
+                    Log.Add("Xv2Init started at " + window.sw.Elapsed, LogType.Debug);
                     xv2.Instance.loadCharacters = true;
                     xv2.Instance.loadSkills = true;
                     xv2.Instance.loadCmn = true;
                     xv2.Instance.loadStage = true;
                     xv2.Instance.Init();
+                    Log.Add("Xv2Init finished at " + window.sw.Elapsed, LogType.Debug);
                 });
 
 
+                Log.Add("TryLoadCmn at " + window.sw.Elapsed, LogType.Debug);
                 if (GetCmnMove() == null && !SettingsManager.settings.XenoKit_DelayLoadingCMN)
                 {
                     await AsyncLoadCmnFiles(controller);
@@ -163,10 +177,17 @@ namespace XenoKit.Editor
             SaveItem(_selectedItem);
         }
 
-        public RelayCommand SaveContextFileCommand => new RelayCommand(SaveContextFile, () => SelectedItem?.GetSaveContextFileName() != null);
+        public RelayCommand SaveContextFileCommand => new RelayCommand(SaveContextFile, CanSaveContextFile);
         private void SaveContextFile()
         {
-            SelectedItem.SaveContextFile();
+            if (SceneManager.CurrentDynamicTab != DynamicTabs.None)
+            {
+                TabManager.GetSelectedDynamicTab().Context.Save();
+            }
+            else
+            {
+                SelectedItem.SaveContextFile();
+            }
         }
 
 
@@ -192,6 +213,7 @@ namespace XenoKit.Editor
 
                     SceneManager.UnsetActor(item.character);
                     OutlinerItems.Remove(item);
+                    TabManager.RemoveTabsForParent(item);
                 }
             }
         }
@@ -233,6 +255,19 @@ namespace XenoKit.Editor
             }
         }
 
+
+        private bool CanSaveContextFile()
+        {
+            if (SceneManager.CurrentDynamicTab != DynamicTabs.None)
+            {
+                DynamicTab tab = TabManager.GetSelectedDynamicTab();
+                return tab.Context.CanSave();
+            }
+            else
+            {
+                return SelectedItem?.GetSaveContextFileName() != null;
+            }
+        }
 
         private bool CanSave()
         {
@@ -474,6 +509,7 @@ namespace XenoKit.Editor
         {
             try
             {
+                Log.Add("CMN load started at " + window.sw.Elapsed, LogType.Debug);
                 Move move = new Move();
                 move.SetName("CMN");
                 move.MoveType = Move.Type.CMN;
@@ -539,7 +575,9 @@ namespace XenoKit.Editor
                 }
 
                 //Finish up EEPK loading
+                Log.Add("CMN load (partial) finished at " + window.sw.Elapsed, LogType.Debug);
                 await Task.WhenAll(eepkTasks);
+                Log.Add("CMN load (complete) finished at " + window.sw.Elapsed, LogType.Debug);
                 move.Files.EepkFiles.Sort((x, y) => x.Costumes[0] - y.Costumes[0]);
             }
             catch (Exception ex)

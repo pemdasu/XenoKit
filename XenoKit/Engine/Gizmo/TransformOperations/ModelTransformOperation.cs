@@ -1,22 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
-using Xv2CoreLib.EMD;
-using Xv2CoreLib.Resource.UndoRedo;
 using Microsoft.Xna.Framework;
+using XenoKit.Engine.Model;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Gizmo.TransformOperations
 {
     public class ModelTransformOperation : TransformOperation
     {
-        private EMD_File SourceFile;
-        private IList<EMD_Submesh> SourceSubmeshes;
-        private IList<Model.Xv2Submesh> CompiledSubmeshes;
+        public override RotationType RotationType => RotationType.EulerAngles;
 
-        public ModelTransformOperation(IList<EMD_Submesh> sourceSubmeshes, IList<Model.Xv2Submesh> compiledSubmeshes, EMD_File sourceFile)
+        private IList<Xv2Submesh> transforms;
+        private Matrix[] originalTransforms;
+
+        private Vector3 position = Vector3.Zero;
+        private Vector3 scale = Vector3.One;
+        private Vector3 rotation = Vector3.Zero;
+        private Matrix originalMatrix = Matrix.Identity;
+
+        public ModelTransformOperation(IList<Xv2Submesh> _transforms)
         {
-            SourceSubmeshes = sourceSubmeshes;
-            CompiledSubmeshes = compiledSubmeshes;
-            SourceFile = sourceFile;
+            transforms = _transforms;
+            originalTransforms = new Matrix[transforms.Count];
+
+            for(int i = 0; i < transforms.Count; i++)
+            {
+                originalTransforms[i] = transforms[i].Transform;
+            }
+
+            if(originalTransforms[0].Decompose(out Vector3 _scale, out Quaternion _rot, out Vector3 _translation))
+            {
+                position = _translation;
+                scale = _scale;
+                rotation = _rot.ToEuler();
+
+                originalMatrix *= Matrix.CreateScale(scale);
+                originalMatrix *= Matrix.CreateFromQuaternion(_rot);
+                originalMatrix *= Matrix.CreateTranslation(position);
+            }
         }
 
         public override void Confirm()
@@ -24,32 +45,8 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (IsFinished)
                 throw new InvalidOperationException($"ModelTransformOperation.Confirm: This transformation has already been finished, cannot add undo step or cancel at this point.");
 
-            List<IUndoRedo> undos = new List<IUndoRedo>();
-
-            for (int i = 0; i < SourceSubmeshes.Count; i++)
-            {
-                foreach (var vertex in SourceSubmeshes[i].Vertexes)
-                {
-                    float newX = vertex.PositionX + CompiledSubmeshes[i].Transform.Translation.X;
-                    float newY = vertex.PositionY + CompiledSubmeshes[i].Transform.Translation.Y;
-                    float newZ = vertex.PositionZ + CompiledSubmeshes[i].Transform.Translation.Z;
-
-                    undos.Add(new UndoablePropertyGeneric(nameof(EMD_Vertex.PositionX), vertex, vertex.PositionX, newX));
-                    undos.Add(new UndoablePropertyGeneric(nameof(EMD_Vertex.PositionY), vertex, vertex.PositionY, newY));
-                    undos.Add(new UndoablePropertyGeneric(nameof(EMD_Vertex.PositionZ), vertex, vertex.PositionZ, newZ));
-
-                    vertex.PositionX = newX;
-                    vertex.PositionY = newY;
-                    vertex.PositionZ = newZ;
-                }
-
-                CompiledSubmeshes[i].Transform = Matrix.Identity;
-            }
-
-            SourceFile.TriggerModelChanged();
-
-            undos.Add(new UndoActionDelegate(SourceFile, nameof(SourceFile.TriggerModelChanged), true));
-            UndoManager.Instance.AddCompositeUndo(undos, "Model Transform");
+            //Call into sourceModel to update the source model file
+            //Also add an undo step for the transforms
 
             IsFinished = true;
         }
@@ -59,8 +56,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (IsFinished)
                 throw new InvalidOperationException($"ModelTransformOperation.Cancel: This transformation has already been finished, cannot add undo step or cancel at this point.");
 
-            foreach (var model in CompiledSubmeshes)
-                model.Transform = Matrix.Identity;
+            for (int i = 0; i < transforms.Count; i++)
+            {
+                transforms[i].Transform = originalTransforms[i];
+            }
 
             IsFinished = true;
         }
@@ -70,12 +69,48 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
-
-                foreach (var submesh in CompiledSubmeshes)
-                {
-                    submesh.Transform *= Matrix.CreateTranslation(new Vector3(-delta.X, delta.Y, delta.Z));
-                }
+                position += new Vector3(-delta.X, delta.Y, delta.Z);
+                UpdateTransform();
             }
+        }
+
+        public override void UpdateRot(Vector3 newRot)
+        {
+            if (newRot != rotation)
+            {
+                Modified = true;
+                rotation = newRot;
+                UpdateTransform();
+            }
+        }
+
+        public override void UpdateScale(Vector3 delta)
+        {
+            if (delta != Vector3.Zero)
+            {
+                Modified = true;
+                scale += delta;
+                scale.ClampScale();
+                UpdateTransform();
+            }
+        }
+
+        private void UpdateTransform()
+        {
+            Matrix deltaMatrix = Matrix.Invert(originalMatrix);
+            deltaMatrix *= Matrix.CreateScale(scale);
+            deltaMatrix *= Matrix.CreateFromQuaternion(rotation.EulerToQuaternion());
+            deltaMatrix *= Matrix.CreateTranslation(position);
+
+            for(int i = 0; i < transforms.Count; i++)
+            {
+                transforms[i].Transform = originalTransforms[i] * deltaMatrix;
+            }
+        }
+
+        public override Vector3 GetRotationAngles()
+        {
+            return rotation;
         }
     }
 }

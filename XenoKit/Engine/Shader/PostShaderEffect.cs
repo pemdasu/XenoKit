@@ -1,10 +1,7 @@
-﻿using ControlzEx.Standard;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using SharpDX.WIC;
 using System;
 using Xv2CoreLib.EMM;
-using Xv2CoreLib.Resource.App;
 
 namespace XenoKit.Engine.Shader
 {

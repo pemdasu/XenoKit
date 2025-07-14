@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿/*
+using Microsoft.Xna.Framework;
 using System.Runtime.InteropServices;
 
 namespace XenoKit.Engine.Shader
@@ -32,12 +33,12 @@ namespace XenoKit.Engine.Shader
         [FieldOffset(576)]
         public Matrix g_mW_VS; //Same case as above
 
-        /*
-        [FieldOffset(560)]
-        public fixed float g_mWV_VS_padding[4];
-        [FieldOffset(624)]
-        public fixed float g_mW_VS_padding[4];
-        */
+        
+        //[FieldOffset(560)]
+        //public fixed float g_mWV_VS_padding[4];
+        //[FieldOffset(624)]
+        //public fixed float g_mW_VS_padding[4];
+        
     }
 
     //cb1
@@ -557,3 +558,4 @@ namespace XenoKit.Engine.Shader
         }
     }
 }
+*/

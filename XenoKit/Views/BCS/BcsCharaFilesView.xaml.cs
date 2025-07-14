@@ -21,6 +21,8 @@ using MahApps.Metro.Controls.Dialogs;
 using GalaSoft.MvvmLight.CommandWpf;
 using Xv2CoreLib.EMD;
 using System.Threading.Tasks;
+using XenoKit.Engine.Model;
+using XenoKit.Helper;
 
 namespace XenoKit.Views
 {
@@ -329,7 +331,7 @@ namespace XenoKit.Views
             {
                 if(SelectedFile.File is EMB_File embFile)
                 {
-                    window = GetActiveEmbForm(embFile);
+                    window = WindowHelper.GetActiveEmbForm(embFile);
 
                     if (window == null)
                     {
@@ -342,7 +344,7 @@ namespace XenoKit.Views
             {
                 if (SelectedFile.File is EMM_File emmFile)
                 {
-                    window = GetActiveEmmForm(emmFile);
+                    window = WindowHelper.GetActiveEmmForm(emmFile);
 
                     if (window == null)
                     {
@@ -355,12 +357,23 @@ namespace XenoKit.Views
             {
                 if (SelectedFile.File is EMD_File emdFile)
                 {
-                    window = GetActiveEmdForm(emdFile);
+                    GetFilesFromEmd(SelectedFile.Name, out string embPath, out string emmPath, out string dytPath);
+                    
+                    Xv2ModelFile compiledModel = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(emdFile, SceneManager.MainGameBase);
+                    ModelScene modelScene = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<ModelScene>(compiledModel, SceneManager.MainGameBase);
 
-                    if (window == null)
+                    if (!TabManager.FocusTab(modelScene))
                     {
-                        window = new EmdViewer(emdFile, SelectedFile.Name, Character);
-                        window.Show();
+                        EMB_File embFile = (EMB_File)LoadFile(embPath);
+                        EMM_File emmFile = (EMM_File)LoadFile(emmPath);
+                        EMB_File dytFile = (EMB_File)LoadFile(dytPath);
+                        modelScene.SetFiles(Engine.Shader.ShaderType.Chara, embFile, emmFile, dytFile);
+                        modelScene.SetPaths(true, SelectedFile.RelativePath, embPath, emmPath, dytPath);
+
+                        ModelSceneView modelSceneView = new ModelSceneView(modelScene);
+
+                        string tooltip = $"Model Editor for \"{SelectedFile.RelativePath}\"\n\nTexture/Materials:\n{embPath}\n{emmPath}\n{dytPath}";
+                        TabManager.AddTab($"{Path.GetFileName(SelectedFile.Name)}", modelSceneView, modelScene, Files.Instance.SelectedItem, tooltip);
                     }
                 }
             }
@@ -409,38 +422,6 @@ namespace XenoKit.Views
         }
         #endregion
 
-        public EmbEditForm GetActiveEmbForm(EMB_File _embFile)
-        {
-            foreach (var window in App.Current.Windows)
-            {
-                if (window is EmbEditForm)
-                {
-                    EmbEditForm _form = (EmbEditForm)window;
-
-                    if (_form.EmbFile == _embFile)
-                        return _form;
-                }
-            }
-
-            return null;
-        }
-
-        public MaterialsEditorForm GetActiveEmmForm(EMM_File _emmFile)
-        {
-            foreach (var window in App.Current.Windows)
-            {
-                if (window is MaterialsEditorForm)
-                {
-                    MaterialsEditorForm _form = (MaterialsEditorForm)window;
-
-                    if (_form.EmmFile == _emmFile)
-                        return _form;
-                }
-            }
-
-            return null;
-        }
-        
         public EmdViewer GetActiveEmdForm(EMD_File _emdFile)
         {
             foreach (var window in App.Current.Windows)
@@ -449,8 +430,8 @@ namespace XenoKit.Views
                 {
                     EmdViewer _form = (EmdViewer)window;
 
-                    if (_form.EmdFile == _emdFile)
-                        return _form;
+                    //if (_form.EmdFile == _emdFile)
+                    //    return _form;
                 }
             }
 
@@ -501,6 +482,51 @@ namespace XenoKit.Views
                 UndoManager.Instance.AddCompositeUndo(undos, droppedFilePaths.Length > 1 ? "Add Chara Files" : "Add Chara File", UndoGroup.BCS);
 
                 e.Handled = true;
+            }
+        }
+
+        private void GetFilesFromEmd(string EmdPath, out string EmbPath, out string EmmPath, out string DytPath)
+        {
+            Part part = Character.BcsFile.File.GetPartWithEmdPath(EmdPath);
+            PhysicsPart physicsPart = Character.BcsFile.File.GetPhysicsPartWithEmdPath(EmdPath);
+
+            if (part != null)
+            {
+                EmbPath = part.GetEmbPath(part.PartType);
+                DytPath = part.GetDytPath(part.PartType);
+                EmmPath = part.GetEmmPath(part.PartType);
+            }
+            else if (physicsPart != null)
+            {
+                string emb = physicsPart.GetEmbPath();
+                string dyt = physicsPart.GetDytPath();
+                string emm = physicsPart.GetEmmPath();
+
+                EmbPath = Character.PartSetFiles.Any(x => x.NameNoExt == Path.GetFileNameWithoutExtension(emb) && x.FileType == Xv2PartSetFile.Type.EMB) ? emb : part.GetEmbPath(part.PartType);
+                EmmPath = Character.PartSetFiles.Any(x => x.NameNoExt == Path.GetFileNameWithoutExtension(emm) && x.FileType == Xv2PartSetFile.Type.EMM) ? emm : part.GetEmmPath(part.PartType);
+                DytPath = Character.PartSetFiles.Any(x => x.NameNoExt == Path.GetFileNameWithoutExtension(dyt) && x.FileType == Xv2PartSetFile.Type.DYT_EMB) ? dyt : part.GetDytPath(part.PartType);
+            }
+            else
+            {
+                string noExt = $"{Path.GetDirectoryName(EmdPath)}/{Path.GetFileNameWithoutExtension(EmdPath)}";
+                EmmPath = $"{noExt}.emm";
+                EmbPath = $"{noExt}.emb";
+                DytPath = $"{noExt}.dyt.emb";
+            }
+        }
+    
+        private object LoadFile(string path)
+        {
+            var partSetEntry = Character.PartSetFiles.FirstOrDefault(x => $"chara/{Character.CmsEntry.ShortName}/{x.Name}" == path);
+
+            if (partSetEntry != null)
+            {
+                partSetEntry.Load();
+                return partSetEntry.File;
+            }
+            else
+            {
+                return FileManager.Instance.GetParsedFileFromGame(path);
             }
         }
     }

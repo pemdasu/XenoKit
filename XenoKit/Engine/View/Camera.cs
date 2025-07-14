@@ -7,6 +7,7 @@ using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
+using static AForge.Math.FourierTransform;
 
 namespace XenoKit.Engine.View
 {

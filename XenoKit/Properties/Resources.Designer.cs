@@ -59,5 +59,15 @@ namespace XenoKit.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] DefaultEmb {
+            get {
+                object obj = ResourceManager.GetObject("DefaultEmb", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }

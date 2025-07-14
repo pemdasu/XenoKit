@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using XenoKit.Editor;
 using XenoKit.Engine;
-using XenoKit.Engine.Animation;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Shader;
 using Xv2CoreLib.EMD;
@@ -35,7 +34,11 @@ namespace XenoKit.Inspector.InspectorEntities
         public TextureInspectorEntity TextureFile { get; private set; }
         public TextureInspectorEntity DytFile { get; private set; }
         public MaterialInspectorEntity MaterialFile { get; private set; }
-        private List<Xv2ShaderEffect> CompiledMaterials { get; set; }
+        private Xv2ShaderEffect[] CompiledMaterials { get; set; }
+
+        private bool IsMaterialsDirty = false;
+        private bool IsTexturesDirty = false;
+        private bool IsDytDirty = false;
 
         public MeshInspectorEntity(string path) : base(path)
         {
@@ -149,6 +152,8 @@ namespace XenoKit.Inspector.InspectorEntities
             {
                 AddMaterial(null);
             }
+
+            Model.MaterialsChanged += MaterialsChangedEvent;
         }
 
         public void AddTexture(TextureInspectorEntity texture)
@@ -213,12 +218,14 @@ namespace XenoKit.Inspector.InspectorEntities
                 ChildEntities.Add(material);
 
             MaterialFile = material;
-            CompiledMaterials = Model.InitializeMaterials(ShaderType, MaterialFile?.EmmFile);
+            CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType, GameBase);
+            Model.InitMaterialIndex(CompiledMaterials);
         }
 
         public override void Draw()
         {
             if (!Visible && !RenderSystem.IsReflectionPass) return;
+            HandleSourceUpdating();
 
             if (DytFile != null)
             {
@@ -269,5 +276,44 @@ namespace XenoKit.Inspector.InspectorEntities
         {
             Model?.SetAsReflectionMesh(isReflection);
         }
+
+        #region SourceUpdateEvents
+        private void HandleSourceUpdating()
+        {
+            if (IsMaterialsDirty)
+            {
+                CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType, GameBase);
+                Model.InitMaterialIndex(CompiledMaterials);
+                IsMaterialsDirty = false;
+            }
+
+            if (IsTexturesDirty && TextureFile != null)
+            {
+                TextureFile.RecreateTextureArray();
+                IsTexturesDirty = false;
+            }
+
+            if (IsDytDirty && DytFile != null)
+            {
+                DytFile.RecreateTextureArray();
+                IsDytDirty = false;
+            }
+        }
+
+        private void MaterialsChangedEvent(object sender, EventArgs e)
+        {
+            IsMaterialsDirty = true;
+        }
+
+        private void TexturesChangedEvent(object sender, EventArgs e)
+        {
+            IsTexturesDirty = true;
+        }
+
+        private void DytsChangedEvent(object sender, EventArgs e)
+        {
+            IsDytDirty = true;
+        }
+        #endregion
     }
 }

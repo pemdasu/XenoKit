@@ -151,7 +151,7 @@
                                 <ColumnDefinition Width="120"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Label Content="Background Color"/>
+                            <Label Content="Background Color" ToolTip="Background color of the viewport. NOTE: Only applies when no stage is active; the background will be always set to black in that case."/>
                             <Controls:ColorPicker Grid.Column="1" SelectedColor="{Binding BackgroundColor, UpdateSourceTrigger=PropertyChanged}"  IsColorPalettesTabVisible="False"/>
                         </Grid>
                     </StackPanel>

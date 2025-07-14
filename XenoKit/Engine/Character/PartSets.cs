@@ -581,7 +581,7 @@ namespace XenoKit.Engine
 
         //Compiled Objects:
         public Xv2ModelFile Model { get; private set; }
-        public List<Xv2ShaderEffect> Materials { get; private set; }
+        public Xv2ShaderEffect[] Materials { get; private set; }
         public Xv2Texture[] Textures { get; private set; }
         public Xv2Texture[] Dyts { get; private set; }
         public Xv2Skeleton Skeleton { get; private set; }
@@ -605,6 +605,8 @@ namespace XenoKit.Engine
 
         //Auto-updating
         private bool IsMaterialsDirty = false;
+        private bool IsTexturesDirty = false;
+        private bool IsDytDirty = false;
 
         public CharaPart(GameBase gameBase, Actor chara, Part part, PartType type) : base(gameBase)
         {
@@ -703,7 +705,7 @@ namespace XenoKit.Engine
 
             //Unsubscribe from ModelChanged event if a model already exists on this Part
             if (Model != null)
-                Model.ModelChanged -= RefreshMaterialsOnEdit;
+                Model.MaterialsChanged -= RefreshMaterialsOnEdit;
 
             Model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(EmdFile, GameBase);
 
@@ -727,7 +729,9 @@ namespace XenoKit.Engine
 
             if (Model != null)
             {
-                Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
+                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Chara, GameBase);
+                Model.InitMaterialIndex(Materials);
+                //Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
 
                 //If part is an Eye, then set the Eye Indices. This is needed for eye UV scroll to be set to allow eye movement.
                 //This code assumes there is just one material per eye
@@ -735,7 +739,7 @@ namespace XenoKit.Engine
 
                 if (partType == PartType.FaceEye)
                 {
-                    for (int i = 0; i < Materials.Count; i++)
+                    for (int i = 0; i < Materials.Length; i++)
                     {
                         if (Materials[i].Material.Name.Contains("_L"))
                         {
@@ -748,7 +752,7 @@ namespace XenoKit.Engine
                     }
                 }
 
-                Model.ModelChanged += RefreshMaterialsOnEdit;
+                Model.MaterialsChanged += RefreshMaterialsOnEdit;
             }
         }
 
@@ -883,11 +887,21 @@ namespace XenoKit.Engine
             IsMaterialsDirty = true;
         }
 
+        private void EmbFile_TexturesChanged(object sender, EventArgs e)
+        {
+            IsTexturesDirty = true;
+        }
+
+        private void DytFile_TexturesChanged(object sender, EventArgs e)
+        {
+            IsDytDirty = true;
+        }
+
         private void RefreshMaterials()
         {
             if (Model != null && EmmFile != null)
             {
-                Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
+                LoadMaterials();
             }
         }
         #endregion
@@ -958,6 +972,9 @@ namespace XenoKit.Engine
             string path;
             string owner;
 
+            if(EmbFile != null)
+                EmbFile.TexturesChanged -= EmbFile_TexturesChanged;
+
             if (IsPhysicsPart)
             {
                 path = GetFilePath(physicsPart.GetEmbPath(), Parent.part.GetEmbPath(partType));
@@ -984,6 +1001,9 @@ namespace XenoKit.Engine
                     //This character doesn't own these files so we just load them directly.
                     EmbFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(path);
                 }
+
+                if (EmbFile != null)
+                    EmbFile.TexturesChanged += EmbFile_TexturesChanged;
             }
             else
             {
@@ -995,6 +1015,9 @@ namespace XenoKit.Engine
         {
             string path;
             string owner = IsPhysicsPart ? physicsPart.CharaCode : part.CharaCode;
+
+            if(DytFile != null)
+                DytFile.TexturesChanged -= DytFile_TexturesChanged;
 
             if (IsPhysicsPart)
             {
@@ -1020,6 +1043,9 @@ namespace XenoKit.Engine
                     //This character doesn't own these files so we just load them directly.
                     DytFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(path);
                 }
+
+                if (DytFile != null)
+                    DytFile.TexturesChanged += DytFile_TexturesChanged;
             }
             else
             {
@@ -1031,6 +1057,9 @@ namespace XenoKit.Engine
         {
             string path;
             string owner = IsPhysicsPart ? physicsPart.CharaCode : part.CharaCode;
+
+            if (EmmFile != null)
+                EmmFile.MaterialsChanged -= RefreshMaterialsOnEdit;
 
             if (IsPhysicsPart)
             {
@@ -1057,6 +1086,9 @@ namespace XenoKit.Engine
                     //This character doesn't own these files so we just load them directly.
                     EmmFile = (EMM_File)FileManager.Instance.GetParsedFileFromGame(path);
                 }
+
+                if(EmmFile != null)
+                    EmmFile.MaterialsChanged += RefreshMaterialsOnEdit;
             }
             else
             {

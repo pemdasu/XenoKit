@@ -1,0 +1,591 @@
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Windows;
+using XenoKit.Editor;
+using XenoKit.Editor.Data;
+using XenoKit.Engine.Animation;
+using XenoKit.Engine.Objects;
+using XenoKit.Engine.Shader;
+using XenoKit.Engine.Textures;
+using Xv2CoreLib;
+using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMD;
+using Xv2CoreLib.EMG;
+using Xv2CoreLib.EMM;
+using Xv2CoreLib.EMO;
+using Xv2CoreLib.Resource.UndoRedo;
+
+namespace XenoKit.Engine.Model
+{
+    public class ModelScene : Entity, IDynamicTabObject
+    {
+        private bool PathsRelativeToGame = false;
+        public string EmdPath { get; private set; }
+        public string EmbPath { get; private set; }
+        public string EmmPath { get; private set; }
+        public string DytPath { get; private set; }
+
+        public EMD_File EmdFile => Model.Type == ModelType.Nsk ? Model.SourceNskFile.EmdFile : Model.SourceEmdFile;
+        public EMB_File EmbFile { get; private set; }
+        public EMM_File EmmFile { get; private set; }
+        public EMB_File DytFile { get; private set; }
+
+        public Xv2ModelFile Model { get; private set; }
+        private Xv2Texture[] Textures { get; set; }
+        private Xv2Texture[] DytTexture { get; set; }
+        private Xv2ShaderEffect[] Materials { get; set; }
+        public Xv2Skeleton Skeleton { get; private set; }
+
+        private DrawableBoundingBox DrawableAABB { get; set; }
+        public BoundingBox BoundingBox { get; private set; }
+        public bool IsBoundingBoxDirty = false;
+        public bool AlwaysUpdateBoundingBox = false;
+
+        private SamplerInfo DytSampler;
+
+        private ShaderType ShaderType { get; set; } = ShaderType.Chara;
+        private int DytIndex = 0;
+        private bool IsMaterialsDirty = false;
+        private bool IsTexturesDirty = false;
+        private bool IsDytDirty = false;
+
+        public ObservableCollection<object> SelectedItems { get; private set; } = new ObservableCollection<object>();
+        private readonly List<Xv2Submesh> _selectedSubmeshes = new List<Xv2Submesh>();
+
+        public ModelScene(GameBase game, Xv2ModelFile model) : base(game)
+        {
+            Model = model;
+            Model.MaterialsChanged += Model_MaterialsChanged;
+
+            if(Model.Type == ModelType.Nsk)
+            {
+                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceNskFile.EskFile, GameBase);
+            }
+            else if(Model.Type == ModelType.Emo)
+            {
+                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceEmoFile.Skeleton, GameBase);
+            }
+
+            DytSampler = new SamplerInfo()
+            {
+                type = SamplerType.Sampler2D,
+                textureSlot = 4,
+                samplerSlot = 4,
+                name = ShaderManager.GetSamplerName(4),
+                state = new SamplerState()
+                {
+                    AddressU = TextureAddressMode.Clamp,
+                    AddressV = TextureAddressMode.Clamp,
+                    AddressW = TextureAddressMode.Wrap,
+                    BorderColor = new Color(1, 1, 1, 1),
+                    Filter = TextureFilter.LinearMipPoint,
+                    MaxAnisotropy = 1,
+                    MaxMipLevel = 1,
+                    MipMapLevelOfDetailBias = 0,
+                    Name = ShaderManager.GetSamplerName(4)
+                }
+            };
+
+            DrawableAABB = new DrawableBoundingBox(game);
+            SelectedItems.CollectionChanged += SelectedItems_CollectionChanged;
+        }
+
+        private void SelectedItems_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            IsBoundingBoxDirty = true;
+
+            //Create list of Xv2Submeshes from SelectedItems (which are source objects - EMD, EMO etc)
+            _selectedSubmeshes.Clear();
+
+            if(!IsTextureSelected())
+                Model.GetAllSubmeshesFromSourceObjects(SelectedItems, _selectedSubmeshes);
+        }
+
+        public void SetFiles(ShaderType type, EMB_File emb, EMM_File emm, EMB_File dyt = null)
+        {
+            ShaderType = type;
+            EmbFile = emb;
+            EmmFile = emm;
+            DytFile = dyt;
+            Initialize();
+        }
+
+        public void SetPaths(bool pathRelativeToGame, string emdPath, string embPath, string emmPath, string dytPath)
+        {
+            //Must be called once when the files are set, to enable saving
+            PathsRelativeToGame = pathRelativeToGame;
+            EmdPath = emdPath;
+            EmbPath = embPath;
+            EmmPath = emmPath;
+            DytPath = dytPath;
+        }
+
+        public string GetSaveContextFileName() => Path.GetFileName(EmdPath);
+
+        public bool CanSave() => true;
+
+        public void Save()
+        {
+            string emdPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmdPath) : EmdPath;
+            string embPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmbPath) : EmbPath;
+            string emmPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmmPath) : EmmPath;
+            string dytPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(DytPath) : DytPath;
+            int numSaved = 0;
+
+            if (!string.IsNullOrWhiteSpace(EmbPath) && EmbFile != null)
+            {
+                EmbFile.SaveBinaryEmbFile(embPath);
+                numSaved++;
+                Log.Add($"Saved \"{EmbPath}\"");
+            }
+
+            if (!string.IsNullOrWhiteSpace(EmmPath) && EmmPath != null)
+            {
+                EmmFile.SaveBinaryEmmFile(emmPath);
+                numSaved++;
+                Log.Add($"Saved \"{EmmPath}\"");
+            }
+
+            if (!string.IsNullOrWhiteSpace(DytPath) && DytFile != null)
+            {
+                DytFile.SaveBinaryEmbFile(dytPath);
+                numSaved++;
+                Log.Add($"Saved \"{DytPath}\"");
+            }
+
+            if (!string.IsNullOrWhiteSpace(EmdPath))
+            {
+                if (Path.GetExtension(EmdPath) == ".emd")
+                {
+                    Model.SourceEmdFile.Save(emdPath);
+                }
+                else if (Path.GetExtension(EmdPath) == ".nsk")
+                {
+                    Model.SourceNskFile.SaveFile(emdPath);
+                }
+
+                numSaved++;
+                Log.Add($"Saved \"{EmdPath}\" ({numSaved} files saved)");
+            }
+        }
+
+        private void Initialize()
+        {
+            if (EmmFile != null)
+                EmmFile.MaterialsChanged += Model_MaterialsChanged;
+
+            if (EmbFile != null)
+                EmbFile.TexturesChanged += EmbFile_TexturesChanged;
+
+            if (DytFile != null)
+                DytFile.TexturesChanged += DytFile_TexturesChanged;
+
+            InitMaterials();
+            InitTextures();
+            InitDyts();
+
+        }
+
+        private void InitDyts()
+        {
+            if (DytFile != null)
+            {
+                DytTexture = Xv2Texture.LoadTextureArray(DytFile, GameBase);
+            }
+            else
+            {
+                DytTexture = null;
+            }
+        }
+
+        private void InitTextures()
+        {
+            if (EmbFile != null)
+            {
+                Textures = Xv2Texture.LoadTextureArray(EmbFile, GameBase);
+            }
+            else
+            {
+                Textures = null;
+            }
+
+            IsTexturesDirty = false;
+        }
+
+        private void InitMaterials()
+        {
+
+            Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType, GameBase);
+            Model.InitMaterialIndex(Materials);
+            IsMaterialsDirty = false;
+        }
+
+        public override void Update()
+        {
+            if (IsMaterialsDirty)
+            {
+                InitMaterials();
+            }
+
+            if (IsTexturesDirty)
+            {
+                InitTextures();
+            }
+
+            if (IsDytDirty)
+            {
+                InitDyts();
+            }
+
+            if (IsBoundingBoxDirty || AlwaysUpdateBoundingBox)
+            {
+                CalculateBoundingBox();
+            }
+
+            Model?.Update(0, Skeleton);
+
+            if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && IsAnyModelObjectSelected())
+            {
+                SceneManager.MainGameInstance.camera.LookAt(BoundingBox);
+                Log.Add("LookAt from Update");
+            }
+        }
+
+        public override void Draw()
+        {
+            if (DytTexture?.Length > 0)
+            {
+                GraphicsDevice.SamplerStates[4] = DytSampler.state;
+                GraphicsDevice.Textures[4] = DytIndex < DytTexture.Length && DytIndex >= 0 ? DytTexture[DytIndex].Texture : DytTexture[0].Texture;
+            }
+
+            Model.Draw(Matrix.Identity, 0, Materials, Textures, DytTexture, DytIndex, Skeleton);
+
+            if(IsAnyModelObjectSelected())
+                DrawableAABB.Draw(Matrix.Identity, BoundingBox);
+
+            foreach(var selectedMesh in _selectedSubmeshes)
+            {
+                selectedMesh.Draw(0, DefaultShaders.RedWireframe, Skeleton);
+            }
+        }
+
+        public override void DrawPass(bool normalPass)
+        {
+            if (normalPass && ShaderType == ShaderType.Stage) return; //No normal pass for stages
+
+            Xv2ShaderEffect shader = RenderSystem.NORMAL_FADE_WATERDEPTH_W_M;
+
+            if (ShaderType == ShaderType.Stage)
+            {
+                shader = RenderSystem.ShadowModel;
+            }
+            else if (ShaderType == ShaderType.Chara)
+            {
+                shader = RenderSystem.ShadowModel_W;
+            }
+
+            Model.Draw(Matrix.Identity, 0, shader, Skeleton);
+        }
+
+        private void CalculateBoundingBox()
+        {
+            BoundingBox = Xv2Submesh.CalculateBoundingBox(_selectedSubmeshes, Skeleton);
+            IsBoundingBoxDirty = false;
+        }
+
+        #region Edit Methods
+        public void DeleteSelectedModels()
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (var item in SelectedItems)
+            {
+                if (item is EMD_Model emdModel)
+                {
+                    undos.Add(new UndoableListRemove<EMD_Model>(EmdFile.Models, emdModel));
+                    EmdFile.Models.Remove(emdModel);
+
+                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdModel)));
+                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdModel, null);
+                }
+            }
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Delete Model");
+            SelectedItems.Clear();
+        }
+
+        public void DeleteSelectedMeshes()
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (var item in SelectedItems)
+            {
+                if (item is EMD_Mesh emdMesh)
+                {
+                    EMD_Model parentModel = EmdFile.GetParentModel(emdMesh);
+
+                    undos.Add(new UndoableListRemove<EMD_Mesh>(parentModel.Meshes, emdMesh));
+                    parentModel.Meshes.Remove(emdMesh);
+
+                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdMesh, parentModel)));
+                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdMesh, parentModel);
+                }
+            }
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Delete Mesh");
+            SelectedItems.Clear();
+        }
+
+        public void DeleteSelectedSubmeshes()
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (var item in SelectedItems)
+            {
+                if (item is EMD_Submesh emdSubmesh)
+                {
+                    EMD_Mesh parentMesh = EmdFile.GetParentMesh(emdSubmesh);
+
+                    undos.Add(new UndoableListRemove<EMD_Submesh>(parentMesh.Submeshes, emdSubmesh));
+                    parentMesh.Submeshes.Remove(emdSubmesh);
+
+                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdSubmesh, parentMesh)));
+                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdSubmesh, parentMesh);
+                }
+            }
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Delete Submesh");
+            SelectedItems.Clear();
+        }
+
+        public void DeleteSelectedTextures()
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (var item in SelectedItems)
+            {
+                if (item is EMD_TextureSamplerDef texture)
+                {
+                    EMD_Submesh parentSubmesh = EmdFile.GetParentSubmesh(texture);
+
+                    undos.Add(new UndoableListRemove<EMD_TextureSamplerDef>(parentSubmesh.TextureSamplerDefs, texture));
+                    parentSubmesh.TextureSamplerDefs.Remove(texture);
+
+                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, parentSubmesh)));
+                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, parentSubmesh);
+                }
+            }
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Delete Texture Sampler");
+            SelectedItems.Clear();
+        }
+
+        public void CopySelectedModels()
+        {
+            if (!IsModelSelected()) return;
+
+            if (SelectedItems[0] is EMD_Model)
+            {
+                EMD_Model[] models = GetSelectedItemsAsTypeArray<EMD_Model>();
+                SerializedModel serializedModel = new SerializedModel(models, EmmFile, EmbFile);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_EMD_MODEL, serializedModel);
+            }
+        }
+
+        public void CopySelectedMeshes()
+        {
+            if (!IsModelSelected()) return;
+
+            if (SelectedItems[0] is EMD_Mesh)
+            {
+                EMD_Mesh[] models = GetSelectedItemsAsTypeArray<EMD_Mesh>();
+                SerializedModel serializedModel = new SerializedModel(models, EmmFile, EmbFile);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_EMD_MESH, serializedModel);
+            }
+        }
+
+        public void CopySelectedSubmeshes()
+        {
+            if (!IsModelSelected()) return;
+
+            if (SelectedItems[0] is EMD_Submesh)
+            {
+                EMD_Submesh[] models = GetSelectedItemsAsTypeArray<EMD_Submesh>();
+                SerializedModel serializedModel = new SerializedModel(models, EmmFile, EmbFile);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_EMD_SUBMESH, serializedModel);
+            }
+        }
+
+        public void PasteModels()
+        {
+            if (Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MODEL))
+            {
+                SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_MODEL);
+
+                List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+
+                foreach(var model in serializedModel.EmdModel)
+                {
+                    undos.Add(new UndoableListAdd<EMD_Model>(EmdFile.Models, model));
+                    EmdFile.Models.Add(model);
+                }
+
+                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdModel)));
+                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdModel, null);
+
+                UndoManager.Instance.AddCompositeUndo(undos, "Paste Model");
+            }
+        }
+
+        public void PasteMeshes()
+        {
+            if (Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MESH))
+            {
+                SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_MESH);
+
+                List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+                EMD_Model parentModel = SelectedItems[0] as EMD_Model;
+
+                if (parentModel == null)
+                    return;
+
+                foreach (var model in serializedModel.EmdMesh)
+                {
+                    undos.Add(new UndoableListAdd<EMD_Mesh>(parentModel.Meshes, model));
+                    parentModel.Meshes.Add(model);
+                }
+
+                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File .CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdMesh, parentModel)));
+                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdMesh, parentModel);
+
+                UndoManager.Instance.AddCompositeUndo(undos, "Paste Mesh");
+            }
+        }
+
+        public void PasteSubmeshes()
+        {
+            if (Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_SUBMESH))
+            {
+                SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_SUBMESH);
+
+                List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+                EMD_Mesh parentMesh = SelectedItems[0] as EMD_Mesh;
+
+                if (parentMesh == null)
+                    return;
+
+                foreach (var submesh in serializedModel.EmdSubmesh)
+                {
+                    undos.Add(new UndoableListAdd<EMD_Submesh>(parentMesh.Submeshes, submesh));
+                    parentMesh.Submeshes.Add(submesh);
+                }
+
+                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdSubmesh, parentMesh)));
+                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdSubmesh, parentMesh);
+
+                UndoManager.Instance.AddCompositeUndo(undos, "Paste Submesh");
+            }
+        }
+
+
+        private T[] GetSelectedItemsAsTypeArray<T>()
+        {
+            List<T> items = new List<T>(SelectedItems.Count);
+
+            foreach (var selectedItem in SelectedItems)
+            {
+                if (selectedItem is T item)
+                {
+                    items.Add(item);
+                }
+            }
+
+            return items.ToArray();
+        }
+
+        public bool IsModelSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return (SelectedItems[0] is EMD_Model || SelectedItems[0] is EMO_Part);
+        }
+
+        public bool IsMeshSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return (SelectedItems[0] is EMD_Mesh || SelectedItems[0] is EMG_File);
+        }
+
+        public bool IsSubmeshSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return (SelectedItems[0] is EMD_Submesh || SelectedItems[0] is EMG_Submesh);
+        }
+
+        public bool IsTextureSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return (SelectedItems[0] is EMD_TextureSamplerDef);
+        }
+
+        public bool IsAnyModelObjectSelected()
+        {
+            return IsModelSelected() || IsMeshSelected() || IsSubmeshSelected();
+        }
+
+        public bool HasOnlyOneSelectedType()
+        {
+            if (SelectedItems.Count < 1) return true;
+
+            for(int i = 1; i < SelectedItems.Count; i++)
+            {
+                if (SelectedItems[0].GetType() != SelectedItems[i].GetType()) return false;
+            }
+
+            return true;
+        }
+        
+        public bool CanPasteModel()
+        {
+            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MODEL) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_MODEL);
+        }
+
+        public bool CanPasteMesh()
+        {
+            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MESH) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_MESH);
+        }
+
+        public bool CanPasteSubmesh()
+        {
+            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_SUBMESH) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_SUBMESH);
+        }
+        #endregion
+
+        #region SourceUpdateEvents
+
+        private void Model_MaterialsChanged(object sender, EventArgs e)
+        {
+            IsMaterialsDirty = true;
+        }
+
+        private void EmbFile_TexturesChanged(object sender, EventArgs e)
+        {
+            IsTexturesDirty = true;
+        }
+        
+        private void DytFile_TexturesChanged(object sender, EventArgs e)
+        {
+            IsDytDirty = true;
+        }
+
+        #endregion
+    }
+}

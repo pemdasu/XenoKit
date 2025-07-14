@@ -1,0 +1,47 @@
+﻿using System;
+using Xv2CoreLib.EMM;
+
+namespace XenoKit.Engine.Shader
+{
+    public static class DefaultShaders
+    {
+        public static Xv2ShaderEffect VertexColor_W { get; private set; }
+        public static Xv2ShaderEffect Red { get; private set; }
+        public static Xv2ShaderEffect RedWireframe { get; private set; }
+        public static Xv2ShaderEffect BlueWireframe { get; private set; }
+        public static Xv2ShaderEffect WhiteWireframe { get; private set; }
+
+        public static void InitDefaultShaders(GameBase gameBase)
+        {
+            EmmMaterial material = new EmmMaterial();
+            material.Name = "default";
+            material.DecompileParameters();
+            material.DecompiledParameters.BackFace = 1;
+            material.DecompiledParameters.ForceWireframeMode = true;
+
+            //Red
+            material.ShaderProgram = "Red";
+            RedWireframe = new Xv2ShaderEffect(material, ShaderType.Chara, gameBase);
+
+            //Blue
+            EmmMaterial blueMat = material.Copy();
+            blueMat.ShaderProgram = "Blue";
+            BlueWireframe = new Xv2ShaderEffect(blueMat, ShaderType.Chara, gameBase);
+
+            //White
+            EmmMaterial whiteMat = material.Copy();
+            whiteMat.ShaderProgram = "White";
+            WhiteWireframe = new Xv2ShaderEffect(whiteMat, ShaderType.Chara, gameBase);
+
+            //Skinned default shader for characters/stages/emos
+            EmmMaterial normalMat = material.Copy();
+            normalMat.ShaderProgram = "VertexColor_W";
+            VertexColor_W = new Xv2ShaderEffect(normalMat, ShaderType.Chara, gameBase);
+
+            //No wireframe
+            EmmMaterial redNoWireframeMat = material.Copy();
+            redNoWireframeMat.DecompiledParameters.ForceWireframeMode = false;
+            Red = new Xv2ShaderEffect(redNoWireframeMat, ShaderType.Chara, gameBase);
+        }
+    }
+}

@@ -12,6 +12,7 @@ using XenoKit.Engine.Rendering;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Scripting;
 using XenoKit.Engine.Stage;
+using XenoKit.Engine.Textures;
 
 namespace XenoKit.Engine
 {
@@ -36,6 +37,7 @@ namespace XenoKit.Engine
         public ObjectPoolManager ObjectPoolManager { get; private set; }
         public Simulation Simulation { get; private set; }
 
+        protected bool _isDefaultStageActive = true;
         protected Xv2Stage _defaultStage;
         protected Xv2Stage _setStage;
         public Xv2Stage CurrentStage { get; protected set; }
@@ -55,6 +57,7 @@ namespace XenoKit.Engine
         public virtual Color BackgroundColor { get; set; } = new Color(20, 20, 20, 255);
         private int DelayedTimer = 0;
         protected int HotkeyCooldown = 0;
+
 
         protected override void Initialize()
         {
@@ -85,6 +88,8 @@ namespace XenoKit.Engine
             // must be called after the WpfGraphicsDeviceService instance was created
             base.Initialize();
 
+            Xv2Texture.InitDefaultTexture(this);
+            DefaultShaders.InitDefaultShaders(this);
         }
 
         protected override void LoadContent()

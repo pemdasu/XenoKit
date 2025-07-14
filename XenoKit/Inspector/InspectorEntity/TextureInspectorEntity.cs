@@ -35,6 +35,11 @@ namespace XenoKit.Inspector.InspectorEntities
             return true;
         }
 
+        public void RecreateTextureArray()
+        {
+            Textures = Xv2Texture.LoadTextureArray(EmbFile, SceneManager.MainGameBase);
+        }
+
         public override bool Save()
         {
             EmbFile.SaveBinaryEmbFile(Path);

@@ -20,7 +20,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private readonly Xv2CoreLib.EffectContainer.Asset Asset;
 
         private Xv2ModelFile Model;
-        private List<Xv2ShaderEffect> Materials;
+        private Xv2ShaderEffect[] Materials;
         private Xv2Texture[] Textures;
         private EMA_File MaterialAnimations;
         private EMA_File ObjAnimations;
@@ -111,7 +111,8 @@ namespace XenoKit.Engine.Vfx.Asset
 
             if (Model != null)
             {
-                Materials = Model.InitializeMaterials(ShaderType.Default, EmmFile);
+                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Default, GameBase);
+                Model.InitMaterialIndex(Materials);
             }
             else
             {

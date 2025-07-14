@@ -1,15 +1,28 @@
-﻿using System.Collections.Generic;
-using Xv2CoreLib.EMD;
+﻿using Microsoft.Xna.Framework;
+using System;
+using System.Collections.Generic;
+using XenoKit.Engine.Animation;
 using XenoKit.Engine.Gizmo.TransformOperations;
 using XenoKit.Engine.Model;
-using XenoKit.Editor;
 
 namespace XenoKit.Engine.Gizmo
 {
     public class ModelGizmo : GizmoBase
     {
-        //Has an unsolved bug so it is currently disabled
-        //Only a single TransformOperation works correctly. Any further ones will not update properly. The end result is good, but it doesn't show anything while dragging the gizmo.
+        protected override Matrix WorldMatrix
+        {
+            get
+            {
+                if (transforms == null) return Matrix.Identity;
+                Matrix pos = transforms[0].Transform * Matrix.CreateTranslation(centerPosition);
+
+                if (attachBone != null)
+                    pos *= attachBone.AbsoluteAnimationMatrix;
+
+                return pos;
+            }
+        }
+
 
         protected override ITransformOperation TransformOperation
         {
@@ -28,43 +41,43 @@ namespace XenoKit.Engine.Gizmo
         }
         private ModelTransformOperation transformOperation = null;
 
-        private EMD_File SourceFile = null;
-        private IList<EMD_Submesh> SelectedSourceSubmeshes = null;
-        private IList<Xv2Submesh> SelectedCompiledSubmeshes = null;
+        private IList<Xv2Submesh> transforms = null;
+        private Vector3 centerPosition;
+        private Xv2Bone attachBone;
 
         //Settings
-        protected override bool AllowRotation => false;
-        protected override bool AllowScale => false;
+        protected override bool AllowRotation => true;
+        protected override bool AllowScale => true;
 
         public ModelGizmo(GameBase gameBase) : base(gameBase)
         {
             
         }
 
-        public void SetContext(IList<EMD_Submesh> selectedSourceSubmeshes, IList<Xv2Submesh> selectedCompiledSubmeshes, EMD_File sourceFile)
+        public void SetContext(IList<Xv2Submesh> _transforms, Xv2Bone attachBone)
         {
-            SelectedSourceSubmeshes = selectedSourceSubmeshes;
-            SelectedCompiledSubmeshes = selectedCompiledSubmeshes;
-            SourceFile = sourceFile;
+            transforms = _transforms;
+            centerPosition = Xv2Submesh.CalculateCenter(transforms);
+            this.attachBone = attachBone;
 
             base.SetContext();
         }
 
         public void RemoveContext()
         {
-            SetContext(null, null, null);
+            SetContext(null, null);
         }
 
         public override bool IsContextValid()
         {
-            return SelectedSourceSubmeshes != null && SelectedCompiledSubmeshes != null && SourceFile != null;
+            return transforms != null && SceneManager.CurrentDynamicTab == DynamicTabs.ModelScene;
         }
 
         protected override void StartTransformOperation()
         {
-            if(SelectedCompiledSubmeshes != null && SelectedSourceSubmeshes != null)
+            if(IsContextValid())
             {
-                transformOperation = new ModelTransformOperation(SelectedSourceSubmeshes, SelectedCompiledSubmeshes, SourceFile);
+                transformOperation = new ModelTransformOperation(transforms);
             }
         }
     }

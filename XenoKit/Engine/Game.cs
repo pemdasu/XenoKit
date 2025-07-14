@@ -39,12 +39,9 @@ namespace XenoKit.Engine
         public BoneScaleGizmo BoneScaleGizmo;
         public BacMatrixGizmo BacMatrixGizmo;
         public HitboxGizmo BacHitboxGizmo;
+        public ModelGizmo ModelGizmo;
         public EntityTransformGizmo EntityTransformGizmo;
         private InfiniteWorldGrid WorldGrid;
-
-
-        //Stage. Not final design just a quick hacky way to get stages into the application.
-        public ManualFiles ActiveStage = null;
 
         private RenderTargetWrapper MainRenderTarget;
         private RenderTargetWrapper AxisCorrectionRenderTarget;
@@ -67,6 +64,7 @@ namespace XenoKit.Engine
             BacMatrixGizmo = new BacMatrixGizmo(this);
             BacHitboxGizmo = new HitboxGizmo(this);
             EntityTransformGizmo = new EntityTransformGizmo(this);
+            ModelGizmo = new ModelGizmo(this);
             CurrentGizmo = AnimatorGizmo;
 
             camera = new Camera(this);
@@ -110,6 +108,7 @@ namespace XenoKit.Engine
             CurrentGizmo.Update();
             BacHitboxGizmo.Update();
             EntityTransformGizmo.Update();
+            ModelGizmo.Update();
 
             AudioEngine.Update();
 
@@ -161,6 +160,7 @@ namespace XenoKit.Engine
             RenderSystem.DelayedUpdate();
             CurrentGizmo.DelayedUpdate();
             BacHitboxGizmo.DelayedUpdate();
+            ModelGizmo.DelayedUpdate();
 
             for (int i = 0; i < SceneManager.Actors.Length; i++)
             {
@@ -206,7 +206,7 @@ namespace XenoKit.Engine
 
             //Draw MainRenderTarget onto screen
             GraphicsDevice.SetRenderTarget(AxisCorrectionRenderTarget.RenderTarget);
-            GraphicsDevice.Clear(IsBlackVoid ? Color.Black : SceneManager.ViewportBackgroundColor);
+            GraphicsDevice.Clear(IsBlackVoid || !_isDefaultStageActive ? Color.Black : SceneManager.ViewportBackgroundColor);
             GraphicsDevice.SetDepthBuffer(RenderSystem.DepthBuffer.RenderTarget);
 
             //Merge RTs
@@ -218,6 +218,7 @@ namespace XenoKit.Engine
             CurrentGizmo.Draw();
             BacHitboxGizmo.Draw();
             EntityTransformGizmo.Draw();
+            ModelGizmo.Draw();
             WorldGrid.Draw();
 
             //Now apply axis correction
@@ -401,6 +402,7 @@ namespace XenoKit.Engine
                 RenderSystem.AddRenderEntity(stage);
             }
 
+            _isDefaultStageActive = stage == null;
             CurrentStage = stage != null ? stage : _defaultStage;
             CurrentStage.SetActiveStage();
         }

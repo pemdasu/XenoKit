@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using XenoKit.Engine.Gizmo.TransformOperations;
 using XenoKit.Engine.Shapes;
+using Xv2CoreLib.EMD;
 using Plane = Microsoft.Xna.Framework.Plane;
 
 namespace XenoKit.Engine.Gizmo
@@ -182,6 +183,8 @@ namespace XenoKit.Engine.Gizmo
         #endregion
 
         protected virtual ITransformOperation TransformOperation { get; set; }
+        protected Action CallbackOnBegin { get; set; }
+        protected Action CallbackOnComplete { get; set; }
 
         //Settings
         protected virtual bool AutoPause => false;
@@ -272,6 +275,12 @@ namespace XenoKit.Engine.Gizmo
 
             if (!AllowTranslate && !AllowRotation && !AllowScale)
                 throw new ArgumentException("GizmoBase: Translate, Rotate and Scale are all not allowed on derived class.");
+        }
+
+        public void SetCallback(Action callbackOnBegin, Action callbackOnComplete)
+        {
+            CallbackOnBegin = callbackOnBegin;
+            CallbackOnComplete = callbackOnComplete;
         }
 
         public void Enable()
@@ -596,6 +605,8 @@ namespace XenoKit.Engine.Gizmo
                                         break;
                                 }
 
+                                rotAmount.ClampEuler();
+                                /*
                                 if (rotAmount.X > 360)
                                     rotAmount.X -= 360;
                                 if (rotAmount.Y > 360)
@@ -609,6 +620,7 @@ namespace XenoKit.Engine.Gizmo
                                     rotAmount.Y += 360;
                                 if (rotAmount.Z < 0f)
                                     rotAmount.Z += 360;
+                                */
 
                                 //Update animation
                                 TransformOperation?.UpdateRot(rotAmount);
@@ -645,6 +657,7 @@ namespace XenoKit.Engine.Gizmo
 
                 Input.LeftClickHeldDownContext = this;
                 ResetDeltas();
+                CallbackOnBegin?.Invoke();
                 StartTransformOperation();
             }
 
@@ -653,10 +666,15 @@ namespace XenoKit.Engine.Gizmo
                 Input.LeftClickHeldDownContext = null;
 
                 if (TransformOperation?.Modified == true)
+                {
                     TransformOperation.Confirm();
+                }
                 else if (TransformOperation != null)
+                {
                     TransformOperation.Cancel();
+                }
 
+                CallbackOnComplete?.Invoke();
                 TransformOperation = null;
                 ResetDeltas();
             }

@@ -15,7 +15,7 @@ namespace XenoKit.Engine.Model
         public Xv2ModelFile Model {  get; set; }
         public EMM_File MaterialFile {  get; set; }
 
-        private readonly List<Xv2ShaderEffect> _materials;
+        private readonly Xv2ShaderEffect[] _materials;
 
         public Lod(float distance, Xv2ModelFile model, Xv2Skeleton skeleton, EMM_File emmFile)
         {
@@ -25,7 +25,10 @@ namespace XenoKit.Engine.Model
             MaterialFile = emmFile;
 
             if(model != null)
-                _materials = model.InitializeMaterials(ShaderType.Stage, emmFile);
+            {
+                _materials = Xv2ShaderEffect.LoadMaterials(emmFile, ShaderType.Stage, Model.GameBase);
+                Model.InitMaterialIndex(_materials);
+            }
         }
 
         public void Draw(Matrix world, Xv2Texture[] textures)

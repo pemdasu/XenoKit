@@ -19,7 +19,7 @@ namespace XenoKit.Engine.Model
 
         public Xv2Skeleton Skeleton;
         public Xv2ModelFile Model;
-        public List<Xv2ShaderEffect> Materials;
+        public Xv2ShaderEffect[] Materials;
         public Xv2Texture[] Textures;
 
         public StageModel(byte[] nsk, byte[] emm, byte[] emb, GameBase gameBase) : base(gameBase)
@@ -30,7 +30,8 @@ namespace XenoKit.Engine.Model
 
             Skeleton = new Xv2Skeleton(nskFile.EskFile);
             Model = Xv2ModelFile.LoadNsk(gameBase, nskFile);
-            Materials = Model.InitializeMaterials(ShaderType.Stage, emmFile);
+            Materials = Xv2ShaderEffect.LoadMaterials(emmFile, ShaderType.Stage, GameBase);
+            Model.InitMaterialIndex(Materials);
             Textures = Xv2Texture.LoadTextureArray(embFile, gameBase);
         }
 

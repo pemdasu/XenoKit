@@ -346,6 +346,34 @@ namespace XenoKit.Engine.View
                 Frustum.Matrix = ViewProjectionMatrix;
         }
 
+        public void LookAt(BoundingBox box)
+        {
+            float fieldOfViewRadians = (float)(Math.PI / 180 * CameraState.FieldOfView);
+            float aspectRatio = GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;
+
+            Vector3 boxCenter = (box.Min + box.Max) * 0.5f;
+            Vector3 boxExtents = (box.Max - box.Min) * 0.5f;
+
+            //Determine the forward direction
+            Vector3 forward = Vector3.Normalize(boxCenter - CameraState.Position);
+            if (forward.LengthSquared() < 1e-6f)
+                forward = Vector3.Backward; // fallback if camera is at box center
+
+            Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.Up, forward));
+            Vector3 up = Vector3.Normalize(Vector3.Cross(forward, right));
+
+            float extentX = Math.Abs(Vector3.Dot(right, boxExtents));
+            float extentY = Math.Abs(Vector3.Dot(up, boxExtents));
+            float tanFovY = (float)Math.Tan(fieldOfViewRadians * 0.5f);
+            float tanFovX = tanFovY * aspectRatio;
+
+            float requiredDistanceX = extentX / tanFovX;
+            float requiredDistanceY = extentY / tanFovY;
+            float requiredDistance = Math.Max(requiredDistanceX, requiredDistanceY);
+
+            CameraState.TargetPosition = boxCenter;
+            CameraState.Position = boxCenter - forward * requiredDistance;
+        }
         #endregion
     }
 }

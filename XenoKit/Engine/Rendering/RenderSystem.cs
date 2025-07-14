@@ -29,13 +29,15 @@ namespace XenoKit.Engine.Rendering
         private readonly List<Entity> StagesToRemove = new List<Entity>();
         private readonly List<Entity> EffectsToRemove = new List<Entity>();
 
+        private Entity RenderScene = null;
+
         private int _particleCount = 0;
         public int ActiveParticleCount { get; private set; }
         public int MeshDrawCalls;
         public int Count => Characters.Count + Effects.Count;
 
-        private List<RenderTargetWrapper> registeredRenderTargets = new List<RenderTargetWrapper>();
-        private List<RenderTarget2D> _toBeDisposed = new List<RenderTarget2D>();
+        private readonly List<RenderTargetWrapper> registeredRenderTargets = new List<RenderTargetWrapper>();
+        private readonly List<RenderTarget2D> _toBeDisposed = new List<RenderTarget2D>();
 
         //Render Settings
         public DrawPass CurrentDrawPass { get; private set; }
@@ -246,6 +248,9 @@ namespace XenoKit.Engine.Rendering
             //ShadowMapRes == 16 means shadows are disabled
             if (SettingsManager.settings.XenoKit_ShadowMapRes > 16)
             {
+                if (SceneManager.UseRenderScene)
+                    RenderScene.DrawPass(false);
+                
                 DrawSimpleEntity(Characters, false);
                 DrawSimpleEntity(Stages, false);
 
@@ -259,13 +264,19 @@ namespace XenoKit.Engine.Rendering
             GraphicsDevice.Clear(NormalsBackgroundColor);
             DrawSimpleEntity(Characters, true);
 
+            if (SceneManager.UseRenderScene)
+                RenderScene.DrawPass(true);
+            
             //Color Pass (Chara + Stage Enviroment)
             SetRenderTargets(ColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
             GraphicsDevice.Clear(Color.Transparent);
             GraphicsDevice.SetDepthBuffer(DepthBuffer.RenderTarget);
             DrawEntity(Characters, LOW_REZ_NONE);
 
-            if(!GameBase.IsBlackVoid)
+            if (SceneManager.UseRenderScene)
+                DrawRenderScene();
+
+            if (!GameBase.IsBlackVoid)
                 DrawEntity(Stages, LOW_REZ_NONE);
 
             //Black Chara Outline Shader
@@ -495,6 +506,8 @@ namespace XenoKit.Engine.Rendering
 
         private void DrawEntity(List<Entity> entities, int lowRezMode)
         {
+            if (SceneManager.UseRenderScene) return;
+
             int particleCount = 0;
 #if DEBUG
             CurrentDrawIdx = 0;
@@ -559,6 +572,23 @@ namespace XenoKit.Engine.Rendering
             _particleCount += particleCount;
         }
 
+        private void DrawRenderScene()
+        {
+            if (RenderScene == null) return;
+
+            CurrentDrawPass = Rendering.DrawPass.Opaque;
+            RenderScene.Draw();
+
+            CurrentDrawPass = Rendering.DrawPass.AlphaBlend;
+            RenderScene.Draw();
+
+            CurrentDrawPass = Rendering.DrawPass.Additive;
+            RenderScene.Draw();
+
+            CurrentDrawPass = Rendering.DrawPass.Subtractive;
+            RenderScene.Draw();
+        }
+
         public override void Update()
         {
             SetRenderResolution();
@@ -573,6 +603,9 @@ namespace XenoKit.Engine.Rendering
             EntityListUpdate(Stages, StagesToRemove);
             EntityListUpdate(Effects, EffectsToRemove);
             EntityListUpdate(Reflections, ReflectionsToRemove);
+
+            if (SceneManager.UseRenderScene)
+                RenderScene.Update();
         }
 
         public override void DelayedUpdate()
@@ -823,6 +856,11 @@ namespace XenoKit.Engine.Rendering
                 Effects.Remove(entity);
                 Effects.Add(entity);
             }
+        }
+        
+        public void SetRenderScene(Entity scene)
+        {
+            RenderScene = scene;
         }
         #endregion
 

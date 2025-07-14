@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Linq;
 using Xv2CoreLib.EMB_CLASS;
 
 namespace XenoKit.Engine.Textures
@@ -7,6 +8,19 @@ namespace XenoKit.Engine.Textures
     [Serializable]
     public class Xv2Texture : Entity
     {
+        #region DefaultTexture
+        public static Xv2Texture DefaultTexture { get; private set; }
+
+        public static void InitDefaultTexture(GameBase game)
+        {
+            if(DefaultTexture == null)
+            {
+                EMB_File defaultEmb = EMB_File.LoadEmb(Properties.Resources.DefaultEmb);
+                DefaultTexture = new Xv2Texture(defaultEmb.Entry[0], game, false);
+            }
+        }
+        #endregion
+
         [field: NonSerialized]
         private Texture2D _texture = null;
 
@@ -74,5 +88,28 @@ namespace XenoKit.Engine.Textures
             return textures;
         }
 
+        private static Xv2Texture[] LoadTextureArray2(EMB_File embFile, GameBase gameBase)
+        {
+            //Alternative loader method that can handle arbitary indexing
+            int maxId = embFile.Entry.Max(x => x.ID);
+            Xv2Texture[] textures = new Xv2Texture[maxId + 1];
+
+            for (int i = 0; i < textures.Length; i++)
+            {
+                //TODO: GetEntryWithID needs to be optimized, as EmbEntry internally uses a string for its ID and its converting to int all the time
+                EmbEntry entry = embFile.GetEntryWithID(i);
+
+                if(entry != null)
+                {
+                    textures[i] = gameBase.CompiledObjectManager.GetCompiledObject<Xv2Texture>(entry, gameBase);
+                }
+                else
+                {
+                    textures[i] = DefaultTexture;
+                }
+            }
+
+            return textures;
+        }
     }
 }

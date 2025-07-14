@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +7,7 @@ using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib;
+using Xv2CoreLib.BEV;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.FMP;
@@ -26,6 +26,7 @@ namespace XenoKit.Engine.Stage
         public const string REF_NAME_ALT = "REF";
         public const string ENV_NAME = "ENVTEX";
 
+        public bool IsDefaultStage { get; private set; }
         public string StageName { get; set; }
         public StageDef StageDefEntry { get; private set; }
         public FMP_File FmpFile { get; private set; }
@@ -101,45 +102,45 @@ namespace XenoKit.Engine.Stage
             {
                 StageObject stageObj = new StageObject();
                 stageObj.Object = _object;
-                stageObj.Transform = _object.Matrix.ToMonoMatrix();
+                stageObj.Transform = _object.Matrix.ToXna();
 
-                if(_object.Entities != null)
+                if(_object.Entities?.Count - 1 >= _object.InitialEntityIndex)
                 {
-                    foreach (var entity in _object.Entities)
-                    {
-                        StageEntity stageEntity = new StageEntity();
-                        stageEntity.Transform = entity.Matrix.ToMonoMatrix();
+                    //Just load the initial entity for now
+                    FMP_Entity entity = _object.Entities[_object.InitialEntityIndex];
 
-                        if (entity.Visual != null)
+                    StageEntity stageEntity = new StageEntity();
+                    stageEntity.Transform = entity.Matrix.ToXna();
+
+                    if (entity.Visual != null)
+                    {
+                        if (_object.Name == ENV_NAME)
                         {
-                            if (_object.Name == ENV_NAME)
+                            string embPath = $"stage/{entity.Visual.EmbFile}";
+                            EMB_File embFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(embPath);
+                            EnvTexture = TextureLoader.ConvertToTextureCube(embFile.Entry[0], ShaderManager.GetTextureName(5), GraphicsDevice);
+                        }
+                        else
+                        {
+                            stageEntity.Visual = new StageVisual();
+                            stageEntity.Visual.LodGroup = new Model.LodGroup(entity.Visual, GameBase);
+
+                            if (_object.Name == REF_NAME || _object.Name == REF_NAME_ALT)
                             {
-                                string embPath = $"stage/{entity.Visual.EmbFile}";
-                                EMB_File embFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(embPath);
-                                EnvTexture = TextureLoader.ConvertToTextureCube(embFile.Entry[0], ShaderManager.GetTextureName(5), GraphicsDevice);
+                                ReflectionModel = stageEntity.Visual.LodGroup;
                             }
                             else
                             {
-                                stageEntity.Visual = new StageVisual();
-                                stageEntity.Visual.LodGroup = new Model.LodGroup(entity.Visual, GameBase);
-
-                                if (_object.Name == REF_NAME || _object.Name == REF_NAME_ALT)
-                                {
-                                    ReflectionModel = stageEntity.Visual.LodGroup;
-                                }
-                                else
-                                {
-                                    //Only add the entity if its not a reflection/env/otherspecial entry type
-                                    stageObj.Entities.Add(stageEntity);
-                                }
+                                //Only add the entity if its not a reflection/env/otherspecial entry type
+                                stageObj.Entities.Add(stageEntity);
                             }
-
                         }
 
                     }
+
                 }
 
-                
+                /*
                 if (_object.CollisionGroupInstance != null)
                 {
                     StageCollisionGroup collisionGroup = CollisionGroups.FirstOrDefault(x => x.CollisionGroupIndex == _object.CollisionGroupInstance.CollisionGroupIndex);
@@ -152,7 +153,8 @@ namespace XenoKit.Engine.Stage
                         }
                     }
                 }
-                
+                */
+
 
                 Objects.Add(stageObj);
             }
@@ -237,6 +239,7 @@ namespace XenoKit.Engine.Stage
         {
             var stage = new Xv2Stage(game)
             {
+                IsDefaultStage = true,
                 SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame("stage/BFten/BFten.spm")
             };
 
