@@ -52,6 +52,12 @@ namespace Microsoft.Xna.Framework
             this.Max = max;
         }
 
+        public BoundingBox(System.Numerics.Vector3 min, System.Numerics.Vector3 max)
+        {
+            this.Min = min;
+            this.Max = max;
+        }
+
         #endregion Public Constructors
 
 

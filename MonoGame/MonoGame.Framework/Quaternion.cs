@@ -1174,5 +1174,22 @@ namespace Microsoft.Xna.Framework
         }
 
         #endregion
+
+        /// <summary>
+        /// Returns a <see cref="System.Numerics.Quaternion"/>.
+        /// </summary>
+        public System.Numerics.Quaternion ToNumerics()
+        {
+            return new System.Numerics.Quaternion(this.X, this.Y, this.Z, this.W);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="System.Numerics.Quaternion"/> to a <see cref="Quaternion"/>.
+        /// </summary>
+        /// <param name="value">The converted value.</param>
+        public static implicit operator Quaternion(System.Numerics.Quaternion value)
+        {
+            return new Quaternion(value.X, value.Y, value.Z, value.W);
+        }
     }
 }

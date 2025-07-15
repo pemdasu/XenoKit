@@ -1474,5 +1474,22 @@ namespace Microsoft.Xna.Framework
         }
 
         #endregion
+
+        /// <summary>
+        /// Returns a <see cref="System.Numerics.Vector3"/>.
+        /// </summary>
+        public System.Numerics.Vector3 ToNumerics()
+        {
+            return new System.Numerics.Vector3(this.X, this.Y, this.Z);
+        }
+
+        /// <summary>
+        /// Converts a <see cref="System.Numerics.Vector3"/> to a <see cref="Vector3"/>.
+        /// </summary>
+        /// <param name="value">The converted value.</param>
+        public static implicit operator Vector3(System.Numerics.Vector3 value)
+        {
+            return new Vector3(value.X, value.Y, value.Z);
+        }
     }
 }

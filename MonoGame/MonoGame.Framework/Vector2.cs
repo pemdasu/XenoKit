@@ -1257,5 +1257,22 @@ namespace Microsoft.Xna.Framework
         }
 
         #endregion
+
+        /// <summary>
+        /// Converts a <see cref="System.Numerics.Vector2"/> to a <see cref="Vector2"/>.
+        /// </summary>
+        /// <param name="value">The converted value.</param>
+        public static implicit operator Vector2(System.Numerics.Vector2 value)
+        {
+            return new Vector2(value.X, value.Y);
+        }
+
+        /// <summary>
+        /// Returns a <see cref="System.Numerics.Vector2"/>.
+        /// </summary>
+        public System.Numerics.Vector2 ToNumerics()
+        {
+            return new System.Numerics.Vector2(this.X, this.Y);
+        }
     }
 }
