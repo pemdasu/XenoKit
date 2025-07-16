@@ -69,6 +69,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
+
                 position += new Vector3(-delta.X, delta.Y, delta.Z);
                 UpdateTransform();
             }
@@ -97,12 +98,13 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
         private void UpdateTransform()
         {
-            Matrix deltaMatrix = Matrix.Invert(originalMatrix);
+            Matrix deltaMatrix = Matrix.Invert(originalMatrix * transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix);
             deltaMatrix *= Matrix.CreateScale(scale);
             deltaMatrix *= Matrix.CreateFromQuaternion(rotation.EulerToQuaternion());
             deltaMatrix *= Matrix.CreateTranslation(position);
+            deltaMatrix *= transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
 
-            for(int i = 0; i < transforms.Count; i++)
+            for (int i = 0; i < transforms.Count; i++)
             {
                 transforms[i].Transform = originalTransforms[i] * deltaMatrix;
             }

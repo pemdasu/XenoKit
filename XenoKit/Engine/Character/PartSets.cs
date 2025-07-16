@@ -1209,8 +1209,6 @@ namespace XenoKit.Engine
         #region Rendering
         public override void Update()
         {
-            Model?.Update(chara.ActorSlot, chara.Skeleton);
-
             if (!IsPhysicsPart)
             {
                 foreach (CharaPart physicsPart in PhysicsParts)
@@ -1223,8 +1221,6 @@ namespace XenoKit.Engine
         public void UpdatePhysicsPart()
         {
             Skeleton?.ScdUpdate(chara.Skeleton, SkeletoBoneIndices);
-
-            Model?.Update(0, Skeleton);
         }
 
         /// <summary>

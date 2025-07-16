@@ -422,22 +422,6 @@ namespace XenoKit.Views
         }
         #endregion
 
-        public EmdViewer GetActiveEmdForm(EMD_File _emdFile)
-        {
-            foreach (var window in App.Current.Windows)
-            {
-                if (window is EmdViewer)
-                {
-                    EmdViewer _form = (EmdViewer)window;
-
-                    //if (_form.EmdFile == _emdFile)
-                    //    return _form;
-                }
-            }
-
-            return null;
-        }
-
         private void filesDataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (!CanEditFile()) return;

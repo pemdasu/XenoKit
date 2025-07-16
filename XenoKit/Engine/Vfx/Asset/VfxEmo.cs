@@ -33,7 +33,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private ushort _matAnimationEndFrame = 0;
 
         private EmaAnimationPlayer AnimationPlayer;
-        private Xv2Skeleton Skeleton;
+        private Xv2Skeleton Skeleton => Model?.Skeleton;
 
         private float Time = 0f;
         private ushort AnimationLoopEndFrame
@@ -79,7 +79,6 @@ namespace XenoKit.Engine.Vfx.Asset
             MaterialAnimation = null;
             Animation = null;
             AnimationPlayer = null;
-            Skeleton = null;
             EmmFile = null;
 
             foreach (EffectFile file in Asset.Files)
@@ -87,7 +86,6 @@ namespace XenoKit.Engine.Vfx.Asset
                 if (file.fileType == EffectFile.FileType.EMO)
                 {
                     Model = (file.EmoFile != null) ? CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(file.EmoFile, GameBase) : null;
-                    Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(file.EmoFile.Skeleton, GameBase);
                     AnimationPlayer = new EmaAnimationPlayer(Skeleton, GameBase);
                 }
                 else if (file.fileType == EffectFile.FileType.EMB)
@@ -297,12 +295,6 @@ namespace XenoKit.Engine.Vfx.Asset
                         }
                     }
                 }
-            }
-
-            //Update model (skinning)
-            if (SettingsManager.Instance.Settings.XenoKit_VfxSimulation && (!simulate || VfxManager.ForceEffectUpdate))
-            {
-                Model?.Update(0, Skeleton);
             }
 
             if (simulate)

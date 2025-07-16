@@ -13,6 +13,7 @@ using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.ESK;
+using Xv2CoreLib.NSK;
 
 namespace XenoKit.Engine
 {
@@ -75,6 +76,10 @@ namespace XenoKit.Engine
                     {
                         result = Xv2ModelFile.LoadEmd(gameInstance, emdFile);
                     }
+                    else if (typeof(T) == typeof(Xv2ModelFile) && key is NSK_File nskFile)
+                    {
+                        result = Xv2ModelFile.LoadNsk(gameInstance, nskFile);
+                    }
                     else if (typeof(T) == typeof(Xv2ModelFile) && key is EMO_File emoFile)
                     {
                         result = Xv2ModelFile.LoadEmo(gameInstance, emoFile);
@@ -86,10 +91,6 @@ namespace XenoKit.Engine
                     else if (typeof(T) == typeof(Animation.Xv2Skeleton) && key is ESK_File eskFile)
                     {
                         result = new Animation.Xv2Skeleton(eskFile);
-                    }
-                    else if (typeof(T) == typeof(Animation.Xv2Skeleton) && key is Skeleton emoSkeleton)
-                    {
-                        result = new Animation.Xv2Skeleton(emoSkeleton);
                     }
                     else if (typeof(T) == typeof(Vfx.Particle.ParticleEmissionData) && key is ParticleNode particleNode)
                     {

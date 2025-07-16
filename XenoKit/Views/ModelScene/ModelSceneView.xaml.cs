@@ -334,13 +334,7 @@ namespace XenoKit.Views
 
         private Xv2Bone GetAttachBone(IList<Xv2Submesh> submeshes)
         {
-            if (ModelScene.Skeleton != null)
-            {
-                if(ModelScene.Skeleton.Bones.Length > submeshes[0].Parent.Parent.AttachBone && submeshes[0].Parent.Parent.AttachBone != -1)
-                    return ModelScene.Skeleton.Bones[submeshes[0].Parent.Parent.AttachBone];
-            }
-
-            return null;
+            return submeshes[0].Parent.Parent.AttachBone;
         }
 
         #region Commands

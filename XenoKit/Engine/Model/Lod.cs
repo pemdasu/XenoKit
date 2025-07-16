@@ -11,15 +11,13 @@ namespace XenoKit.Engine.Model
     public class Lod
     {
         public float Distance { get; set; }
-        public Xv2Skeleton Skeleton { get; set; }
         public Xv2ModelFile Model {  get; set; }
         public EMM_File MaterialFile {  get; set; }
 
         private readonly Xv2ShaderEffect[] _materials;
 
-        public Lod(float distance, Xv2ModelFile model, Xv2Skeleton skeleton, EMM_File emmFile)
+        public Lod(float distance, Xv2ModelFile model, EMM_File emmFile)
         {
-            Skeleton = skeleton;
             Distance = distance;
             Model = model;
             MaterialFile = emmFile;
@@ -33,12 +31,12 @@ namespace XenoKit.Engine.Model
 
         public void Draw(Matrix world, Xv2Texture[] textures)
         {
-            Model?.Draw(world, 0, _materials, textures, null, 0, Skeleton);
+            Model?.Draw(world, 0, _materials, textures, null, 0);
         }
 
         public void DrawSimple(Matrix world, Xv2ShaderEffect material)
         {
-            Model?.Draw(world, 0, material, Skeleton);
+            Model?.Draw(world, 0, material);
         }
     }
 }

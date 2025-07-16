@@ -246,8 +246,6 @@ namespace XenoKit.Engine.Model
                 CalculateBoundingBox();
             }
 
-            Model?.Update(0, Skeleton);
-
             if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && IsAnyModelObjectSelected())
             {
                 SceneManager.MainGameInstance.camera.LookAt(BoundingBox);
@@ -268,9 +266,12 @@ namespace XenoKit.Engine.Model
             if(IsAnyModelObjectSelected())
                 DrawableAABB.Draw(Matrix.Identity, BoundingBox);
 
-            foreach(var selectedMesh in _selectedSubmeshes)
+            //Draw highlighted (selected) meshes
+            Matrix world = Matrix.Identity;
+
+            foreach (var selectedMesh in _selectedSubmeshes)
             {
-                selectedMesh.Draw(0, DefaultShaders.RedWireframe, Skeleton);
+                selectedMesh.Draw(ref world, 0, DefaultShaders.RedWireframe, Skeleton);
             }
         }
 
@@ -294,7 +295,7 @@ namespace XenoKit.Engine.Model
 
         private void CalculateBoundingBox()
         {
-            BoundingBox = Xv2Submesh.CalculateBoundingBox(_selectedSubmeshes, Skeleton);
+            BoundingBox = Xv2Submesh.CalculateBoundingBox(_selectedSubmeshes);
             IsBoundingBoxDirty = false;
         }
 

@@ -28,8 +28,9 @@ namespace XenoKit.Engine.Model
         public EMO_File SourceEmoFile { get; private set; }
         private bool IsReflectionMesh = false;
 
-        public ModelType Type;
-        public List<Xv2Model> Models { get; set; } = new List<Xv2Model>();
+        public ModelType Type { get; private set; }
+        public List<Xv2Model> Models { get; private set; } = new List<Xv2Model>();
+        public Xv2Skeleton Skeleton { get; private set; }
 
         private Xv2ModelFile(GameBase gameBase) : base(gameBase)
         {
@@ -51,14 +52,15 @@ namespace XenoKit.Engine.Model
         public static Xv2ModelFile LoadNsk(GameBase gameBase, NSK_File nskFile, string name = null)
         {
             //Create EmdModel
-            Xv2ModelFile newEmdFile = new Xv2ModelFile(gameBase);
-            newEmdFile.Name = name;
-            newEmdFile.Type = ModelType.Nsk;
-            newEmdFile.SourceNskFile = nskFile;
-            newEmdFile.SourceEmdFile = nskFile.EmdFile;
-            newEmdFile.LoadEmd(true);
+            Xv2ModelFile modelFile = new Xv2ModelFile(gameBase);
+            modelFile.Name = name;
+            modelFile.Type = ModelType.Nsk;
+            modelFile.SourceNskFile = nskFile;
+            modelFile.SourceEmdFile = nskFile.EmdFile;
+            modelFile.LoadEmd(true);
+            modelFile.LoadInternalSkeleton();
 
-            return newEmdFile;
+            return modelFile;
         }
 
         public static Xv2ModelFile LoadEmo(GameBase gameBase, EMO_File emoFile)
@@ -67,6 +69,7 @@ namespace XenoKit.Engine.Model
             modelFile.Type = ModelType.Emo;
             modelFile.SourceEmoFile = emoFile;
             modelFile.LoadEmo(true);
+            modelFile.LoadInternalSkeleton();
 
             return modelFile;
         }
@@ -126,17 +129,10 @@ namespace XenoKit.Engine.Model
         {
             Models.Clear();
 
-            //Submesh index is used for material linkage
-            int submeshIndex = 0;
-
             //Models
             foreach (EMD_Model emdModel in SourceEmdFile.Models)
             {
                 Xv2Model model = new Xv2Model(emdModel.Name, emdModel, GameBase);
-
-                //NSK files support model-level animation like EMOs
-                if (Type == ModelType.Nsk)
-                    model.AttachBone = SourceNskFile.EskFile.Skeleton.NonRecursiveBones.IndexOf(SourceNskFile.EskFile.Skeleton.NonRecursiveBones.FirstOrDefault(x => x.Name == emdModel.Name));
 
                 foreach (EMD_Mesh emdMesh in emdModel.Meshes)
                 {
@@ -199,10 +195,7 @@ namespace XenoKit.Engine.Model
                             if (submesh.Vertices.Length > 0)
                             {
                                 mesh.Submeshes.Add(submesh);
-                                submeshIndex++;
                             }
-
-
                         }
                     }
 
@@ -223,7 +216,6 @@ namespace XenoKit.Engine.Model
 
         private void LoadEmo(bool registerEvent = false)
         {
-            int submeshIndex = 0;
             int partIdx = 0;
 
             //Models are rendered in the OPPOSITE order of which they are defined in EMO, so we have to read this backwards
@@ -232,7 +224,12 @@ namespace XenoKit.Engine.Model
                 foreach (var model in SourceEmoFile.Parts[a].EmgFiles)
                 {
                     Xv2Model xv2Model = new Xv2Model(SourceEmoFile.Parts[a].Name, model, GameBase);
-                    xv2Model.AttachBone = SourceEmoFile.Skeleton.Bones.IndexOf(SourceEmoFile.Skeleton.Bones.FirstOrDefault(x => x.EmoPartIndex == partIdx));
+                    var bone = SourceEmoFile.Skeleton.Bones.FirstOrDefault(x => x.EmoPartIndex == partIdx);
+
+                    //The bone and model name SHOULD be the same (they are in all vanilla files), but just to guard against them possibilily being different, we can overwrite the model name with the bone name
+                    //Ensuring that the bone linking will work later (it is done by bone name, in the same manner as NSK)
+                    if(bone != null)
+                        xv2Model.Name = bone.Name;
 
                     foreach (var mesh in model.EmgMeshes)
                     {
@@ -290,7 +287,6 @@ namespace XenoKit.Engine.Model
                             if (xv2Submesh.Vertices.Length > 0)
                             {
                                 xv2Mesh.Submeshes.Add(xv2Submesh);
-                                submeshIndex++;
                             }
                         }
 
@@ -307,6 +303,32 @@ namespace XenoKit.Engine.Model
             CreateBuffers();
         }
 
+        private void LoadInternalSkeleton()
+        {
+            switch (Type)
+            {
+                case ModelType.Nsk:
+                    Skeleton = new Xv2Skeleton(SourceNskFile.EskFile);
+                    break;
+                case ModelType.Emo:
+                    Skeleton = new Xv2Skeleton(SourceEmoFile.Skeleton);
+                    break;
+                default:
+                    break;
+                    throw new InvalidOperationException($"Xv2ModelFile.LoadInternalSkeleton: Model type {Type} does not have a internal skeleton!");
+            }
+
+            InitializeAttachBones();
+        }
+
+        private void InitializeAttachBones()
+        {
+            foreach(var model in Models)
+            {
+                model.SetAttachBone(Skeleton);
+            }
+        }
+
         private void SourceEmdFile_ModelModified(object source, ModelModifiedEventArgs e)
         {
             if (e.EditType == EditTypeEnum.Remove || e.EditType == EditTypeEnum.Add)
@@ -316,10 +338,12 @@ namespace XenoKit.Engine.Model
                 if (SourceEmdFile != null)
                 {
                     LoadEmd(false);
+                    LoadInternalSkeleton();
                 }
                 else if (SourceEmoFile != null)
                 {
                     LoadEmo(false);
+                    LoadInternalSkeleton();
                 }
 
                 MaterialsChanged?.Invoke(this, EventArgs.Empty);
@@ -373,31 +397,18 @@ namespace XenoKit.Engine.Model
 
         #region Rendering
 
-        public void Update(int actor, Xv2Skeleton skeleton = null)
-        {
-            foreach (Xv2Model model in Models)
-            {
-                foreach (Xv2Mesh mesh in model.Meshes)
-                {
-                    foreach (Xv2Submesh submesh in mesh.Submeshes)
-                    {
-                        submesh.Update(actor, skeleton);
-                    }
-                }
-            }
-        }
-
         public void Draw(Matrix world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
         {
+            if (skeleton == null)
+                skeleton = Skeleton;
+
             foreach (Xv2Model model in Models)
             {
-                model.Update(ref world, skeleton);
-
                 foreach (Xv2Mesh mesh in model.Meshes)
                 {
                     foreach (Xv2Submesh submesh in mesh.Submeshes)
                     {
-                        submesh.Draw(actor, materials, textures, dyts, dytIdx, skeleton);
+                        submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton);
                     }
                 }
             }
@@ -408,15 +419,16 @@ namespace XenoKit.Engine.Model
         /// </summary>
         public void Draw(Matrix world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
         {
+            if (skeleton == null)
+                skeleton = Skeleton;
+
             foreach (Xv2Model model in Models)
             {
-                model.Update(ref world, skeleton);
-
                 foreach (Xv2Mesh mesh in model.Meshes)
                 {
                     foreach (Xv2Submesh submesh in mesh.Submeshes)
                     {
-                        submesh.Draw(actor, material, skeleton);
+                        submesh.Draw(ref world, actor, material, skeleton);
                     }
                 }
             }
@@ -564,13 +576,11 @@ namespace XenoKit.Engine.Model
 
     public class Xv2Model : Entity
     {
+        public Xv2Bone AttachBone { get; private set; }
+
         public List<Xv2Mesh> Meshes { get; private set; } = new List<Xv2Mesh>();
 
         public object SourceModel { get; private set; }
-
-        //Model-Level Animation:
-        public int AttachBone { get; set; } = -1;
-        public Matrix AttachBoneMatrix { get; private set; }
 
         public BoundingBox BoundingBox { get; set; }
         public Vector3 BoundingBoxCenter { get; set; }
@@ -582,14 +592,16 @@ namespace XenoKit.Engine.Model
             SourceModel = sourceModelObj;
         }
 
-        public void Update(ref Matrix world, Xv2Skeleton skeleton)
+        public void SetAttachBone(Xv2Skeleton skeleton)
         {
-            AttachBoneMatrix = GetTransformedWorld(ref world, skeleton);
+            int boneIdx = skeleton.GetBoneIndex(Name);
+            AttachBone = skeleton.Bones.Length > boneIdx && boneIdx != -1 ? skeleton.Bones[boneIdx] : null;
         }
 
         private Matrix GetTransformedWorld(ref Matrix world, Xv2Skeleton skeleton)
         {
-            if (AttachBone != -1 && skeleton != null)
+            /*
+            if (AttachBoneIdx != -1 && skeleton != null)
             {
                 //This is right and wrong depending on the case... why?
                 //When return world = fixes; broken effects, like sparks, but breaks boost auras
@@ -597,9 +609,9 @@ namespace XenoKit.Engine.Model
                 //Stages only work properly with AbsoluteMatrix * world
 
                 //return world;
-                return skeleton.Bones[AttachBone].AbsoluteAnimationMatrix * world;
+                return skeleton.Bones[AttachBoneIdx].AbsoluteAnimationMatrix * world;
             }
-
+            */
             return world;
         }
 
@@ -750,21 +762,17 @@ namespace XenoKit.Engine.Model
 #endif
         }
 
-        public void Update(int actor, Xv2Skeleton skeleton = null)
-        {
-        }
-
-        public void Draw(int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
+        public void Draw(ref Matrix world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
         {
             if (materials == null) return;
 
-            Matrix world = Parent != null ? Parent.Parent.AttachBoneMatrix * Transform : Transform;
+            Matrix newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
             Xv2ShaderEffect material = MaterialIndex != -1 ? materials[MaterialIndex] : DefaultShaders.VertexColor_W;
 
             if (!RenderSystem.CheckDrawPass(material)) return;
 
-            if (!FrustumIntersects(world))
+            if (!FrustumIntersects(newWorld))
                 return;
 
             //Handle BCS Colors
@@ -779,7 +787,7 @@ namespace XenoKit.Engine.Model
                 }
             }
 
-            material.World = world;
+            material.World = newWorld;
             material.PrevWVP = PrevWVP[actor];
 
             //Set samplers/textures
@@ -807,16 +815,16 @@ namespace XenoKit.Engine.Model
             }
         }
 
-        public void Draw(int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
+        public void Draw(ref Matrix world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
         {
             //if (!RenderSystem.CheckDrawPass(material)) return;
 
-            Matrix world = Parent != null ? Parent.Parent.AttachBoneMatrix * Transform : Transform;
+            Matrix newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
-            if (!FrustumIntersects(world))
+            if (!FrustumIntersects(newWorld))
                 return;
 
-            material.World = world;
+            material.World = newWorld;
             material.PrevWVP = PrevWVP[actor];
 
             DrawEnd(actor, material, skeleton);
@@ -1165,13 +1173,13 @@ namespace XenoKit.Engine.Model
             return (min + max) * 0.5f;
         }
         
-        public static BoundingBox CalculateBoundingBox(IList<Xv2Submesh> submeshes, Xv2Skeleton skeleton)
+        public static BoundingBox CalculateBoundingBox(IList<Xv2Submesh> submeshes)
         {
-            CalculateAABB(submeshes, skeleton, out BoundingBox aabb, out _);
+            CalculateAABB(submeshes, out BoundingBox aabb, out _);
             return aabb;
         }
 
-        private static void CalculateAABB(IList<Xv2Submesh> submeshes, Xv2Skeleton skeleton, out BoundingBox aabb, out Vector3 center)
+        private static void CalculateAABB(IList<Xv2Submesh> submeshes, out BoundingBox aabb, out Vector3 center)
         {
             Vector3 min = new Vector3(float.PositiveInfinity);
             Vector3 max = new Vector3(float.NegativeInfinity);
@@ -1182,18 +1190,13 @@ namespace XenoKit.Engine.Model
                 {
                     Matrix world = submesh.Transform;
 
-                    if (skeleton != null)
+                    if (submesh.Parent.Parent.AttachBone != null)
                     {
-
-                        if (submesh.Parent.Parent.AttachBone != -1)
-                        {
-                            Xv2Bone bone = skeleton.Bones[submesh.Parent.Parent.AttachBone];
-                            world *= bone.AbsoluteAnimationMatrix;
-                        }
+                        ;
+                        world *= submesh.Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
                         BoundingBox transformedBoundingBox = submesh.BoundingBox.Transform(world);
                         min = Vector3.Min(transformedBoundingBox.Min, min);
                         max = Vector3.Max(transformedBoundingBox.Max, max);
-
                     }
                     else
                     {

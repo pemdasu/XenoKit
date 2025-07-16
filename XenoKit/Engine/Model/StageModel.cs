@@ -38,8 +38,6 @@ namespace XenoKit.Engine.Model
         public override void Update()
         {
             DrawThisFrame = true;
-            
-            Model.Update(0);
         }
 
         public override void Draw()

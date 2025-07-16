@@ -39,14 +39,13 @@ namespace XenoKit.Engine.Model
                     NSK_File nskFile = (NSK_File)FileManager.Instance.GetParsedFileFromGame(nskPath);
                     EMM_File emmFile = (EMM_File)FileManager.Instance.GetParsedFileFromGame(emmPath);
 
-                    Xv2ModelFile model = Xv2ModelFile.LoadNsk(game, nskFile);
-                    Xv2Skeleton skeleton = new Xv2Skeleton(nskFile.EskFile);
+                    Xv2ModelFile model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(nskFile, GameBase);
 
-                    LODs.Add(new Lod(lod.Distance, model, skeleton, emmFile));
+                    LODs.Add(new Lod(lod.Distance, model, emmFile));
                 }
                 else
                 {
-                    LODs.Add(new Lod(lod.Distance, null, null, null));
+                    LODs.Add(new Lod(lod.Distance, null, null));
                 }
             }
         }

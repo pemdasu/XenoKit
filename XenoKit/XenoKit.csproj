@@ -543,7 +543,6 @@
     <Compile Include="Engine\Character\PartSets.cs" />
     <Compile Include="Engine\Collision\BoundingOrientedBox.cs" />
     <Compile Include="Engine\CompiledObjectManager.cs" />
-    <Compile Include="Engine\EmdViewer.cs" />
     <Compile Include="Engine\EngineUtils.cs" />
     <Compile Include="Engine\Extensions.cs" />
     <Compile Include="Engine\GameBase.cs" />
