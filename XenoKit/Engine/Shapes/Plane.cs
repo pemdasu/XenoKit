@@ -1,30 +1,27 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using XenoKit.Engine.View;
+using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Shapes
 {
     public class Plane : Entity
     {
-        public Vector3 Size;
+        public SimdVector3 Size;
         private Color color;
 
         public VertexPositionColorTexture[] _vertices { get; set; }
         private BasicEffect effect;
 
-        public Plane(Vector3 position, Vector3 size, GameBase gameBase, Color _color) : base(gameBase)
+        public Plane(SimdVector3 position, SimdVector3 size, GameBase gameBase, Color _color) : base(gameBase)
         {
             color = _color;
             Size = size;
             effect = new BasicEffect(gameBase.GraphicsDevice);
             effect.Alpha = 1f;
             effect.VertexColorEnabled = true;
-            Transform = Matrix.CreateWorld(position, Vector3.Forward, Vector3.Up);
+            Transform = Matrix4x4.CreateWorld(position, MathHelpers.Forward, MathHelpers.Up);
             Name = "Cube";
             ConstructPlane();
         }
@@ -53,9 +50,6 @@ namespace XenoKit.Engine.Shapes
 
 
         }
-
-
-
 
         public override void Draw()
         {

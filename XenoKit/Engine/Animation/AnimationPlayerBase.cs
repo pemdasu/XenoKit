@@ -1,13 +1,5 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
-using Xv2CoreLib.EAN;
-using Xv2CoreLib.ESK;
-using static Xv2CoreLib.BAC.BAC_Type0;
-using XenoKit.Editor;
-using XenoKit.Helper;
-using Xv2CoreLib.Resource.UndoRedo;
+﻿using Microsoft.Xna.Framework;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Animation
 {
@@ -25,16 +17,16 @@ namespace XenoKit.Engine.Animation
         {
             for (int i = 0; i < Skeleton.Bones.Length; i++)
             {
-                Skeleton.Bones[i].AnimationMatrix = Matrix.Identity;
+                Skeleton.Bones[i].AnimationMatrix = Matrix4x4.Identity;
             }
         }
 
-        protected void UpdateAbsoluteMatrix(Matrix rootTransform)
+        protected void UpdateAbsoluteMatrix(Matrix4x4 rootTransform)
         {
             for (int i = 0; i < Skeleton.Bones.Length; i++)
             {
                 int parentBone = i;
-                Skeleton.Bones[i].AbsoluteAnimationMatrix = Matrix.Identity;
+                Skeleton.Bones[i].AbsoluteAnimationMatrix = Matrix4x4.Identity;
 
                 while (parentBone != -1)
                 {
@@ -50,7 +42,7 @@ namespace XenoKit.Engine.Animation
             {
                 for (int i = 0; i < Skeleton.Bones.Length; i++)
                 {
-                    Skeleton.Bones[i].SkinningMatrix = Matrix.Identity;
+                    Skeleton.Bones[i].SkinningMatrix = Matrix4x4.Identity;
                 }
             }
             else
@@ -63,7 +55,7 @@ namespace XenoKit.Engine.Animation
         }
 
         #region Helpers
-        public Matrix GetCurrentAbsoluteMatrix(string boneName)
+        public Matrix4x4 GetCurrentAbsoluteMatrix(string boneName)
         {
             int idx = Skeleton.GetBoneIndex(boneName);
             return Skeleton.Bones[idx > -1 ? idx : 0].AbsoluteAnimationMatrix;
@@ -74,10 +66,10 @@ namespace XenoKit.Engine.Animation
         /// </summary>
         /// <param name="boneName"></param>
         /// <returns></returns>
-        public Matrix GetCurrentParentAbsoluteMatrix(string boneName)
+        public Matrix4x4 GetCurrentParentAbsoluteMatrix(string boneName)
         {
             string parentBone = Skeleton.GetParentBone(boneName);
-            return parentBone != null ? GetCurrentAbsoluteMatrix(parentBone) : Matrix.Identity;
+            return parentBone != null ? GetCurrentAbsoluteMatrix(parentBone) : Matrix4x4.Identity;
         }
         #endregion
     }

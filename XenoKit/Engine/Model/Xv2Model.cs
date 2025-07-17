@@ -17,6 +17,9 @@ using Xv2CoreLib;
 using Xv2CoreLib.Resource;
 using EmmMaterial = Xv2CoreLib.EMM.EmmMaterial;
 using static Xv2CoreLib.EMD.EMD_TextureSamplerDef;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Model
 {
@@ -397,7 +400,7 @@ namespace XenoKit.Engine.Model
 
         #region Rendering
 
-        public void Draw(Matrix world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
+        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
         {
             if (skeleton == null)
                 skeleton = Skeleton;
@@ -417,7 +420,7 @@ namespace XenoKit.Engine.Model
         /// <summary>
         /// Draw this model with just one material and no textures or dyts. Intended for earlier passes only (shadow/normals).
         /// </summary>
-        public void Draw(Matrix world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
+        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
         {
             if (skeleton == null)
                 skeleton = Skeleton;
@@ -583,7 +586,7 @@ namespace XenoKit.Engine.Model
         public object SourceModel { get; private set; }
 
         public BoundingBox BoundingBox { get; set; }
-        public Vector3 BoundingBoxCenter { get; set; }
+        public SimdVector3 BoundingBoxCenter { get; set; }
 
 
         public Xv2Model(string name, object sourceModelObj, GameBase gameBase) : base(gameBase)
@@ -628,13 +631,13 @@ namespace XenoKit.Engine.Model
 
         public void CalculateBounds()
         {
-            Vector3 min = new Vector3(float.PositiveInfinity);
-            Vector3 max = new Vector3(float.NegativeInfinity);
+            SimdVector3 min = new SimdVector3(float.PositiveInfinity);
+            SimdVector3 max = new SimdVector3(float.NegativeInfinity);
 
             foreach (var mesh in Meshes)
             {
-                min = Vector3.Min(mesh.BoundingBox.Min, min);
-                max = Vector3.Max(mesh.BoundingBox.Max, max);
+                min = SimdVector3.Min(mesh.BoundingBox.Min.ToNumerics(), min);
+                max = SimdVector3.Max(mesh.BoundingBox.Max.ToNumerics(), max);
             }
 
             BoundingBox = new BoundingBox(min, max);
@@ -650,7 +653,7 @@ namespace XenoKit.Engine.Model
         public object SourceMesh { get; private set; }
 
         public BoundingBox BoundingBox { get; set; }
-        public Vector3 BoundingBoxCenter { get; set; }
+        public SimdVector3 BoundingBoxCenter { get; set; }
 
         public Xv2Mesh(string name, object sourceMeshObj, Xv2Model parent, GameBase gameBase) : base(gameBase)
         {
@@ -684,13 +687,13 @@ namespace XenoKit.Engine.Model
     
         public void CalculateBounds()
         {
-            Vector3 min = new Vector3(float.PositiveInfinity);
-            Vector3 max = new Vector3(float.NegativeInfinity);
+            SimdVector3 min = new SimdVector3(float.PositiveInfinity);
+            SimdVector3 max = new SimdVector3(float.NegativeInfinity);
 
             foreach(var submesh in Submeshes)
             {
-                min = Vector3.Min(submesh.BoundingBox.Min, min);
-                max = Vector3.Max(submesh.BoundingBox.Max, max);
+                min = SimdVector3.Min(submesh.BoundingBox.Min.ToNumerics(), min);
+                max = SimdVector3.Max(submesh.BoundingBox.Max.ToNumerics(), max);
             }
 
             BoundingBox = new BoundingBox(min, max);
@@ -720,7 +723,7 @@ namespace XenoKit.Engine.Model
 
         //AABB
         public BoundingBox BoundingBox { get; set; }
-        public Vector3 BoundingBoxCenter { get; set; }
+        public SimdVector3 BoundingBoxCenter { get; set; }
         private readonly DrawableBoundingBox VisibleAABB;
 
         //Samplers:
@@ -738,16 +741,16 @@ namespace XenoKit.Engine.Model
         public bool EnableSkinning { get; set; }
         public string[] BoneNames;
         public readonly Dictionary<Xv2Skeleton, short[]> BoneIdx = new Dictionary<Xv2Skeleton, short[]>(); //Bone indices are cached per skeleton instance
-        public Matrix[] SkinningMatrices = new Matrix[24];
-        private static Matrix[] DefaultSkinningMatrices = new Matrix[24];
+        public Matrix4x4[] SkinningMatrices = new Matrix4x4[24];
+        private static Matrix4x4[] DefaultSkinningMatrices = new Matrix4x4[24];
 
         //Actor-Specific Information:
-        private Matrix[] PrevWVP = new Matrix[SceneManager.NumActors];
+        private Matrix4x4[] PrevWVP = new Matrix4x4[SceneManager.NumActors];
 
         static Xv2Submesh()
         {
             for (int i = 0; i < 24; i++)
-                DefaultSkinningMatrices[i] = Matrix.Identity;
+                DefaultSkinningMatrices[i] = Matrix4x4.Identity;
         }
 
         public Xv2Submesh(GameBase gameBase, string name, ModelType type, object sourceSubmesh, Xv2Mesh parent) : base(gameBase)
@@ -762,11 +765,11 @@ namespace XenoKit.Engine.Model
 #endif
         }
 
-        public void Draw(ref Matrix world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
         {
             if (materials == null) return;
 
-            Matrix newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Matrix4x4 newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
             Xv2ShaderEffect material = MaterialIndex != -1 ? materials[MaterialIndex] : DefaultShaders.VertexColor_W;
 
@@ -815,11 +818,11 @@ namespace XenoKit.Engine.Model
             }
         }
 
-        public void Draw(ref Matrix world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
         {
             //if (!RenderSystem.CheckDrawPass(material)) return;
 
-            Matrix newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Matrix4x4 newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
             if (!FrustumIntersects(newWorld))
                 return;
@@ -912,7 +915,7 @@ namespace XenoKit.Engine.Model
                 }
                 else
                 {
-                    SkinningMatrices[i] = Matrix.Identity;
+                    SkinningMatrices[i] = Matrix4x4.Identity;
                 }
             }
         }
@@ -1156,17 +1159,17 @@ namespace XenoKit.Engine.Model
         }
         #endregion
 
-        public static Vector3 CalculateCenter(IList<Xv2Submesh> submeshes)
+        public static SimdVector3 CalculateCenter(IList<Xv2Submesh> submeshes)
         {
-            Vector3 min = new Vector3(float.PositiveInfinity);
-            Vector3 max = new Vector3(float.NegativeInfinity);
+            SimdVector3 min = new SimdVector3(float.PositiveInfinity);
+            SimdVector3 max = new SimdVector3(float.NegativeInfinity);
 
             if (submeshes?.Count > 0)
             {
                 foreach (var submesh in submeshes)
                 {
-                    min = Vector3.Min(submesh.BoundingBox.Min, min);
-                    max = Vector3.Max(submesh.BoundingBox.Max, max);
+                    min = SimdVector3.Min(submesh.BoundingBox.Min.ToNumerics(), min);
+                    max = SimdVector3.Max(submesh.BoundingBox.Max.ToNumerics(), max);
                 }
             }
 
@@ -1179,10 +1182,10 @@ namespace XenoKit.Engine.Model
             return aabb;
         }
 
-        private static void CalculateAABB(IList<Xv2Submesh> submeshes, out BoundingBox aabb, out Vector3 center)
+        private static void CalculateAABB(IList<Xv2Submesh> submeshes, out BoundingBox aabb, out SimdVector3 center)
         {
-            Vector3 min = new Vector3(float.PositiveInfinity);
-            Vector3 max = new Vector3(float.NegativeInfinity);
+            SimdVector3 min = new SimdVector3(float.PositiveInfinity);
+            SimdVector3 max = new SimdVector3(float.NegativeInfinity);
 
             if (submeshes?.Count > 0)
             {
@@ -1195,14 +1198,14 @@ namespace XenoKit.Engine.Model
                         ;
                         world *= submesh.Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
                         BoundingBox transformedBoundingBox = submesh.BoundingBox.Transform(world);
-                        min = Vector3.Min(transformedBoundingBox.Min, min);
-                        max = Vector3.Max(transformedBoundingBox.Max, max);
+                        min = SimdVector3.Min(transformedBoundingBox.Min.ToNumerics(), min);
+                        max = SimdVector3.Max(transformedBoundingBox.Max.ToNumerics(), max);
                     }
                     else
                     {
                         BoundingBox transformedBoundingBox = submesh.BoundingBox.Transform(world);
-                        min = Vector3.Min(transformedBoundingBox.Min, min);
-                        max = Vector3.Max(transformedBoundingBox.Max, max);
+                        min = SimdVector3.Min(transformedBoundingBox.Min.ToNumerics(), min);
+                        max = SimdVector3.Max(transformedBoundingBox.Max.ToNumerics(), max);
                     }
                 }
             }

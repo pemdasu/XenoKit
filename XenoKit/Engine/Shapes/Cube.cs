@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using XenoKit.Engine.View;
 using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Shapes
 {
@@ -193,7 +193,7 @@ namespace XenoKit.Engine.Shapes
 
         public void SetPosition(Vector3 position)
         {
-            Transform = Matrix.CreateWorld(position, Vector3.Forward, Vector3.Up);
+            Transform = Matrix4x4.CreateWorld(position.ToNumerics(), MathHelpers.Forward, MathHelpers.Up);
         }
 
         #region Bounds

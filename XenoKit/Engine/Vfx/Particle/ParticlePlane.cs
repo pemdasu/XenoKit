@@ -1,8 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Engine.Vertex;
+using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
+using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
@@ -18,7 +22,7 @@ namespace XenoKit.Engine.Vfx.Particle
         protected readonly VertexPositionTextureColor[] Vertices = new VertexPositionTextureColor[6];
         protected BoundingBox AABB = new BoundingBox();
 
-        public override void Initialize(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
         }
@@ -40,7 +44,7 @@ namespace XenoKit.Engine.Vfx.Particle
             float scaleU_FirstVertex = ScaleU;
 
             //Special case for when Scale XY is used. The first vertex still uses Scale Base for U, but not V (game bug? seems weird...)
-            if (Node.NodeFlags.HasFlag(NodeFlags1.EnableScaleXY))
+            if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
                 scaleU_FirstVertex = ScaleBase;
 
             //Set positions
@@ -75,7 +79,8 @@ namespace XenoKit.Engine.Vfx.Particle
             Vertices[VERTEX_BOTTOM_RIGHT].TextureUV.Y = ParticleUV.ScrollV + ParticleUV.StepV;
 
             //Color
-            if (Node.NodeFlags.HasFlag(NodeFlags1.EnableSecondaryColor) && !Node.NodeFlags.HasFlag(NodeFlags1.FlashOnGen))
+            if ((Node.NodeFlags & NodeFlags1.EnableSecondaryColor) == NodeFlags1.EnableSecondaryColor && 
+                (Node.NodeFlags & NodeFlags1.FlashOnGen) != NodeFlags1.FlashOnGen)
             {
                 Vertices[VERTEX_TOP_LEFT].SetColor(PrimaryColor);
                 Vertices[VERTEX_TOP_RIGHT].SetColor(PrimaryColor);
@@ -110,11 +115,11 @@ namespace XenoKit.Engine.Vfx.Particle
 
             if (Node.EmissionNode.VelocityOriented && Node.EmissionNode.BillboardType == ParticleBillboardType.Camera)
             {
-                VelocityOrientedAdjustment = Matrix.CreateTranslation(new Vector3(0, (ScaleV + ScaleV_Variance) / 2f, 0));
+                VelocityOrientedAdjustment = Matrix4x4.CreateTranslation(new SimdVector3(0, (ScaleV + ScaleV_Variance) / 2f, 0));
             }
             else
             {
-                VelocityOrientedAdjustment = Matrix.Identity;
+                VelocityOrientedAdjustment = Matrix4x4.Identity;
             }
 
             StartUpdate();
@@ -125,15 +130,15 @@ namespace XenoKit.Engine.Vfx.Particle
                 UpdateVertices();
 
                 //Update world matrix
-                Matrix newWorld;
+                Matrix4x4 newWorld;
 
                 if (Node.EmissionNode.BillboardType == ParticleBillboardType.Camera)
                 {
-                    Matrix attachBone = GetAttachmentBone();
+                    Matrix4x4 attachBone = GetAttachmentBone();
                     float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
 
                     //Used for setting the translation component of the final billboard matrix
-                    Matrix worldTranslation = Transform * Matrix.CreateScale(ParticleSystem.Scale) * attachBone;
+                    Matrix4x4 worldTranslation = Transform * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
 
                     if (Node.EmissionNode.VelocityOriented)
                     {
@@ -143,28 +148,28 @@ namespace XenoKit.Engine.Vfx.Particle
                             DrawThisFrame = false;
                         }
 
-                        Matrix world = Transform * attachBone;
+                        Matrix4x4 world = Transform * attachBone;
 
                         //This is not entirely correct.
                         //Matrix.CreateBillboard does not create the same result as in game. This method makes the particle always look at the current camera position, while in game it only cares about camera direction
                         //newWorld = Matrix.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi) * Matrix.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.Up, -Vector3.Up, null) * Matrix.CreateScale(ParticleSystem.Scale);
-                        newWorld = Matrix.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.Up, -Vector3.Up, null) * Matrix.CreateScale(ParticleSystem.Scale);
-
+                        newWorld = Matrix4x4.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.GetUp(), -MathHelpers.Up, SimdVector3.Zero) * Matrix4x4.CreateScale(ParticleSystem.Scale);
+                        
                         newWorld.Translation = worldTranslation.Translation;
                     }
                     else
                     {
-                        newWorld = Matrix.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi) * Matrix.CreateFromAxisAngle(Vector3.Forward, MathHelper.ToRadians(-rotAmount)) * Matrix.Invert(CameraBase.ViewMatrix) * Matrix.CreateScale(ParticleSystem.Scale);
+                        newWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) * MathHelpers.Invert(CameraBase.ViewMatrix) * Matrix4x4.CreateScale(ParticleSystem.Scale);
                         newWorld.Translation = worldTranslation.Translation;
                     }
                 }
                 else if (Node.EmissionNode.BillboardType == ParticleBillboardType.Front)
                 {
-                    Matrix attachBone = GetAttachmentBone();
+                    Matrix4x4 attachBone = GetAttachmentBone();
                     float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
-                    Matrix world = Transform * Matrix.CreateScale(ParticleSystem.Scale) * attachBone;
+                    Matrix4x4 world = Transform * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
 
-                    newWorld = Matrix.CreateFromAxisAngle(Vector3.Forward, MathHelper.ToRadians(-rotAmount)) * Matrix.CreateBillboard(world.Translation, attachBone.Translation, Vector3.Up, null) * Matrix.CreateScale(ParticleSystem.Scale);
+                    newWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) * Matrix4x4.CreateBillboard(world.Translation, attachBone.Translation, MathHelpers.Up, SimdVector3.Zero) * Matrix4x4.CreateScale(ParticleSystem.Scale);
                     newWorld.Translation = world.Translation;
                 }
                 else
@@ -175,7 +180,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
                 //Apply RenderDepth offset to world position. This translates the camera toward or away from the camera by the amount specified in RenderDepth.
                 //This isn't exactly how the game handles this (it moves the vertex positions), but it produces the same result and is quicker to implement
-                newWorld *= Matrix.CreateTranslation(CameraBase.TransformRelativeToCamera(newWorld.Translation, Node.EmissionNode.Texture.RenderDepth));
+                newWorld *= Matrix4x4.CreateTranslation(CameraBase.TransformRelativeToCamera(newWorld.Translation, Node.EmissionNode.Texture.RenderDepth));
                 AbsoluteTransform = newWorld;
             }
 
@@ -193,7 +198,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
             RenderSystem.MeshDrawCalls++;
 
-            if (State == NodeState.Active && !Node.NodeFlags.HasFlag(NodeFlags1.Hide))
+            if (State == NodeState.Active && (Node.NodeFlags & NodeFlags1.Hide) != NodeFlags1.Hide)
             {
                 //Set samplers/textures
                 for (int i = 0; i < EmissionData.Samplers.Length; i++)

@@ -219,6 +219,16 @@ namespace Microsoft.Xna.Framework
         }
 
         /// <summary>
+        /// Gets a <see cref="System.Numerics.Vector2"/> representation for this object.
+        /// </summary>
+        /// <returns>A <see cref="System.Numerics.Vector2"/> representation for this object.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public System.Numerics.Vector2 ToNumeric()
+        {
+            return new System.Numerics.Vector2(X, Y);
+        }
+
+        /// <summary>
         /// Deconstruction method for <see cref="Point"/>.
         /// </summary>
         /// <param name="x"></param>

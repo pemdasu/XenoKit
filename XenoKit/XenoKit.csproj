@@ -569,7 +569,6 @@
     <Compile Include="Engine\Gizmo\TransformOperations\ITransformOperation.cs" />
     <Compile Include="Engine\Gizmo\ModelGizmo.cs" />
     <Compile Include="Engine\Input.cs" />
-    <Compile Include="Engine\Model\StageModel.cs" />
     <Compile Include="Engine\Objects\DrawableBoundingBox.cs" />
     <Compile Include="Engine\Scripting\BAC\ActionControl.cs" />
     <Compile Include="Engine\Scripting\BAC\BacEntryInstance.cs" />

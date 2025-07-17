@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using XenoKit.Engine.Vfx.Asset;
 using XenoKit.Engine.Vfx.Particle;
 using Xv2CoreLib.EEPK;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Vfx
 {
@@ -12,12 +13,12 @@ namespace XenoKit.Engine.Vfx
         public Actor Actor { get; private set; }
         public List<VfxAsset> Assets { get; private set; }
 
-        private Matrix SpawnTransform;
+        private Matrix4x4 SpawnTransform;
 
         private readonly bool IsAssetPreview = false;
         private readonly EffectPart EffectPart = null;
 
-        public VfxEffect(Actor actor, Effect effect, Matrix world, GameBase gameBase) : base(gameBase)
+        public VfxEffect(Actor actor, Effect effect, Matrix4x4 world, GameBase gameBase) : base(gameBase)
         {
             Effect = effect;
             Actor = actor;
@@ -32,7 +33,7 @@ namespace XenoKit.Engine.Vfx
             IsAssetPreview = true;
             EffectPart = effectPart;
             Actor = actor;
-            SpawnTransform = Matrix.Identity;
+            SpawnTransform = Matrix4x4.Identity;
             InitializeFromAsset();
         }
 

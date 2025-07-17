@@ -2,6 +2,10 @@
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
 using static Xv2CoreLib.ValuesDictionary.BAC;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.View
 {
@@ -228,13 +232,13 @@ namespace XenoKit.Engine.View
             IsRotationReversed = pos.GetKeyframeValue(0, Axis.Z) > 0f;
         }
 
-        public Vector3 GetCurrentPosition(Vector3 position, Vector3 targetPosition)
+        public SimdVector3 GetCurrentPosition(SimdVector3 position, SimdVector3 targetPosition)
         {
-            Vector3 forward = targetPosition - position;
-            forward.Normalize();
+            SimdVector3 forward = targetPosition - position;
+            forward = SimdVector3.Normalize(forward);
 
-            Vector3 posToMove = new Vector3(CurrentPosX, CurrentPosY, CurrentPosZ);
-            posToMove = Vector3.Transform(posToMove, Matrix.CreateWorld(position, forward, Vector3.Up));
+            SimdVector3 posToMove = new SimdVector3(CurrentPosX, CurrentPosY, CurrentPosZ);
+            posToMove = SimdVector3.Transform(posToMove, Matrix4x4.CreateWorld(position, forward, MathHelpers.Up));
 
             return (posToMove - position) * CurrentGlobalFactor();
         }
@@ -244,30 +248,30 @@ namespace XenoKit.Engine.View
             return CurrentFoV * CurrentGlobalFactor();
         }
 
-        public float GetCurrentRoll(Vector3 cameraPosition)
+        public float GetCurrentRoll()
         {
             return CurrentRotZ * CurrentGlobalFactor();
             //return IsRotationReversed ? -CurrentRotZ * CurrentGlobalFactor() : (CurrentRotZ) * CurrentGlobalFactor();
         }
 
-        public Vector3 GetCurrentRotation(Vector3 position, Vector3 targetPosition)
+        public SimdVector3 GetCurrentRotation(SimdVector3 position, SimdVector3 targetPosition)
         {
             //Calculate the extra position needed to perform the rotation
             //Calculate the WHOLE thing first, then multiply it by CurrentFactor
             //This is how it is done in XV2. The result is multiplied, not the RotX,Y,Z values. (which results in the interpolation not actually rotating... just goes from point a to point b)
 
-            Vector3 newPosition;
+            SimdVector3 newPosition;
 
             //Rotate Y
-            Vector3 temp = position - targetPosition;
-            temp = Vector3.Transform(temp, Matrix.CreateRotationY(MathHelper.ToRadians(CurrentRotY)));
+            SimdVector3 temp = position - targetPosition;
+            temp = SimdVector3.Transform(temp, Matrix4x4.CreateRotationY(MathHelper.ToRadians(CurrentRotY)));
             newPosition = targetPosition + temp;
 
             //Rotate X
             temp = newPosition - targetPosition;
 
             //CurrentRotX needs to be inverted based on the cameras Z position, else the rotation will happen in the wrong direction if the camera is behind the target
-            temp = IsRotationReversed ? Vector3.Transform(temp, Matrix.CreateRotationX(MathHelper.ToRadians(CurrentRotX))) : Vector3.Transform(temp, Matrix.CreateRotationX(MathHelper.ToRadians(-CurrentRotX)));
+            temp = IsRotationReversed ? SimdVector3.Transform(temp, Matrix4x4.CreateRotationX(MathHelper.ToRadians(CurrentRotX))) : SimdVector3.Transform(temp, Matrix4x4.CreateRotationX(MathHelper.ToRadians(-CurrentRotX)));
             //temp = Vector3.Transform(temp, Matrix.CreateRotationX(MathHelper.ToRadians(CurrentRotX)));
 
             newPosition = targetPosition + temp;

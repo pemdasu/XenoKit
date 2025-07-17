@@ -19,6 +19,10 @@ using XenoKit.Engine.Animation;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using System.Collections;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Views
 {
@@ -109,54 +113,54 @@ namespace XenoKit.Views
         public Visibility TextureVisibility => SelectedTexture != null ? Visibility.Visible : Visibility.Collapsed;
 
         //Pos/Rot/Scale deltas
-        private Vector3 _currentPos = Vector3.Zero;
-        private Vector3 _currentRot = Vector3.Zero;
-        private Vector3 _currentScale = Vector3.One;
+        private SimdVector3 _currentPos = SimdVector3.Zero;
+        private SimdVector3 _currentRot = SimdVector3.Zero;
+        private SimdVector3 _currentScale = SimdVector3.One;
 
         public float PosX
         {
             get => _currentPos.X;
-            set => DoDirectTransform(new Vector3(value, _currentPos.Y, _currentPos.Z), _currentRot, _currentScale);
+            set => DoDirectTransform(new SimdVector3(value, _currentPos.Y, _currentPos.Z), _currentRot, _currentScale);
         }
         public float PosY
         {
             get => _currentPos.Y;
-            set => DoDirectTransform(new Vector3(_currentPos.X, value, _currentPos.Z), _currentRot, _currentScale);
+            set => DoDirectTransform(new SimdVector3(_currentPos.X, value, _currentPos.Z), _currentRot, _currentScale);
         }
         public float PosZ
         {
             get => _currentPos.Z;
-            set => DoDirectTransform(new Vector3(_currentPos.X, _currentPos.Y, value), _currentRot, _currentScale);
+            set => DoDirectTransform(new SimdVector3(_currentPos.X, _currentPos.Y, value), _currentRot, _currentScale);
         }
         public float RotX
         {
             get => _currentRot.X;
-            set => DoDirectTransform(_currentPos, new Vector3(value, _currentRot.Y, _currentRot.Z), _currentScale);
+            set => DoDirectTransform(_currentPos, new SimdVector3(value, _currentRot.Y, _currentRot.Z), _currentScale);
         }
         public float RotY
         {
             get => _currentRot.Y;
-            set => DoDirectTransform(_currentPos, new Vector3(_currentRot.X, value, _currentRot.Z), _currentScale);
+            set => DoDirectTransform(_currentPos, new SimdVector3(_currentRot.X, value, _currentRot.Z), _currentScale);
         }
         public float RotZ
         {
             get => _currentRot.Z;
-            set => DoDirectTransform(_currentPos, new Vector3(_currentRot.X, _currentRot.Y, value), _currentScale);
+            set => DoDirectTransform(_currentPos, new SimdVector3(_currentRot.X, _currentRot.Y, value), _currentScale);
         }
         public float ScaleX
         {
             get => _currentScale.X;
-            set => DoDirectTransform(_currentPos, _currentRot, new Vector3(value, _currentScale.Y, _currentScale.Z));
+            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(value, _currentScale.Y, _currentScale.Z));
         }
         public float ScaleY
         {
             get => _currentScale.Y;
-            set => DoDirectTransform(_currentPos, _currentRot, new Vector3(_currentScale.X, value, _currentScale.Z));
+            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(_currentScale.X, value, _currentScale.Z));
         }
         public float ScaleZ
         {
             get => _currentScale.Z;
-            set => DoDirectTransform(_currentPos, _currentRot, new Vector3(_currentScale.X, _currentScale.Y, value));
+            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(_currentScale.X, _currentScale.Y, value));
         }
 
         private DispatcherTimer DelayedSelectedEventTimer { get; set; }
@@ -262,9 +266,9 @@ namespace XenoKit.Views
 
             if(submeshes?.Count > 0 )
             {
-                Vector3 centerPos = Xv2Submesh.CalculateCenter(submeshes);
+                SimdVector3 centerPos = Xv2Submesh.CalculateCenter(submeshes);
 
-                Matrix matrix = submeshes[0].Transform;
+                Matrix4x4 matrix = submeshes[0].Transform;
 
                 if(ModelScene.Skeleton != null)
                 {
@@ -274,7 +278,7 @@ namespace XenoKit.Views
                         matrix *= attachBone.AbsoluteAnimationMatrix;
                 }
 
-                if (matrix.Decompose(out Vector3 _scale, out Quaternion _rot, out Vector3 _translation))
+                if (Matrix4x4.Decompose(matrix, out SimdVector3 _scale, out SimdQuaternion _rot, out SimdVector3 _translation))
                 {
                     _currentPos = _translation + centerPos;
                     _currentScale = _scale;
@@ -294,7 +298,7 @@ namespace XenoKit.Views
             }
         }
 
-        private void DoDirectTransform(Vector3 newPos, Vector3 newRot, Vector3 newScale)
+        private void DoDirectTransform(SimdVector3 newPos, SimdVector3 newRot, SimdVector3 newScale)
         {
             var submeshes = ModelScene.Model.GetAllSubmeshesFromSourceObject(SelectedItem);
             newPos -= Xv2Submesh.CalculateCenter(submeshes);
@@ -302,7 +306,7 @@ namespace XenoKit.Views
             if (submeshes?.Count > 0)
             {
                 //Create a inverse matrix so we can strip the skeleton from the values if one exists (NSK/EMO)
-                Matrix invSkeletonMarix = Matrix.Identity;
+                Matrix4x4 invSkeletonMarix = Matrix4x4.Identity;
 
                 if (ModelScene.Skeleton != null)
                 {
@@ -310,17 +314,17 @@ namespace XenoKit.Views
 
                     if (attachBone != null)
                     {
-                        invSkeletonMarix = Matrix.Invert(attachBone.AbsoluteAnimationMatrix);
+                        invSkeletonMarix = MathHelpers.Invert(attachBone.AbsoluteAnimationMatrix);
                     }
                 }
 
                 newRot.ClampEuler();
                 newScale.ClampScale();
 
-                Matrix deltaMatrix = Matrix.CreateScale(newScale);
-                deltaMatrix *= Matrix.CreateFromQuaternion(newRot.EulerToQuaternion());
-                deltaMatrix *= Matrix.CreateTranslation(newPos);
-                deltaMatrix *= Matrix.Invert(submeshes[0].Transform);
+                Matrix4x4 deltaMatrix = Matrix4x4.CreateScale(newScale);
+                deltaMatrix *= Matrix4x4.CreateFromQuaternion(newRot.EulerToQuaternion());
+                deltaMatrix *= Matrix4x4.CreateTranslation(newPos);
+                deltaMatrix *= MathHelpers.Invert(submeshes[0].Transform);
                 deltaMatrix *= invSkeletonMarix;
 
                 foreach(var submesh in submeshes)

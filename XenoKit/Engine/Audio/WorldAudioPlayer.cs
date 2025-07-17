@@ -36,7 +36,7 @@ namespace XenoKit.Engine.Audio
             if (is3D_Def && entity != null)
             {
                 //Stupid approximation for now
-                float distance = Vector3.Distance(SceneManager.MainCamera.CameraState.Position, entity.Transform.Translation);
+                float distance = System.Numerics.Vector3.Distance(SceneManager.MainCamera.CameraState.Position, entity.Transform.Translation);
 
                 if (distance < 1f)
                 {

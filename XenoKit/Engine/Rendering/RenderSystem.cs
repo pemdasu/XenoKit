@@ -532,7 +532,7 @@ namespace XenoKit.Engine.Rendering
             //ALPHA BLEND PASS
             CurrentDrawPass = Rendering.DrawPass.AlphaBlend;
 
-            foreach (Entity entity in entities.OrderByDescending(x => Vector3.Distance(CameraBase.CameraState.Position, x.AbsoluteTransform.Translation)))
+            foreach (Entity entity in entities.OrderByDescending(x => System.Numerics.Vector3.Distance(CameraBase.CameraState.Position, x.AbsoluteTransform.Translation)))
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 

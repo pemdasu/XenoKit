@@ -1,11 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Headers;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC.Simulation;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Scripting.BAC
 {
@@ -52,7 +52,7 @@ namespace XenoKit.Engine.Scripting.BAC
         /// <summary>
         /// The character position matrix when the BAC entry started.
         /// </summary>
-        public Matrix[] OriginalMatrix;
+        public Matrix4x4[] OriginalMatrix;
 
         //Visual objects that render on screen as the entry plays. Currently only covers hitbox previews.
         //These have no actual logic and dont interact with anything. They are purely visual helpers.
@@ -81,7 +81,7 @@ namespace XenoKit.Engine.Scripting.BAC
             if (IsPreview)
             {
                 VisualSimulationCues = new List<BacVisualCueObject>(16);
-                OriginalMatrix = new Matrix[3];
+                OriginalMatrix = new Matrix4x4[3];
                 CreateMatrixRestorePoint();
             }
             else
@@ -98,7 +98,7 @@ namespace XenoKit.Engine.Scripting.BAC
         {
             for (int i = 0; i < 3; i++)
             {
-                OriginalMatrix[i] = SceneManager.Actors[i] != null ? SceneManager.Actors[i].ActionMovementTransform * SceneManager.Actors[i].BaseTransform : Matrix.Identity;
+                OriginalMatrix[i] = SceneManager.Actors[i] != null ? SceneManager.Actors[i].ActionMovementTransform * SceneManager.Actors[i].BaseTransform : Matrix4x4.Identity;
             }
         }
 

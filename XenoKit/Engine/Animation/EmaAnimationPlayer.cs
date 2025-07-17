@@ -7,6 +7,9 @@ using Xv2CoreLib.EMA;
 using Xv2CoreLib.ESK;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.UndoRedo;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Animation
 {
@@ -105,7 +108,7 @@ namespace XenoKit.Engine.Animation
         #endregion
 
         #region Update
-        public void Update(Matrix rootTransform)
+        public void Update(Matrix4x4 rootTransform)
         {
             ClearPreviousFrame();
 
@@ -170,16 +173,15 @@ namespace XenoKit.Engine.Animation
                 Bone bone = animation.EmaFile.Skeleton.GetBone(node.BoneName); // Bone from Ean file, we have to revert the relative Transform before we apply animation values (because animations values are for the inside ean file skeleton first)
                 ESK_RelativeTransform transform = bone.EskRelativeTransform;
 
-                Vector3 ean_initialBonePosition = new Vector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW;
-                Quaternion ean_initialBoneOrientation = new Quaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW);
-                Vector3 ean_initialBoneScale = new Vector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW;
-                Vector3 ema_initalEulerAngles = EngineUtils.QuaternionToEuler(ean_initialBoneOrientation);
+                SimdVector3 ean_initialBonePosition = new SimdVector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW;
+                SimdQuaternion ean_initialBoneOrientation = new SimdQuaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW);
+                SimdVector3 ean_initialBoneScale = new SimdVector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW;
+                SimdVector3 ema_initalEulerAngles = EngineUtils.QuaternionToEuler(ean_initialBoneOrientation);
 
-                Matrix relativeMatrix_EanBone_inv = Matrix.Identity;
-                relativeMatrix_EanBone_inv *= Matrix.CreateScale(ean_initialBoneScale);
-                relativeMatrix_EanBone_inv *= Matrix.CreateFromQuaternion(ean_initialBoneOrientation);
-                relativeMatrix_EanBone_inv *= Matrix.CreateTranslation(ean_initialBonePosition);
-                relativeMatrix_EanBone_inv = Matrix.Invert(relativeMatrix_EanBone_inv);
+                Matrix4x4 relativeMatrix_EanBone_inv = Matrix4x4.CreateScale(ean_initialBoneScale);
+                relativeMatrix_EanBone_inv *= Matrix4x4.CreateFromQuaternion(ean_initialBoneOrientation);
+                relativeMatrix_EanBone_inv *= Matrix4x4.CreateTranslation(ean_initialBonePosition);
+                relativeMatrix_EanBone_inv = MathHelpers.Invert(relativeMatrix_EanBone_inv);
                 
 
                 //Read components
@@ -193,31 +195,31 @@ namespace XenoKit.Engine.Animation
                 EMA_Command scaleY = node.GetCommand(2, 1);
                 EMA_Command scaleZ = node.GetCommand(2, 2);
 
-                Matrix transformAnimation = Matrix.Identity;
+                Matrix4x4 transformAnimation = Matrix4x4.Identity;
 
                 //Scale:
                 float valueScaleX = scaleX != null ? scaleX.GetKeyframeValue(animation.CurrentFrame) : ean_initialBoneScale.X;
                 float valueScaleY = scaleY != null ? scaleY.GetKeyframeValue(animation.CurrentFrame) : ean_initialBoneScale.Y;
                 float valueScaleZ = scaleZ != null ? scaleZ.GetKeyframeValue(animation.CurrentFrame) : ean_initialBoneScale.Z;
-                Vector3 scale_tmp = new Vector3(valueScaleX, valueScaleY, valueScaleZ);
+                SimdVector3 scale_tmp = new SimdVector3(valueScaleX, valueScaleY, valueScaleZ);
 
-                transformAnimation *= Matrix.CreateScale(scale_tmp);
+                transformAnimation *= Matrix4x4.CreateScale(scale_tmp);
 
                 //Rotation:
                 float valueRotX = rotX != null ? rotX.GetKeyframeValue(animation.CurrentFrame) : ema_initalEulerAngles.X;
                 float valueRotY = rotY != null ? rotY.GetKeyframeValue(animation.CurrentFrame) : ema_initalEulerAngles.Y;
                 float valueRotZ = rotZ != null ? rotZ.GetKeyframeValue(animation.CurrentFrame) : ema_initalEulerAngles.Z;
-                Quaternion quat_tmp = GeneralHelpers.EulerAnglesToQuaternion(new Vector3(MathHelper.ToRadians(valueRotX), MathHelper.ToRadians(valueRotY), MathHelper.ToRadians(valueRotZ)));
+                SimdQuaternion quat_tmp = GeneralHelpers.EulerAnglesToQuaternion(new SimdVector3(MathHelper.ToRadians(valueRotX), MathHelper.ToRadians(valueRotY), MathHelper.ToRadians(valueRotZ)));
 
-                transformAnimation *= Matrix.CreateFromQuaternion(quat_tmp);
+                transformAnimation *= Matrix4x4.CreateFromQuaternion(quat_tmp);
 
                 //Position:
                 float valuePosX = posX != null ? posX.GetKeyframeValue(animation.CurrentFrame) : ean_initialBonePosition.X;
                 float valuePosY = posY != null ? posY.GetKeyframeValue(animation.CurrentFrame) : ean_initialBonePosition.Y;
                 float valuePosZ = posZ != null ? posZ.GetKeyframeValue(animation.CurrentFrame) : ean_initialBonePosition.Z;
-                Vector3 pos_tmp = new Vector3(valuePosX, valuePosY, valuePosZ);
+                SimdVector3 pos_tmp = new SimdVector3(valuePosX, valuePosY, valuePosZ);
 
-                transformAnimation *= Matrix.CreateTranslation(pos_tmp);
+                transformAnimation *= Matrix4x4.CreateTranslation(pos_tmp);
 
                 Skeleton.Bones[boneIdx].AnimationMatrix = transformAnimation * relativeMatrix_EanBone_inv;
                 //Skeleton.Bones[boneIdx].AnimationMatrix = transformAnimation;

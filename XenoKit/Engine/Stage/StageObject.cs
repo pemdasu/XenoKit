@@ -1,18 +1,14 @@
-﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using XenoKit.Engine.Model;
 using Xv2CoreLib.FMP;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Stage
 {
     public class StageObject
     {
         public FMP_Object Object { get; set; }
-        public Matrix Transform { get; set; }
+        public Matrix4x4 Transform { get; set; }
         public List<StageEntity> Entities { get; set; } = new List<StageEntity>();
         public List<StageColliderInstance> ColliderInstances { get; set; } = new List<StageColliderInstance>();
 

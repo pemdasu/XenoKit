@@ -4,6 +4,10 @@ using System.Linq;
 using Xv2CoreLib.BCS;
 using Xv2CoreLib.EMA;
 using Xv2CoreLib.ESK;
+using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Animation
 {
@@ -94,7 +98,7 @@ namespace XenoKit.Engine.Animation
             for (int i = 0; i < EmoSkeleton.Bones.Count; i++)
             {
                 Bones[i].BindPoseMatrix = Bones[i].AbsoluteMatrix;
-                Bones[i].InverseBindPoseMatrix = Matrix.Invert(Bones[i].BindPoseMatrix);
+                Bones[i].InverseBindPoseMatrix = MathHelpers.Invert(Bones[i].BindPoseMatrix);
 
                 if(!BoneIndexCache.ContainsKey(Bones[i].Name))
                     BoneIndexCache.Add(Bones[i].Name, i);
@@ -147,9 +151,9 @@ namespace XenoKit.Engine.Animation
             for (int i = 0; i < boneCount; i++)
             {
                 Bones[i].BindPoseMatrix = Bones[i].AbsoluteMatrix;
-                Bones[i].InverseBindPoseMatrix = Matrix.Invert(Bones[i].BindPoseMatrix);
+                Bones[i].InverseBindPoseMatrix = MathHelpers.Invert(Bones[i].BindPoseMatrix);
                 //Bones[i].SkinningMatrix = Bones[i].AbsoluteMatrix;
-                Bones[i].SkinningMatrix = Matrix.Identity;
+                Bones[i].SkinningMatrix = Matrix4x4.Identity;
                 Bones[i].AbsoluteAnimationMatrix = Bones[i].AbsoluteMatrix;
 
                 if (!BoneIndexCache.ContainsKey(Bones[i].Name))
@@ -188,18 +192,18 @@ namespace XenoKit.Engine.Animation
             }
         }
 
-        private Matrix ConvertEskTransformToMatrix(ESK_RelativeTransform transform)
+        private Matrix4x4 ConvertEskTransformToMatrix(ESK_RelativeTransform transform)
         {
-            Matrix matrix = Matrix.Identity;
-            matrix *= Matrix.CreateScale(new Vector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW);
-            matrix *= Matrix.CreateFromQuaternion(new Quaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW));
-            matrix *= Matrix.CreateTranslation(new Vector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW);
+            Matrix4x4 matrix = Matrix4x4.Identity;
+            matrix *= Matrix4x4.CreateScale(new SimdVector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW);
+            matrix *= Matrix4x4.CreateFromQuaternion(new SimdQuaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW));
+            matrix *= Matrix4x4.CreateTranslation(new SimdVector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW);
             return matrix;
         }
 
-        private Matrix ConvertEmoMatrix(SkeletonMatrix transform)
+        private Matrix4x4 ConvertEmoMatrix(SkeletonMatrix transform)
         {
-            return new Matrix(transform.M11, transform.M12, transform.M13, transform.M14, transform.M21, transform.M22, transform.M23, transform.M24, transform.M31, transform.M32, transform.M33, transform.M34, transform.M41, transform.M42, transform.M43, transform.M44);
+            return new Matrix4x4(transform.M11, transform.M12, transform.M13, transform.M14, transform.M21, transform.M22, transform.M23, transform.M24, transform.M31, transform.M32, transform.M33, transform.M34, transform.M41, transform.M42, transform.M43, transform.M44);
         }
 
         private void SetBacBoneIndices()
@@ -229,7 +233,7 @@ namespace XenoKit.Engine.Animation
             //Set all to Identity
             for (int i = 0; i < Bones.Length; i++)
             {
-                Bones[i].BoneScaleMatrix = Matrix.Identity;
+                Bones[i].BoneScaleMatrix = Matrix4x4.Identity;
             }
 
             if(CurrentBoneScale != null)
@@ -241,7 +245,7 @@ namespace XenoKit.Engine.Animation
 
                     if(scale != null)
                     {
-                        Bones[i].BoneScaleMatrix = Matrix.CreateScale(new Vector3(scale.ScaleX, scale.ScaleY, scale.ScaleZ));
+                        Bones[i].BoneScaleMatrix = Matrix4x4.CreateScale(new SimdVector3(scale.ScaleX, scale.ScaleY, scale.ScaleZ));
                     }
                 }
             }
@@ -292,9 +296,9 @@ namespace XenoKit.Engine.Animation
             return null;
         }
 
-        public Matrix[] GetAnimationMatrices()
+        public Matrix4x4[] GetAnimationMatrices()
         {
-            Matrix[] bones = new Matrix[Bones.Length];
+            Matrix4x4[] bones = new Matrix4x4[Bones.Length];
 
             for (int i = 0; i < Bones.Length; i++)
             {
@@ -304,17 +308,17 @@ namespace XenoKit.Engine.Animation
             return bones;
         }
 
-        public Matrix GetHandBarycenter()
+        public Matrix4x4 GetHandBarycenter()
         {
             if(HandL_BoneIndex != -1 && HandR_BoneIndex != -1)
             {
-                Matrix leftHand = Bones[HandL_BoneIndex].AbsoluteAnimationMatrix;
-                Matrix rightHand = Bones[HandR_BoneIndex].AbsoluteAnimationMatrix;
+                Matrix4x4 leftHand = Bones[HandL_BoneIndex].AbsoluteAnimationMatrix;
+                Matrix4x4 rightHand = Bones[HandR_BoneIndex].AbsoluteAnimationMatrix;
 
-                return Matrix.CreateTranslation(Matrix.Lerp(leftHand, rightHand, 0.5f).Translation);
+                return Matrix4x4.CreateTranslation(Matrix4x4.Lerp(leftHand, rightHand, 0.5f).Translation);
             }
 
-            return Matrix.Identity;
+            return Matrix4x4.Identity;
         }
 
         public void CopySkinningState(Xv2Skeleton skinnedSkeleton)
@@ -332,7 +336,7 @@ namespace XenoKit.Engine.Animation
                     //Bones[i].SkinningMatrix = Matrix.Identity;
 
                     int parentBone = skinnedBone.ParentIndex;
-                    Bones[i].AbsoluteAnimationMatrix = Matrix.Identity;
+                    Bones[i].AbsoluteAnimationMatrix = Matrix4x4.Identity;
 
                     while (parentBone != -1)
                     {
@@ -341,7 +345,7 @@ namespace XenoKit.Engine.Animation
                     }
 
                     //Bones[i].SkinningMatrix = skinnedBone.SkinningMatrix * attach.AbsoluteMatrix;
-                    Bones[i].SkinningMatrix = Matrix.Identity;
+                    Bones[i].SkinningMatrix = Matrix4x4.Identity;
 
                 }
                 else if(Bones[i].Parent != null)
@@ -434,20 +438,20 @@ namespace XenoKit.Engine.Animation
 
         //Skeleton Matrices:
         //These are created from the ESK and will remain static, unless the ESK is edited
-        public Matrix AbsoluteMatrix { get; set; }          //Relative to objects space
-        public Matrix RelativeMatrix { get; set; }          //Relative to parent bone
-        public Matrix BindPoseMatrix { get; set; }          //AbsoluteMatrix on moment of link with skin to setup the Pose
-        public Matrix InverseBindPoseMatrix { get; set; }   //Inverse of Bindpose
+        public Matrix4x4 AbsoluteMatrix { get; set; }          //Relative to objects space
+        public Matrix4x4 RelativeMatrix { get; set; }          //Relative to parent bone
+        public Matrix4x4 BindPoseMatrix { get; set; }          //AbsoluteMatrix on moment of link with skin to setup the Pose
+        public Matrix4x4 InverseBindPoseMatrix { get; set; }   //Inverse of Bindpose
 
         //Animation Matrices:
         //These are updated each frame from the AnimationPlayer
-        public Matrix SkinningMatrix { get; set; } = Matrix.Identity;
-        public Matrix AnimationMatrix { get; set; } = Matrix.Identity;
-        public Matrix AbsoluteAnimationMatrix { get; set; } = Matrix.Identity;
+        public Matrix4x4 SkinningMatrix { get; set; } = Matrix4x4.Identity;
+        public Matrix4x4 AnimationMatrix { get; set; } = Matrix4x4.Identity;
+        public Matrix4x4 AbsoluteAnimationMatrix { get; set; } = Matrix4x4.Identity;
 
         //BoneScale Matrix:
         //This is set whenever a BCS bone scale is applied. AbsoluteAnimationMatrix will be scaled by this each frame when that is set
-        public Matrix BoneScaleMatrix { get; set; } = Matrix.Identity;
+        public Matrix4x4 BoneScaleMatrix { get; set; } = Matrix4x4.Identity;
 
         //Face bone awareness:
         public bool IsFaceBone { get; set; }

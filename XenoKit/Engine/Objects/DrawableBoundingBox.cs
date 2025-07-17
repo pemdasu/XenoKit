@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using XenoKit.Engine.Shapes;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Objects
 {
@@ -19,13 +20,13 @@ namespace XenoKit.Engine.Objects
             cube.SetBounds(boundingBox.Min, boundingBox.Max, 0f, true);
         }
 		
-        public void Draw(Matrix world)
+        public void Draw(Matrix4x4 world)
         {
             cube.Transform = world;
             cube.Draw();
         }
 
-        public void Draw(Matrix world, BoundingBox box)
+        public void Draw(Matrix4x4 world, BoundingBox box)
         {
             if (Bounds != box)
                 SetBounds(box);

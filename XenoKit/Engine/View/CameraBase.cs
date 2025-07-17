@@ -2,14 +2,19 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector2 = System.Numerics.Vector2;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.View
 {
     public class CameraBase : Entity, ICameraBase
     {
-        public Matrix ViewMatrix { get; private set; }
-        public Matrix ProjectionMatrix { get; private set; }
-        public Matrix ViewProjectionMatrix { get; private set; }
+        public Matrix4x4 ViewMatrix { get; private set; }
+        public Matrix4x4 ProjectionMatrix { get; private set; }
+        public Matrix4x4 ViewProjectionMatrix { get; private set; }
         public BoundingFrustum Frustum { get; protected set; } = new BoundingFrustum(Matrix.Identity);
         public virtual CameraState CameraState { get; protected set; } = new CameraState();
 
@@ -27,43 +32,43 @@ namespace XenoKit.Engine.View
 
         public CameraBase(GameBase game) : base(game) { }
 
-        private Vector3 RotateCamera(Vector3 position, Vector3 target, Vector2 mouseDelta, float sensitivity)
+        private SimdVector3 RotateCamera(SimdVector3 position, SimdVector3 target, SimdVector2 mouseDelta, float sensitivity)
         {
             float yaw = -mouseDelta.X * sensitivity;
             float pitch = -mouseDelta.Y * sensitivity;
 
-            Quaternion yawRotation = Quaternion.CreateFromAxisAngle(Vector3.Up, MathHelper.ToRadians(yaw));
+            SimdQuaternion yawRotation = SimdQuaternion.CreateFromAxisAngle(MathHelpers.Up, MathHelper.ToRadians(yaw));
 
-            Vector3 right = Vector3.Normalize(Vector3.Cross(position - target, Vector3.Up));
-            Quaternion pitchRotation = Quaternion.CreateFromAxisAngle(right, MathHelper.ToRadians(pitch));
+            SimdVector3 right = SimdVector3.Normalize(SimdVector3.Cross(position - target, MathHelpers.Up));
+            SimdQuaternion pitchRotation = SimdQuaternion.CreateFromAxisAngle(right, MathHelper.ToRadians(pitch));
 
-            Quaternion finalRotation = yawRotation * pitchRotation;
+            SimdQuaternion finalRotation = yawRotation * pitchRotation;
 
-            Vector3 direction = position - target;
-            direction = Vector3.Transform(direction, finalRotation);
+            SimdVector3 direction = position - target;
+            direction = SimdVector3.Transform(direction, finalRotation);
 
             return target + direction;
         }
 
-        private void PanCamera(Vector2 mouseDelta, float speed)
+        private void PanCamera(SimdVector2 mouseDelta, float speed)
         {
-            Vector3 forward = -Vector3.Normalize(CameraState.TargetPosition - CameraState.Position);
-            Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.Up, forward));
-            Vector3 up = Vector3.Cross(forward, right);
+            SimdVector3 forward = -SimdVector3.Normalize(CameraState.TargetPosition - CameraState.Position);
+            SimdVector3 right = SimdVector3.Normalize(SimdVector3.Cross(MathHelpers.Up, forward));
+            SimdVector3 up = SimdVector3.Cross(forward, right);
 
-            Vector3 moveRight = right * mouseDelta.X * speed;
-            Vector3 moveUp = up * mouseDelta.Y * speed;
-            Vector3 panMovement = moveRight + moveUp;
+            SimdVector3 moveRight = right * mouseDelta.X * speed;
+            SimdVector3 moveUp = up * mouseDelta.Y * speed;
+            SimdVector3 panMovement = moveRight + moveUp;
 
             CameraState.Position += panMovement;
             CameraState.TargetPosition += panMovement;
         }
 
-        private void SpinCamera(Vector2 mouseDelta, float speed, bool inverseSpin)
+        private void SpinCamera(SimdVector2 mouseDelta, float speed, bool inverseSpin)
         {
             if (inverseSpin)
             {
-                CameraState.TargetPosition = RotateCamera(CameraState.TargetPosition, CameraState.Position, new Vector2(mouseDelta.X, -mouseDelta.Y), speed * 0.75f);
+                CameraState.TargetPosition = RotateCamera(CameraState.TargetPosition, CameraState.Position, new SimdVector2(mouseDelta.X, -mouseDelta.Y), speed * 0.75f);
             }
             else
             {
@@ -73,7 +78,7 @@ namespace XenoKit.Engine.View
 
         private void ZoomCamera(float delta)
         {
-            float distance = Vector3.Distance(CameraState.Position, CameraState.TargetPosition);
+            float distance = SimdVector3.Distance(CameraState.Position, CameraState.TargetPosition);
             float factor = 0.005f;
 
             factor *= 1f + (MathHelper.Clamp(distance / 200f, 0f, 1f) * 15f);
@@ -87,10 +92,10 @@ namespace XenoKit.Engine.View
             if (distance > 1000)
                 factor *= 2;
 
-            Vector3 forward = CameraState.TargetPosition - CameraState.Position;
-            forward.Normalize();
-            Vector3 translation = forward * delta * factor;
-            float distanceMoved = Vector3.Distance(translation + CameraState.Position, CameraState.Position);
+            SimdVector3 forward = CameraState.TargetPosition - CameraState.Position;
+            forward = SimdVector3.Normalize(forward);
+            SimdVector3 translation = forward * delta * factor;
+            float distanceMoved = SimdVector3.Distance(translation + CameraState.Position, CameraState.Position);
 
             if (delta > 0f && distance - distanceMoved < 0.05f)
             {
@@ -103,17 +108,17 @@ namespace XenoKit.Engine.View
 
         }
 
-        private void TranslateCamera(Vector3 direction, float speed)
+        private void TranslateCamera(SimdVector3 direction, float speed)
         {
-            Vector3 forward = -Vector3.Normalize(CameraState.TargetPosition - CameraState.Position);
-            Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.Up, forward));
-            Vector3 up = Vector3.Cross(forward, right);
+            SimdVector3 forward = -SimdVector3.Normalize(CameraState.TargetPosition - CameraState.Position);
+            SimdVector3 right = SimdVector3.Normalize(SimdVector3.Cross(MathHelpers.Up, forward));
+            SimdVector3 up = SimdVector3.Cross(forward, right);
 
-            Vector3 moveRight = right * direction.X * speed;
-            Vector3 moveUp = up * direction.Y * speed;
-            Vector3 moveForward = forward * direction.Z * speed;
+            SimdVector3 moveRight = right * direction.X * speed;
+            SimdVector3 moveUp = up * direction.Y * speed;
+            SimdVector3 moveForward = forward * direction.Z * speed;
 
-            Vector3 translation = moveRight + moveUp + moveForward;
+            SimdVector3 translation = moveRight + moveUp + moveForward;
 
             CameraState.Position += translation;
             CameraState.TargetPosition += translation;
@@ -131,36 +136,36 @@ namespace XenoKit.Engine.View
             else if (Input.IsKeyDown(Keys.LeftShift))
                 translateSpeed *= 5f;
 
-            Vector3 translationVector = Vector3.Zero;
+            SimdVector3 translationVector = SimdVector3.Zero;
 
             if (Input.IsKeyDown(Keys.W))
             {
-                translationVector += Vector3.Forward;
+                translationVector += MathHelpers.Forward;
             }
             else if (Input.IsKeyDown(Keys.S))
             {
-                translationVector += Vector3.Backward;
+                translationVector += MathHelpers.Backward;
             }
 
             if (Input.IsKeyDown(Keys.A))
             {
-                translationVector += Vector3.Right;
+                translationVector += MathHelpers.Right;
             }
             else if (Input.IsKeyDown(Keys.D))
             {
-                translationVector += Vector3.Left;
+                translationVector += MathHelpers.Left;
             }
 
             if (Input.IsKeyDown(Keys.X))
             {
-                translationVector += Vector3.Up;
+                translationVector += MathHelpers.Up;
             }
             else if (Input.IsKeyDown(Keys.C))
             {
-                translationVector += Vector3.Down;
+                translationVector += MathHelpers.Down;
             }
 
-            if(translationVector != Vector3.Zero)
+            if(translationVector != SimdVector3.Zero)
                 TranslateCamera(translationVector, translateSpeed);
         }
 
@@ -183,7 +188,7 @@ namespace XenoKit.Engine.View
 
             if (IsRightClickHeldDown)
             {
-                float distance = Vector3.Distance(CameraState.Position, CameraState.TargetPosition);
+                float distance = SimdVector3.Distance(CameraState.Position, CameraState.TargetPosition);
 
                 float factor = 0.005f;
                 if(distance > 10f)
@@ -271,15 +276,15 @@ namespace XenoKit.Engine.View
         }
         
         #region Helpers
-        public float DistanceFromCamera(Vector3 worldPos)
+        public float DistanceFromCamera(SimdVector3 worldPos)
         {
-            return Math.Abs(Vector3.Distance(CameraState.Position, worldPos));
+            return Math.Abs(SimdVector3.Distance(CameraState.Position, worldPos));
         }
 
-        public Vector2 ProjectToScreenPosition(Vector3 worldPos)
+        public SimdVector2 ProjectToScreenPosition(SimdVector3 worldPos)
         {
             var vec3 = GraphicsDevice.Viewport.Project(worldPos, ProjectionMatrix, ViewMatrix, Matrix.Identity);
-            return new Vector2(vec3.X, vec3.Y);
+            return new SimdVector2(vec3.X, vec3.Y);
         }
 
         /// <summary>
@@ -294,10 +299,10 @@ namespace XenoKit.Engine.View
             }
         }
 
-        public Vector3 TransformRelativeToCamera(Vector3 position, float distanceModifier)
+        public SimdVector3 TransformRelativeToCamera(SimdVector3 position, float distanceModifier)
         {
-            Vector3 cameraForward = position - CameraState.Position;
-            cameraForward.Normalize();
+            SimdVector3 cameraForward = position - CameraState.Position;
+            cameraForward = SimdVector3.Normalize(cameraForward);
             return cameraForward * distanceModifier;
         }
 
@@ -322,22 +327,22 @@ namespace XenoKit.Engine.View
             float farClipPlane = GameBase.CurrentStage.FarClip;
             float aspectRatio = GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;
 
-            ProjectionMatrix = Matrix.CreatePerspectiveFieldOfView(fieldOfViewRadians, aspectRatio, nearClipPlane, farClipPlane);
+            ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fieldOfViewRadians, aspectRatio, nearClipPlane, farClipPlane);
             //ProjectionMatrix = EngineUtils.CreateInfinitePerspective(fieldOfViewRadians, aspectRatio, nearClipPlane);
 
             //View Matrix
             if (IsReflectionView)
             {
                 //Dont think this is needed? Flipping the World matrix on the Y axis seems to do the trick
-                Vector3 pos = new Vector3(CameraState.Position.X, -CameraState.Position.Y, CameraState.Position.Z);
-                Vector3 target = new Vector3(CameraState.TargetPosition.X, -CameraState.TargetPosition.Y, CameraState.TargetPosition.Z);
+                SimdVector3 pos = new SimdVector3(CameraState.Position.X, -CameraState.Position.Y, CameraState.Position.Z);
+                SimdVector3 target = new SimdVector3(CameraState.TargetPosition.X, -CameraState.TargetPosition.Y, CameraState.TargetPosition.Z);
                 //ViewMatrix = Matrix.CreateLookAt(pos, target, Vector3.Down) * Matrix.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
 
-                ViewMatrix = Matrix.CreateLookAt(pos, target, Vector3.Up) * Matrix.CreateScale(1f, -1f, 1f) * Matrix.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
+                ViewMatrix = Matrix4x4.CreateLookAt(pos, target, MathHelpers.Up) * Matrix4x4.CreateScale(1f, -1f, 1f) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
             }
             else
             {
-                ViewMatrix = Matrix.CreateLookAt(CameraState.Position, CameraState.TargetPosition, Vector3.Up) * Matrix.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
+                ViewMatrix = Matrix4x4.CreateLookAt(CameraState.Position, CameraState.TargetPosition, MathHelpers.Up) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
             }
 
             ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;
@@ -371,8 +376,8 @@ namespace XenoKit.Engine.View
             float requiredDistanceY = extentY / tanFovY;
             float requiredDistance = Math.Max(requiredDistanceX, requiredDistanceY);
 
-            CameraState.TargetPosition = boxCenter;
-            CameraState.Position = boxCenter - forward * requiredDistance;
+            CameraState.TargetPosition = boxCenter.ToNumerics();
+            CameraState.Position = (boxCenter - forward * requiredDistance).ToNumerics();
         }
         #endregion
     }

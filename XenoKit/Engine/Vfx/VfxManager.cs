@@ -9,7 +9,8 @@ using XenoKit.Engine.Vfx.Asset;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EffectContainer;
-using Xv2CoreLib.Resource.App;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Vfx
 {
@@ -42,7 +43,7 @@ namespace XenoKit.Engine.Vfx
                 return;
             }
 
-            await Task.Run(() => AddEffect(actor, effect, Matrix.Identity, GameBase));
+            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity, GameBase));
         }
 
         public async void PlayEffect(BAC_Type8 bacEffect, BacEntryInstance bacInstance, Actor actor)
@@ -64,11 +65,11 @@ namespace XenoKit.Engine.Vfx
                 if (eepkEffect != null)
                 {
                     //Get spawn position from declared bone and position on the bac entry
-                    Matrix spawnPosition = Matrix.Identity;
+                    Matrix4x4 spawnPosition = Matrix4x4.Identity;
 
                     if(actor != null && (int)bacEffect.BoneLink < 25)
                     {
-                        spawnPosition = actor.GetAbsoluteBoneMatrix(actor.Skeleton.BAC_BoneIndices[(int)bacEffect.BoneLink]) * Matrix.CreateTranslation(new Vector3(bacEffect.PositionX, bacEffect.PositionY, bacEffect.PositionZ));
+                        spawnPosition = actor.GetAbsoluteBoneMatrix(actor.Skeleton.BAC_BoneIndices[(int)bacEffect.BoneLink]) * Matrix4x4.CreateTranslation(new SimdVector3(bacEffect.PositionX, bacEffect.PositionY, bacEffect.PositionZ));
                     }
 
                     await Task.Run(() => AddEffect(bacInstance.User, eepkEffect, spawnPosition, GameBase));
@@ -114,7 +115,7 @@ namespace XenoKit.Engine.Vfx
             }
         }
 
-        private void AddEffect(Actor actor, Effect effect, Matrix world, GameBase gameBase)
+        private void AddEffect(Actor actor, Effect effect, Matrix4x4 world, GameBase gameBase)
         {
             VfxEffect vfxEffect = new VfxEffect(actor, effect, world, GameBase);
 

@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using XenoKit.Engine.Gizmo.TransformOperations;
 using XenoKit.Engine.Shapes;
-using Xv2CoreLib.EMD;
 using Plane = Microsoft.Xna.Framework.Plane;
 
 namespace XenoKit.Engine.Gizmo

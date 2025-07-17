@@ -8,6 +8,8 @@ using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.NSK;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Model
 {
@@ -52,17 +54,17 @@ namespace XenoKit.Engine.Model
 
         public override void Draw()
         {
-            Draw(Matrix.Identity);
+            Draw(Matrix4x4.Identity);
         }
 
-        public void Draw(Matrix world)
+        public void Draw(Matrix4x4 world)
         {
             Lod lod = GetCurrentLod();
             lod.Draw(world, Textures);
             DrawThisFrame = false;
         }
 
-        public void DrawSimple(Matrix world)
+        public void DrawSimple(Matrix4x4 world)
         {
             Lod lod = GetCurrentLod();
             lod.DrawSimple(world, RenderSystem.ShadowModel);
@@ -70,7 +72,7 @@ namespace XenoKit.Engine.Model
 
         private Lod GetCurrentLod()
         {
-            float distanceFromCamera = Vector3.Distance(CameraBase.CameraState.Position, Transform.Translation);
+            float distanceFromCamera = SimdVector3.Distance(CameraBase.CameraState.Position, Transform.Translation);
 
             //TODO
             return LODs[GetLodIndex(distanceFromCamera)];

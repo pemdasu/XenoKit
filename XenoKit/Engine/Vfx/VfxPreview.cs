@@ -57,7 +57,7 @@ namespace XenoKit.Engine.Vfx
             if (Effect != null)
                 Effect.Dispose();
 
-            Effect = new VfxEffect(SceneManager.Actors[0], effect, Microsoft.Xna.Framework.Matrix.Identity, GameBase);
+            Effect = new VfxEffect(SceneManager.Actors[0], effect, System.Numerics.Matrix4x4.Identity, GameBase);
         }
 
         public void PreviewAsset(Xv2CoreLib.EffectContainer.Asset asset)

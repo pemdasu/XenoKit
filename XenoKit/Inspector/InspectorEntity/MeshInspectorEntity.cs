@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using XenoKit.Editor;
@@ -10,6 +9,7 @@ using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMO;
 using Xv2CoreLib.NSK;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Inspector.InspectorEntities
 {
@@ -233,7 +233,7 @@ namespace XenoKit.Inspector.InspectorEntities
                 GraphicsDevice.Textures[4] = DytFile.DytIndex >= DytFile.Textures.Length ? DytFile.Textures[0].Texture : DytFile.Textures[DytFile.DytIndex].Texture;
             }
 
-            Model.Draw(Parent != null ? Parent.Transform : Matrix.Identity, 0, CompiledMaterials, TextureFile?.Textures, DytFile?.Textures, DytFile != null ? DytFile.DytIndex : 0, Parent?.Skeleton);
+            Model.Draw(Parent != null ? Parent.Transform : Matrix4x4.Identity, 0, CompiledMaterials, TextureFile?.Textures, DytFile?.Textures, DytFile != null ? DytFile.DytIndex : 0, Parent?.Skeleton);
         }
 
         public override void DrawPass(bool normalPass)
@@ -252,7 +252,7 @@ namespace XenoKit.Inspector.InspectorEntities
                 shader = RenderSystem.ShadowModel_W;
             }
 
-            Model.Draw(Parent != null ? Parent.Transform : Matrix.Identity, 0, shader, Parent?.Skeleton);
+            Model.Draw(Parent != null ? Parent.Transform : Matrix4x4.Identity, 0, shader, Parent?.Skeleton);
         }
     
         /// <summary>

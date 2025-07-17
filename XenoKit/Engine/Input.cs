@@ -1,8 +1,7 @@
 ﻿using System;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Framework.WpfInterop.Input;
-using XenoKit.Editor;
+using SimdVector2 = System.Numerics.Vector2;
 
 namespace XenoKit.Engine
 {
@@ -16,10 +15,10 @@ namespace XenoKit.Engine
         public MouseState PreviousMouseState { get; private set; }
         public KeyboardState KeyboardState { get; private set; }
 
-        private Vector2 _prevMousePos;
-        private Vector2 _mousePos;
-        public Vector2 MousePosition => _mousePos;
-        public Vector2 MouseDelta { get; private set; }
+        private SimdVector2 _prevMousePos;
+        private SimdVector2 _mousePos;
+        public SimdVector2 MousePosition => _mousePos;
+        public SimdVector2 MouseDelta { get; private set; }
 
         //public Vector2 MousePosition {  get { return MouseState.Position.ToVector2(); } }
         //public Vector2 AltMousePosition => new Vector2(MouseState.Position.X, MouseState.Position.Y);
@@ -41,7 +40,7 @@ namespace XenoKit.Engine
         //Left Click
         private bool _wasLeftMouseReleased = false;
         private int _currentLeftDoubleClickPeriod = 0;
-        private Vector2 _mouseLocationAtDoubleClickStart;
+        private SimdVector2 _mouseLocationAtDoubleClickStart;
 
         //Const
         private const int DoubleClickPeriod = 60;
@@ -59,7 +58,7 @@ namespace XenoKit.Engine
             KeyboardState = keyboard.GetState();
 
             //_mousePos = new Vector2((game.GraphicsDevice.Viewport.Width - MouseState.X) * game.SuperSamplingFactor, MouseState.Y * game.SuperSamplingFactor);
-            _mousePos = MouseState.Position.ToVector2();
+            _mousePos = MouseState.Position.ToNumeric();
             MouseDelta = _mousePos - _prevMousePos;
 
             //Update scroll

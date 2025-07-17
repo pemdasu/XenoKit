@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using XenoKit.Engine.Model;
 using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Gizmo.TransformOperations
 {
@@ -11,32 +14,32 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
         public override RotationType RotationType => RotationType.EulerAngles;
 
         private IList<Xv2Submesh> transforms;
-        private Matrix[] originalTransforms;
+        private Matrix4x4[] originalTransforms;
 
-        private Vector3 position = Vector3.Zero;
-        private Vector3 scale = Vector3.One;
-        private Vector3 rotation = Vector3.Zero;
-        private Matrix originalMatrix = Matrix.Identity;
+        private SimdVector3 position = SimdVector3.Zero;
+        private SimdVector3 scale = SimdVector3.One;
+        private SimdVector3 rotation = SimdVector3.Zero;
+        private Matrix4x4 originalMatrix = Matrix4x4.Identity;
 
         public ModelTransformOperation(IList<Xv2Submesh> _transforms)
         {
             transforms = _transforms;
-            originalTransforms = new Matrix[transforms.Count];
+            originalTransforms = new Matrix4x4[transforms.Count];
 
             for(int i = 0; i < transforms.Count; i++)
             {
                 originalTransforms[i] = transforms[i].Transform;
             }
 
-            if(originalTransforms[0].Decompose(out Vector3 _scale, out Quaternion _rot, out Vector3 _translation))
+            if(Matrix4x4.Decompose(originalTransforms[0], out SimdVector3 _scale, out SimdQuaternion _rot, out SimdVector3 _translation))
             {
                 position = _translation;
                 scale = _scale;
                 rotation = _rot.ToEuler();
 
-                originalMatrix *= Matrix.CreateScale(scale);
-                originalMatrix *= Matrix.CreateFromQuaternion(_rot);
-                originalMatrix *= Matrix.CreateTranslation(position);
+                originalMatrix *= Matrix4x4.CreateScale(scale);
+                originalMatrix *= Matrix4x4.CreateFromQuaternion(_rot);
+                originalMatrix *= Matrix4x4.CreateTranslation(position);
             }
         }
 
@@ -70,7 +73,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             {
                 Modified = true;
 
-                position += new Vector3(-delta.X, delta.Y, delta.Z);
+                position += new SimdVector3(-delta.X, delta.Y, delta.Z);
                 UpdateTransform();
             }
         }
@@ -80,7 +83,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (newRot != rotation)
             {
                 Modified = true;
-                rotation = newRot;
+                rotation = newRot.ToNumerics();
                 UpdateTransform();
             }
         }
@@ -90,7 +93,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
-                scale += delta;
+                scale += delta.ToNumerics();
                 scale.ClampScale();
                 UpdateTransform();
             }
@@ -98,10 +101,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
         private void UpdateTransform()
         {
-            Matrix deltaMatrix = Matrix.Invert(originalMatrix * transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix);
-            deltaMatrix *= Matrix.CreateScale(scale);
-            deltaMatrix *= Matrix.CreateFromQuaternion(rotation.EulerToQuaternion());
-            deltaMatrix *= Matrix.CreateTranslation(position);
+            Matrix4x4 deltaMatrix = MathHelpers.Invert(originalMatrix * transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix);
+            deltaMatrix *= Matrix4x4.CreateScale(scale);
+            deltaMatrix *= Matrix4x4.CreateFromQuaternion(rotation.EulerToQuaternion());
+            deltaMatrix *= Matrix4x4.CreateTranslation(position);
             deltaMatrix *= transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
 
             for (int i = 0; i < transforms.Count; i++)

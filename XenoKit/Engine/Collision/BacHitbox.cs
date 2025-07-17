@@ -1,19 +1,22 @@
 ﻿using Microsoft.Xna.Framework;
 using XenoKit.Editor;
-using XenoKit.Engine.Scripting;
 using XenoKit.Engine.Scripting.BAC;
 using Xv2CoreLib.BAC;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Collision
 {
     public class BacHitbox
     {
-        public Matrix WorldMatrix
+        public Matrix4x4 WorldMatrix
         {
             get
             {
-                if (Hitbox == null) return Matrix.Identity;
-                Matrix world = Matrix.Identity;
+                if (Hitbox == null) return Matrix4x4.Identity;
+                Matrix4x4 world = Matrix4x4.Identity;
 
                 if (boneIdx != -1 && SpawnActor != null)
                 {
@@ -22,14 +25,14 @@ namespace XenoKit.Engine.Collision
                     //Hitbox doesn't rotate with b_C_Base, so the rotation needs to be removed
                     if (isBaseBone)
                     {
-                        world = Matrix.CreateTranslation(world.Translation);
+                        world = Matrix4x4.CreateTranslation(world.Translation);
                     }
                 }
 
                 return world;
             }
         }
-        private Vector3 PreviousTranslation;
+        private SimdVector3 PreviousTranslation;
 
         public int Team;
 
@@ -41,7 +44,7 @@ namespace XenoKit.Engine.Collision
         private int boneIdx = -1;
         private bool isBaseBone = false;
 
-        private Vector3 HitboxPosition;
+        private SimdVector3 HitboxPosition;
 
         public BacHitbox(BacEntryInstance bacEntry, BAC_Type1 bacHitbox, Actor spawnOnActor, Actor owner, int team)
         {
@@ -64,12 +67,12 @@ namespace XenoKit.Engine.Collision
                 Log.Add($"Hitbox tried spawning on actor, but no actor was found in the scene!", LogType.Warning);
             }
 
-            HitboxPosition = new Vector3(Hitbox.PositionX, Hitbox.PositionY, Hitbox.PositionZ);
+            HitboxPosition = new SimdVector3(Hitbox.PositionX, Hitbox.PositionY, Hitbox.PositionZ);
         }
 
         public void UpdateHitbox()
         {
-            Matrix world = WorldMatrix;
+            Matrix4x4 world = WorldMatrix;
 
             if (world.Translation == PreviousTranslation) return; //No need to update
 
@@ -91,16 +94,16 @@ namespace XenoKit.Engine.Collision
             return BacEntry.IsValidTime(Hitbox.StartTime, Hitbox.Duration);
         }
 
-        public Vector3 GetRelativeDirection(Matrix matrix)
+        public SimdVector3 GetRelativeDirection(Matrix4x4 matrix)
         {
-            Vector3 relativeDir = (Matrix.Invert(matrix) * WorldMatrix).Translation;
-            relativeDir.Normalize();
+            SimdVector3 relativeDir = (MathHelpers.Invert(matrix) * WorldMatrix).Translation;
+            relativeDir = SimdVector3.Normalize(relativeDir);
             return relativeDir;
         }
     
-        public Matrix GetAbsoluteHitboxMatrix()
+        public Matrix4x4 GetAbsoluteHitboxMatrix()
         {
-            return WorldMatrix * Matrix.CreateTranslation(HitboxPosition);
+            return WorldMatrix * Matrix4x4.CreateTranslation(HitboxPosition);
         }
     }
 }

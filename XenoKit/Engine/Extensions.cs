@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using XenoKit.Helper.Find;
 using Xv2CoreLib.EMD;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.Resource;
@@ -9,6 +10,59 @@ namespace XenoKit.Engine
 {
     public static class Extensions
     {
+        #region System.Numerics Helpers
+        public static System.Numerics.Vector3 GetUp(this System.Numerics.Matrix4x4 m)
+        {
+            return new System.Numerics.Vector3(m.M21, m.M22, m.M23);
+        }
+
+        public static void SetUp(this System.Numerics.Matrix4x4 m, System.Numerics.Vector3 v)
+        {
+            m.M21 = v.X;
+            m.M22 = v.Y;
+            m.M23 = v.Z;
+        }
+
+        public static System.Numerics.Vector3 GetForward(this System.Numerics.Matrix4x4 m)
+        {
+            return new System.Numerics.Vector3(-m.M31, -m.M32, -m.M33);
+        }
+
+        public static void SetForward(this System.Numerics.Matrix4x4 m, System.Numerics.Vector3 v)
+        {
+            m.M31 = -v.X;
+            m.M32 = -v.Y;
+            m.M33 = -v.Z;
+        }
+
+        public static System.Numerics.Matrix4x4 Invert(this System.Numerics.Matrix4x4 m)
+        {
+            System.Numerics.Matrix4x4.Invert(m, out System.Numerics.Matrix4x4 result);
+            return result;
+        }
+        #endregion
+
+        public static System.Numerics.Quaternion EulerToQuaternion(this System.Numerics.Vector3 euler)
+        {
+            float roll = MathHelpers.ToRadians(euler.X);
+            float pitch = MathHelpers.ToRadians(euler.Y);
+            float yaw = MathHelpers.ToRadians(euler.Z);
+
+            float cy = (float)Math.Cos(yaw * 0.5f);
+            float sy = (float)Math.Sin(yaw * 0.5f);
+            float cp = (float)Math.Cos(pitch * 0.5f);
+            float sp = (float)Math.Sin(pitch * 0.5f);
+            float cr = (float)Math.Cos(roll * 0.5f);
+            float sr = (float)Math.Sin(roll * 0.5f);
+
+            return new System.Numerics.Quaternion(
+                sr * cp * cy - cr * sp * sy,
+                cr * sp * cy + sr * cp * sy,
+                cr * cp * sy - sr * sp * cy,
+                cr * cp * cy + sr * sp * sy
+            );
+        }
+
         public static Quaternion EulerToQuaternion(this Vector3 euler)
         {
             float roll = MathHelpers.ToRadians(euler.X);
@@ -39,6 +93,15 @@ namespace XenoKit.Engine
 
         }
         
+        public static System.Numerics.Matrix4x4 ToNumerics(this FMP_Matrix matrix)
+        {
+            return new System.Numerics.Matrix4x4(matrix.L0[0], matrix.L0[1], matrix.L0[2], 0f,
+                              matrix.L1[0], matrix.L1[1], matrix.L1[2], 0f,
+                              matrix.L2[0], matrix.L2[1], matrix.L2[2], 0f,
+                              matrix.L3[0], matrix.L3[1], matrix.L3[2], 1f);
+
+        }
+
         public static BoundingBox ConvertToBoundingBox(this EMD_AABB aabb)
         {
             Vector3 min = new Vector3(aabb.MinX, aabb.MinY, aabb.MinZ);
@@ -130,13 +193,31 @@ namespace XenoKit.Engine
         {
             return MathHelpers.FloatEquals(a.X, b.X) && MathHelpers.FloatEquals(a.Y, b.Y) && MathHelpers.FloatEquals(a.Z, b.Z);
         }
+        
+        public static bool IsAproxEqual(this System.Numerics.Vector3 a, System.Numerics.Vector3 b)
+        {
+            return MathHelpers.FloatEquals(a.X, b.X) && MathHelpers.FloatEquals(a.Y, b.Y) && MathHelpers.FloatEquals(a.Z, b.Z);
+        }
 
         public static void ClampScale(this Vector3 scale)
         {
             scale.Clamp(0.01f, float.MaxValue);
         }
 
+        public static void ClampScale(this System.Numerics.Vector3 scale)
+        {
+            scale.Clamp(0.01f, float.MaxValue);
+        }
+
+
         public static void Clamp(this Vector3 a, float min, float max)
+        {
+            a.X = MathHelper.Clamp(a.X, min, max);
+            a.Y = MathHelper.Clamp(a.Y, min, max);
+            a.Z = MathHelper.Clamp(a.Z, min, max);
+        }
+
+        public static void Clamp(this System.Numerics.Vector3 a, float min, float max)
         {
             a.X = MathHelper.Clamp(a.X, min, max);
             a.Y = MathHelper.Clamp(a.Y, min, max);
@@ -160,9 +241,42 @@ namespace XenoKit.Engine
                 euler.Z += 360;
         }
 
-        public static Vector3 GetCenter(this EMD_AABB aabb)
+        public static void ClampEuler(this System.Numerics.Vector3 euler)
         {
-            return new Vector3(aabb.CenterX, aabb.CenterY, aabb.CenterZ) * aabb.CenterW;
+            if (euler.X > 360)
+                euler.X -= 360;
+            if (euler.Y > 360)
+                euler.Y -= 360;
+            if (euler.Z > 360)
+                euler.Z -= 360;
+
+            if (euler.X < 0f)
+                euler.X += 360;
+            if (euler.Y < 0f)
+                euler.Y += 360;
+            if (euler.Z < 0f)
+                euler.Z += 360;
+        }
+
+        public static System.Numerics.Vector3 GetCenter(this EMD_AABB aabb)
+        {
+            return new System.Numerics.Vector3(aabb.CenterX, aabb.CenterY, aabb.CenterZ) * aabb.CenterW;
+        }
+
+        public static System.Numerics.Vector3 ToEuler(this System.Numerics.Quaternion q)
+        {
+            float sinr_cosp = 2 * (q.W * q.X + q.Y * q.Z);
+            float cosr_cosp = 1 - 2 * (q.X * q.X + q.Y * q.Y);
+            float roll = (float)Math.Atan2(sinr_cosp, cosr_cosp); // X-axis
+
+            float sinp = 2 * (q.W * q.Y - q.Z * q.X);
+            float pitch = (float)(Math.Abs(sinp) >= 1 ? MathHelpers.CopySign(MathHelpers.PI / 2, sinp) : Math.Asin(sinp)); // Y-axis
+
+            float siny_cosp = 2 * (q.W * q.Z + q.X * q.Y);
+            float cosy_cosp = 1 - 2 * (q.Y * q.Y + q.Z * q.Z);
+            float yaw = (float)Math.Atan2(siny_cosp, cosy_cosp); // Z-axis
+
+            return new System.Numerics.Vector3(roll, pitch, yaw) * (180f / MathHelpers.PI); // Convert to degrees
         }
 
         public static Vector3 ToEuler(this Quaternion q)

@@ -1,23 +1,23 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using Xv2CoreLib;
 using XenoKit.Editor;
 using XenoKit.Engine.Animation;
-using XenoKit.Engine.View;
 using XenoKit.Engine.Scripting.BAC;
-using Microsoft.Xna.Framework.Graphics;
 using Xv2CoreLib.EAN;
 using XenoKit.Controls;
 using XenoKit.Engine.Character;
 using XenoKit.Engine.Collision;
 using XenoKit.Engine.Shader;
+using Microsoft.Xna.Framework;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine
 {
     public class Actor : Entity, ISkinned
     {
         //TODO: Clean this mess up!
-        public override Matrix AbsoluteTransform => Transform;
+        public override Matrix4x4 AbsoluteTransform => Transform;
         public override EntityType EntityType => EntityType.Actor;
 
         public int Team => ActorSlot == 1 ? 1 : 0;
@@ -138,11 +138,11 @@ namespace XenoKit.Engine
         }
 
         #region Transform
-        public override Matrix Transform => RootMotionTransform * ActionMovementTransform * BaseTransform;
+        public override Matrix4x4 Transform => RootMotionTransform * ActionMovementTransform * BaseTransform;
 
-        public Matrix RootMotionTransform = Matrix.Identity;
-        public Matrix ActionMovementTransform = Matrix.Identity;
-        public Matrix BaseTransform = Matrix.Identity;
+        public Matrix4x4 RootMotionTransform = Matrix4x4.Identity;
+        public Matrix4x4 ActionMovementTransform = Matrix4x4.Identity;
+        public Matrix4x4 BaseTransform = Matrix4x4.Identity;
 
         /// <summary>
         /// Called when an BAC Animation is finished. All movement from that animation will be added onto the BaseTransform and preserved, while discarding all other Root Motion.
@@ -150,35 +150,35 @@ namespace XenoKit.Engine
         public void MergeTransforms()
         {
             BaseTransform = ActionMovementTransform * BaseTransform;
-            ActionMovementTransform = Matrix.Identity;
-            RootMotionTransform = Matrix.Identity;
+            ActionMovementTransform = Matrix4x4.Identity;
+            RootMotionTransform = Matrix4x4.Identity;
         }
 
-        public void ApplyTranslation(Vector3 translation)
+        public void ApplyTranslation(SimdVector3 translation)
         {
-            BaseTransform *= Matrix.CreateTranslation(translation);
+            BaseTransform *= Matrix4x4.CreateTranslation(translation);
         }
 
         public void ResetPosition()
         {
-            Vector3 pos;
-            Matrix rotation;
+            SimdVector3 pos;
+            Matrix4x4 rotation;
 
             switch (ActorSlot)
             {
                 case 1:
-                    pos = new Vector3(0, 0, -SceneManager.VictimDistance);
-                    rotation = SceneManager.VictimIsFacingPrimary ? Matrix.CreateRotationY(MathHelper.Pi) : Matrix.Identity;
+                    pos = new SimdVector3(0, 0, -SceneManager.VictimDistance);
+                    rotation = SceneManager.VictimIsFacingPrimary ? Matrix4x4.CreateRotationY(MathHelper.Pi) : Matrix4x4.Identity;
                     break;
                 default:
-                    pos = Vector3.Zero;
-                    rotation = Matrix.Identity;
+                    pos = SimdVector3.Zero;
+                    rotation = Matrix4x4.Identity;
                     break;
             }
 
-            BaseTransform = Matrix.Identity * rotation * Matrix.CreateTranslation(pos);
-            ActionMovementTransform = Matrix.Identity;
-            RootMotionTransform = Matrix.Identity;
+            BaseTransform = rotation * Matrix4x4.CreateTranslation(pos);
+            ActionMovementTransform = Matrix4x4.Identity;
+            RootMotionTransform = Matrix4x4.Identity;
         }
 
         public void ResetState(bool keepAnimation = false)
@@ -233,7 +233,7 @@ namespace XenoKit.Engine
             ActionControl.Update();
 
             if (AnimationPlayer != null && Skeleton != null)
-                AnimationPlayer.Update(Matrix.Identity);
+                AnimationPlayer.Update(Matrix4x4.Identity);
 
             _visualSkeleton.Update(Skeleton.Bones);
 
@@ -354,7 +354,7 @@ namespace XenoKit.Engine
             return false;
         }
 
-        public Matrix GetAbsoluteBoneMatrix(int index)
+        public Matrix4x4 GetAbsoluteBoneMatrix(int index)
         {
             //All b_C_Base movement is moved onto Transform. The bone is always at Identity, so this is needed to get the correct matrix.
 
@@ -365,9 +365,9 @@ namespace XenoKit.Engine
             return Skeleton.Bones[index].AbsoluteAnimationMatrix * Transform;
         }
 
-        public Vector3 GetBoneCurrentAbsolutePosition(string name)
+        public SimdVector3 GetBoneCurrentAbsolutePosition(string name)
         {
-            Vector3 pos = AnimationPlayer.GetCurrentAbsoluteMatrix(name).Translation;
+            SimdVector3 pos = AnimationPlayer.GetCurrentAbsoluteMatrix(name).Translation;
 
             return pos + Transform.Translation;
         }

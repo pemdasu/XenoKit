@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Xv2CoreLib.EEPK;
+﻿using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
 
 namespace XenoKit.Engine.Vfx.Particle

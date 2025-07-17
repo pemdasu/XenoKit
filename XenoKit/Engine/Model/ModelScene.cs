@@ -18,6 +18,9 @@ using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
 using Xv2CoreLib.Resource.UndoRedo;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Model
 {
@@ -261,13 +264,13 @@ namespace XenoKit.Engine.Model
                 GraphicsDevice.Textures[4] = DytIndex < DytTexture.Length && DytIndex >= 0 ? DytTexture[DytIndex].Texture : DytTexture[0].Texture;
             }
 
-            Model.Draw(Matrix.Identity, 0, Materials, Textures, DytTexture, DytIndex, Skeleton);
+            Model.Draw(Matrix4x4.Identity, 0, Materials, Textures, DytTexture, DytIndex, Skeleton);
 
             if(IsAnyModelObjectSelected())
-                DrawableAABB.Draw(Matrix.Identity, BoundingBox);
+                DrawableAABB.Draw(Matrix4x4.Identity, BoundingBox);
 
             //Draw highlighted (selected) meshes
-            Matrix world = Matrix.Identity;
+            Matrix4x4 world = Matrix4x4.Identity;
 
             foreach (var selectedMesh in _selectedSubmeshes)
             {
@@ -290,7 +293,7 @@ namespace XenoKit.Engine.Model
                 shader = RenderSystem.ShadowModel_W;
             }
 
-            Model.Draw(Matrix.Identity, 0, shader, Skeleton);
+            Model.Draw(Matrix4x4.Identity, 0, shader, Skeleton);
         }
 
         private void CalculateBoundingBox()

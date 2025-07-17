@@ -38,8 +38,8 @@ namespace XenoKit.Engine
         public ObjectPoolManager ObjectPoolManager => GameBase.ObjectPoolManager;
 
         public virtual string Name { get; set; }
-        public virtual Matrix AbsoluteTransform { get; protected set; }
-        public virtual Matrix Transform { get; set; } = Matrix.Identity;
+        public virtual System.Numerics.Matrix4x4 AbsoluteTransform { get; protected set; }
+        public virtual System.Numerics.Matrix4x4 Transform { get; set; } = System.Numerics.Matrix4x4.Identity;
         public virtual bool DrawThisFrame { get; set; }
         public virtual int AlphaBlendType => -1;
         public virtual int LowRezMode => 0;

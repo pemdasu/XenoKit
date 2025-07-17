@@ -7,11 +7,12 @@ using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib;
-using Xv2CoreLib.BEV;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.SPM;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Stage
 {
@@ -102,7 +103,7 @@ namespace XenoKit.Engine.Stage
             {
                 StageObject stageObj = new StageObject();
                 stageObj.Object = _object;
-                stageObj.Transform = _object.Matrix.ToXna();
+                stageObj.Transform = _object.Matrix.ToNumerics();
 
                 if(_object.Entities?.Count - 1 >= _object.InitialEntityIndex)
                 {
@@ -110,7 +111,7 @@ namespace XenoKit.Engine.Stage
                     FMP_Entity entity = _object.Entities[_object.InitialEntityIndex];
 
                     StageEntity stageEntity = new StageEntity();
-                    stageEntity.Transform = entity.Matrix.ToXna();
+                    stageEntity.Transform = entity.Matrix.ToNumerics();
 
                     if (entity.Visual != null)
                     {

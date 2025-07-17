@@ -5,6 +5,8 @@ using XenoKit.Engine.Animation;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib.EMM;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Model
 {
@@ -29,12 +31,12 @@ namespace XenoKit.Engine.Model
             }
         }
 
-        public void Draw(Matrix world, Xv2Texture[] textures)
+        public void Draw(Matrix4x4 world, Xv2Texture[] textures)
         {
             Model?.Draw(world, 0, _materials, textures, null, 0);
         }
 
-        public void DrawSimple(Matrix world, Xv2ShaderEffect material)
+        public void DrawSimple(Matrix4x4 world, Xv2ShaderEffect material)
         {
             Model?.Draw(world, 0, material);
         }

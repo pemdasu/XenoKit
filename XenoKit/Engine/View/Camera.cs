@@ -1,13 +1,13 @@
 ﻿using LB_Common.Numbers;
 using Microsoft.Xna.Framework;
-using MonoGame.Framework.WpfInterop;
 using System;
 using XenoKit.Editor;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
-using static AForge.Math.FourierTransform;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.View
 {
@@ -162,7 +162,7 @@ namespace XenoKit.Engine.View
             //Bone Focus
             if (SceneManager.CharacterExists(cameraInstance.cameraTarget.CharacterIndex) && !SceneManager.IsOnTab(EditorTabs.Camera))
             {
-                Vector3 bonePos = SceneManager.Actors[cameraInstance.cameraTarget.CharacterIndex].GetBoneCurrentAbsolutePosition(cameraInstance.cameraTarget.Bone);
+                SimdVector3 bonePos = SceneManager.Actors[cameraInstance.cameraTarget.CharacterIndex].GetBoneCurrentAbsolutePosition(cameraInstance.cameraTarget.Bone);
 
                 CameraState.Position += bonePos;
                 CameraState.TargetPosition += bonePos;
@@ -171,12 +171,12 @@ namespace XenoKit.Engine.View
             //Bac modifers
             if (cameraInstance.bacCameraSettings.Enabled)
             {
-                CameraState.Roll += cameraInstance.bacCameraSettings.GetCurrentRoll(CameraState.Position);
+                CameraState.Roll += cameraInstance.bacCameraSettings.GetCurrentRoll();
                 CameraState.FieldOfView += cameraInstance.bacCameraSettings.GetCurrentFoV();
                 CameraState.Position += cameraInstance.bacCameraSettings.GetCurrentRotation(CameraState.Position, CameraState.TargetPosition);
 
                 //I think Position Z offsets are not 100% correct... the target position seems off
-                Vector3 positionDelta = cameraInstance.bacCameraSettings.GetCurrentPosition(CameraState.Position, CameraState.TargetPosition);
+                SimdVector3 positionDelta = cameraInstance.bacCameraSettings.GetCurrentPosition(CameraState.Position, CameraState.TargetPosition);
                 CameraState.Position += positionDelta;
                 CameraState.TargetPosition += positionDelta;
             }
@@ -314,8 +314,8 @@ namespace XenoKit.Engine.View
     public class CameraState
     {
         //Transforms
-        public Vector3 Position = new Vector3(0, 1f, -5);
-        public Vector3 TargetPosition = new Vector3(0, 1f, 1f);
+        public SimdVector3 Position = new SimdVector3(0, 1f, -5);
+        public SimdVector3 TargetPosition = new SimdVector3(0, 1f, 1f);
         private float _fieldOfView = EAN_File.DefaultFoV;
         public float FieldOfView
         {
@@ -333,8 +333,8 @@ namespace XenoKit.Engine.View
 
         public void Reset()
         {
-            Position = new Vector3(0, 1f, -5);
-            TargetPosition = new Vector3(0, 1f, 1f);
+            Position = new SimdVector3(0, 1f, -5);
+            TargetPosition = new SimdVector3(0, 1f, 1f);
             _fieldOfView = EAN_File.DefaultFoV;
             Roll = 0f;
         }
@@ -360,8 +360,8 @@ namespace XenoKit.Engine.View
 
         public void SetState(CustomVector4 cameraPos, CustomVector4 targetPos, float roll, float fieldOfView)
         {
-            Position = new Vector3(cameraPos.X, cameraPos.Y, cameraPos.Z);
-            TargetPosition = new Vector3(targetPos.X, targetPos.Y, targetPos.Z);
+            Position = new SimdVector3(cameraPos.X, cameraPos.Y, cameraPos.Z);
+            TargetPosition = new SimdVector3(targetPos.X, targetPos.Y, targetPos.Z);
             Roll = roll;
             FieldOfView = fieldOfView;
         }

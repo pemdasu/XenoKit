@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using Xv2CoreLib.EMM;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Shader
 {
@@ -139,9 +140,9 @@ namespace XenoKit.Engine.Shader
 
             ApplyStates();
 
-            Matrix world = Matrix.Identity;
-            Matrix viewMatrix = Matrix.Identity;
-            Matrix projMatrix = Matrix.CreateOrthographicOffCenter(
+            Matrix4x4 world = Matrix4x4.Identity;
+            Matrix4x4 viewMatrix = Matrix4x4.Identity;
+            Matrix4x4 projMatrix = Matrix4x4.CreateOrthographicOffCenter(
                 0, GraphicsDevice.Viewport.Width,     // Left and right coordinates
                 GraphicsDevice.Viewport.Height, 0,    // Top and bottom coordinates
                 0, 1);              // Near and far plane distance;

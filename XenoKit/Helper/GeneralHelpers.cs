@@ -1,11 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xv2CoreLib;
 using Xv2CoreLib.ACB;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Helper
 {
@@ -37,6 +37,18 @@ namespace XenoKit.Helper
             return false;
         }
 
+        public static Matrix4x4 SlerpMatrix(Matrix4x4 start, Matrix4x4 end, float slerpAmount)
+        {
+            Matrix4x4.Decompose(start, out SimdVector3 curScale, out SimdQuaternion qStart, out SimdVector3 curTrans);
+            Matrix4x4.Decompose(end, out SimdVector3 nextScale, out SimdQuaternion qEnd, out SimdVector3 nextTrans);
+
+            SimdQuaternion qResult = SimdQuaternion.Lerp(qStart, qEnd, slerpAmount);
+            SimdVector3 lerpedTrans = SimdVector3.Lerp(curTrans, nextTrans, slerpAmount);
+            SimdVector3 lerpedScale = SimdVector3.Lerp(curScale, nextScale, slerpAmount);
+
+            return Matrix4x4.CreateScale(lerpedScale) * Matrix4x4.CreateFromQuaternion(qResult) * Matrix4x4.CreateTranslation(lerpedTrans);
+        }
+
         public static Matrix SlerpMatrix(Matrix start, Matrix end, float slerpAmount)
         {
             Matrix result;
@@ -54,6 +66,27 @@ namespace XenoKit.Helper
                    * Matrix.CreateFromQuaternion(qResult)
                    * Matrix.CreateTranslation(lerpedTrans);
             return result;
+        }
+
+        public static SimdQuaternion EulerAnglesToQuaternion(SimdVector3 eulerAngles)
+        {
+            //https://stackoverflow.com/questions/70462758/c-sharp-how-to-convert-quaternions-to-euler-angles-xyz
+
+            float cy = (float)Math.Cos(eulerAngles.Z * 0.5);
+            float sy = (float)Math.Sin(eulerAngles.Z * 0.5);
+            float cp = (float)Math.Cos(eulerAngles.Y * 0.5);
+            float sp = (float)Math.Sin(eulerAngles.Y * 0.5);
+            float cr = (float)Math.Cos(eulerAngles.X * 0.5);
+            float sr = (float)Math.Sin(eulerAngles.X * 0.5);
+
+            return new SimdQuaternion
+            {
+                W = (cr * cp * cy + sr * sp * sy),
+                X = (sr * cp * cy - cr * sp * sy),
+                Y = (cr * sp * cy + sr * cp * sy),
+                Z = (cr * cp * sy - sr * sp * cy)
+            };
+
         }
 
         public static Quaternion EulerAnglesToQuaternion(Vector3 eulerAngles)

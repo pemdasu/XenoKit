@@ -1,10 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using XenoKit.Controls;
+﻿using XenoKit.Controls;
 
 namespace XenoKit.Engine.Animation
 {
@@ -14,6 +8,6 @@ namespace XenoKit.Engine.Animation
         Xv2Skeleton Skeleton { get; }
         AnimationPlayer AnimationPlayer { get; }
 
-        Matrix GetAbsoluteBoneMatrix(int boneIdx);
+        System.Numerics.Matrix4x4 GetAbsoluteBoneMatrix(int boneIdx);
     }
 }

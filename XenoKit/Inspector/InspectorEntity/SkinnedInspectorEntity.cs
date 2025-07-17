@@ -1,16 +1,10 @@
-﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 using XenoKit.Controls;
-using XenoKit.Engine;
 using XenoKit.Engine.Animation;
 using Xv2CoreLib.EMO;
 using Xv2CoreLib.ESK;
 using Xv2CoreLib.NSK;
-using Xv2CoreLib.Resource;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Inspector.InspectorEntities
 {
@@ -92,7 +86,7 @@ namespace XenoKit.Inspector.InspectorEntities
             //Reset eye positions to default
             EyeIrisLeft_UV[0] = EyeIrisLeft_UV[1] = EyeIrisRight_UV[0] = EyeIrisRight_UV[1] = 0;
 
-            AnimationPlayer.Update(Matrix.Identity);
+            AnimationPlayer.Update(Matrix4x4.Identity);
 
             base.Update();
 
@@ -127,7 +121,7 @@ namespace XenoKit.Inspector.InspectorEntities
             cachedParentSkeleton = Skeleton;
         }
 
-        public Matrix GetAbsoluteBoneMatrix(int index)
+        public Matrix4x4 GetAbsoluteBoneMatrix(int index)
         {
             return Skeleton.Bones[index].AbsoluteAnimationMatrix * Transform;
         }

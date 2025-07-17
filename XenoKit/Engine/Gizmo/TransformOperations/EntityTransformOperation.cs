@@ -1,12 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Gizmo.TransformOperations
 {
     public class EntityTransformOperation : TransformOperation
     {
         private Entity entity;
-        private Matrix originalMatrix;
+        private Matrix4x4 originalMatrix;
 
         public EntityTransformOperation(Entity entity)
         {
@@ -37,7 +39,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
-                entity.Transform *= Matrix.CreateTranslation(new Vector3(-delta.X, delta.Y, delta.Z));
+                entity.Transform *= Matrix4x4.CreateTranslation(new SimdVector3(-delta.X, delta.Y, delta.Z));
             }
         }
     }

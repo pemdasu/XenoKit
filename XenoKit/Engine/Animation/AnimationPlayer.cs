@@ -4,11 +4,15 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.ESK;
+using Xv2CoreLib.Resource.UndoRedo;
 using static Xv2CoreLib.BAC.BAC_Type0;
 using XenoKit.Editor;
 using XenoKit.Helper;
-using Xv2CoreLib.Resource.UndoRedo;
 using XenoKit.Inspector.InspectorEntities;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib;
 
 namespace XenoKit.Engine.Animation
 {
@@ -114,7 +118,7 @@ namespace XenoKit.Engine.Animation
         }
 
         #region FrameUpdating
-        public void Update(Matrix rootTransform)
+        public void Update(Matrix4x4 rootTransform)
         {
             ClearPreviousFrame();
 
@@ -148,7 +152,7 @@ namespace XenoKit.Engine.Animation
         {
             if (fullUpdate)
             {
-                Update(Matrix.Identity);
+                Update(Matrix4x4.Identity);
             }
             else
             {
@@ -232,8 +236,8 @@ namespace XenoKit.Engine.Animation
 
             if (undoAll)
             {
-                Character.ActionMovementTransform = Matrix.Identity;
-                Character.RootMotionTransform = Matrix.Identity;
+                Character.ActionMovementTransform = Matrix4x4.Identity;
+                Character.RootMotionTransform = Matrix4x4.Identity;
             }
             else
             {
@@ -332,7 +336,7 @@ namespace XenoKit.Engine.Animation
                 if (PrimaryAnimation != null && Character != null)
                     UndoBasePosition(PrimaryAnimation.CurrentFrame, false);
 
-                Matrix[] prevMatrices = (PrimaryAnimation != null) ? Skeleton.GetAnimationMatrices() : null;
+                Matrix4x4[] prevMatrices = (PrimaryAnimation != null) ? Skeleton.GetAnimationMatrices() : null;
 
                 PrimaryAnimation = new AnimationInstance(_eanFile, eanIndex, startFrame, endFrame, blendWeight, blendWeightIncrease, prevMatrices, _animFlags, useTransform, timeScale, autoTerminate);
 
@@ -362,8 +366,7 @@ namespace XenoKit.Engine.Animation
         {
             if (_eanFile == null) throw new ArgumentNullException("eanFile");
 
-
-            Matrix[] prevMatrices = (PrimaryAnimation != null) ? Skeleton.GetAnimationMatrices() : null;
+            Matrix4x4[] prevMatrices = (PrimaryAnimation != null) ? Skeleton.GetAnimationMatrices() : null;
 
             SecondaryAnimations.Add(new AnimationInstance(_eanFile, eanIndex, startFrame, endFrame, blendWeight, blendWeightIncrease, prevMatrices, 0, true, timeScale, autoTerminate));
         }
@@ -406,9 +409,9 @@ namespace XenoKit.Engine.Animation
             ESK_Bone bone = animation.EanFile.Skeleton.GetBone(node.BoneName); // Bone from Ean file, we have to revert the relative Transform before we apply animation values (because animations values are for the inside ean file skeleton first)
             ESK_RelativeTransform transform = bone.RelativeTransform;
 
-            Vector3 ean_initialBonePosition = new Vector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW;
-            Quaternion ean_initialBoneOrientation = new Quaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW);
-            Vector3 ean_initialBoneScale = new Vector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW;
+            SimdVector3 ean_initialBonePosition = new SimdVector3(transform.PositionX, transform.PositionY, transform.PositionZ) * transform.PositionW;
+            SimdQuaternion ean_initialBoneOrientation = new SimdQuaternion(transform.RotationX, transform.RotationY, transform.RotationZ, transform.RotationW);
+            SimdVector3 ean_initialBoneScale = new SimdVector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW;
 
             //Scale animations to fit current actor size
             if (!animation.EanFile.IsCharaUnique && animNodeIndex == animation.b_C_Pelvis_Index && Character != null)
@@ -416,17 +419,16 @@ namespace XenoKit.Engine.Animation
                 ean_initialBonePosition.Y -= (Character.CharacterData.BcsFile.File.F_48[0] - 1f) / 2f;
             }
 
-            Matrix relativeMatrix_EanBone_inv = Matrix.Identity;
-            relativeMatrix_EanBone_inv *= Matrix.CreateScale(ean_initialBoneScale);
-            relativeMatrix_EanBone_inv *= Matrix.CreateFromQuaternion(ean_initialBoneOrientation);
-            relativeMatrix_EanBone_inv *= Matrix.CreateTranslation(ean_initialBonePosition);
-            relativeMatrix_EanBone_inv = Matrix.Invert(relativeMatrix_EanBone_inv);
-
+            Matrix4x4 relativeMatrix_EanBone_inv = Matrix4x4.Identity;
+            relativeMatrix_EanBone_inv *= Matrix4x4.CreateScale(ean_initialBoneScale);
+            relativeMatrix_EanBone_inv *= Matrix4x4.CreateFromQuaternion(ean_initialBoneOrientation);
+            relativeMatrix_EanBone_inv *= Matrix4x4.CreateTranslation(ean_initialBonePosition);
+            Matrix4x4.Invert(relativeMatrix_EanBone_inv, out relativeMatrix_EanBone_inv);
 
             if (animNodeIndex == animation.b_C_Base_Index && animation.useTransform)
             {
                 UpdateBasePosition(node, ean_initialBoneScale);
-                Skeleton.Bones[boneIdx].AnimationMatrix = Matrix.Identity;
+                Skeleton.Bones[boneIdx].AnimationMatrix = Matrix4x4.Identity;
             }
             else
             {
@@ -441,10 +443,10 @@ namespace XenoKit.Engine.Animation
                 var rot = node.GetComponent(EAN_AnimationComponent.ComponentType.Rotation);
                 var scale = node.GetComponent(EAN_AnimationComponent.ComponentType.Scale);
 
-                Matrix transformAnimation = Matrix.Identity;
+                Matrix4x4 transformAnimation = Matrix4x4.Identity;
 
                 //Scale:
-                Vector3 scale_tmp = ean_initialBoneScale;
+                SimdVector3 scale_tmp = ean_initialBoneScale;
 
                 if (scale?.Keyframes.Count > 0)
                 {
@@ -453,13 +455,13 @@ namespace XenoKit.Engine.Animation
                     float z = scale.GetKeyframeValue(animation.CurrentFrame, Axis.Z, ref frameIndex_Scale, animation.CurrentNodeFrameIndex_Scale[animNodeIndex]);
                     float w = scale.GetKeyframeValue(animation.CurrentFrame, Axis.W, ref frameIndex_Scale, animation.CurrentNodeFrameIndex_Scale[animNodeIndex]);
 
-                    scale_tmp = new Vector3(x, y, z) * w;
+                    scale_tmp = new SimdVector3(x, y, z) * w;
                 }
 
-                transformAnimation *= Matrix.CreateScale(scale_tmp);
+                transformAnimation *= Matrix4x4.CreateScale(scale_tmp);
 
                 //Rotation:
-                Quaternion quat_tmp = ean_initialBoneOrientation;
+                SimdQuaternion quat_tmp = ean_initialBoneOrientation;
                 if (rot?.Keyframes.Count > 0)
                 {
                     float x = rot.GetKeyframeValue(animation.CurrentFrame, Axis.X, ref frameIndex_Rot, animation.CurrentNodeFrameIndex_Rot[animNodeIndex]);
@@ -467,15 +469,15 @@ namespace XenoKit.Engine.Animation
                     float z = rot.GetKeyframeValue(animation.CurrentFrame, Axis.Z, ref frameIndex_Rot, animation.CurrentNodeFrameIndex_Rot[animNodeIndex]);
                     float w = rot.GetKeyframeValue(animation.CurrentFrame, Axis.W, ref frameIndex_Rot, animation.CurrentNodeFrameIndex_Rot[animNodeIndex]);
 
-                    quat_tmp = new Quaternion(x, y, z, w);
+                    quat_tmp = new SimdQuaternion(x, y, z, w);
                 }
 
-                transformAnimation *= Matrix.CreateFromQuaternion(quat_tmp);
+                transformAnimation *= Matrix4x4.CreateFromQuaternion(quat_tmp);
 
                 //Position:
-                Vector3 pos_tmp = ean_initialBonePosition;
+                SimdVector3 pos_tmp = ean_initialBonePosition;
 
-                if (animNodeIndex != animation.b_C_Pelvis_Index || !animation.AnimFlags.HasFlag(AnimationFlags.UseRootMotion))
+                if (animNodeIndex != animation.b_C_Pelvis_Index || (animation.AnimFlags & AnimationFlags.UseRootMotion) != AnimationFlags.UseRootMotion)
                 {
                     //b_C_Pelvis position is skipped with UseRootMotion flag
 
@@ -486,10 +488,10 @@ namespace XenoKit.Engine.Animation
                         float z = pos.GetKeyframeValue(animation.CurrentFrame, Axis.Z, ref frameIndex_Pos, animation.CurrentNodeFrameIndex_Pos[animNodeIndex]);
                         float w = pos.GetKeyframeValue(animation.CurrentFrame, Axis.W, ref frameIndex_Pos, animation.CurrentNodeFrameIndex_Pos[animNodeIndex]);
 
-                        pos_tmp = new Vector3(x, y, z) * w;
+                        pos_tmp = new SimdVector3(x, y, z) * w;
                     }
 
-                    transformAnimation *= Matrix.CreateTranslation(pos_tmp);
+                    transformAnimation *= Matrix4x4.CreateTranslation(pos_tmp);
                 }
 
                 //Previous animation blending:
@@ -543,7 +545,7 @@ namespace XenoKit.Engine.Animation
             }
         }
 
-        private void UpdateBasePosition(EAN_Node _base, Vector3 ean_initialBoneScale)
+        private void UpdateBasePosition(EAN_Node _base, SimdVector3 ean_initialBoneScale)
         {
             //Seperate code path for handling b_C_Base when transform is enabled
             //This will take movement flags into account and properly translate the characters world position
@@ -591,88 +593,93 @@ namespace XenoKit.Engine.Animation
                 RotW = rot.GetKeyframeValue(PrimaryAnimation.CurrentFrame, Axis.W);
             }
 
-            Matrix transformSum = Matrix.Identity * Matrix.CreateScale(ean_initialBoneScale);
-            Matrix rootMotion = Matrix.Identity * Matrix.CreateScale(ean_initialBoneScale);
+            Matrix4x4 transformSum = Matrix4x4.CreateScale(ean_initialBoneScale);
+            Matrix4x4 rootMotion = Matrix4x4.CreateScale(ean_initialBoneScale);
 
             //Rotation is always done regardless of flags:
-            transformSum *= Matrix.CreateFromQuaternion(new Quaternion(RotX, RotY, RotZ, RotW));
-            transformSum *= Matrix.CreateFromQuaternion(new Quaternion(-firstRotX, -firstRotY, -firstRotZ, -firstRotW));
+            transformSum *= Matrix4x4.CreateFromQuaternion(new SimdQuaternion(RotX, RotY, RotZ, RotW));
+            transformSum *= Matrix4x4.CreateFromQuaternion(new SimdQuaternion(-firstRotX, -firstRotY, -firstRotZ, -firstRotW));
 
             //NOTE: Rotation seems a little off. Works fine when everything is movement, but breaks on root motion
 
-            if (PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.Rotate180Degrees))
+            if ((PrimaryAnimation.AnimFlags & AnimationFlags.Rotate180Degrees) == AnimationFlags.Rotate180Degrees)
             {
-                transformSum *= Matrix.CreateRotationY(MathHelper.ToRadians(180f));
+                transformSum *= Matrix4x4.CreateRotationY(MathHelper.ToRadians(180f));
             }
 
             //Root motion only. Ignores other flags.
-            if (PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.UseRootMotion))
+            if ((PrimaryAnimation.AnimFlags & AnimationFlags.UseRootMotion) == AnimationFlags.UseRootMotion)
             {
                 //Set absolute values
-                rootMotion *= Matrix.CreateTranslation(new Vector3(PosX, PosY, PosZ) * PosW);
+                rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(PosX, PosY, PosZ) * PosW);
 
                 //Subtract the first frame. This is because no matter what position is on the first frame, its considered the starting point and the game will essentially ignore it and treat it as if it were at 0,0,0 (except in a special case with the movement flags)
-                rootMotion *= Matrix.CreateTranslation(new Vector3(-firstPosX, -firstPosY, -firstPosZ) * firstPosW);
+                rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(-firstPosX, -firstPosY, -firstPosZ) * firstPosW);
             }
             else
             {
                 //X Axis
-                if (PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_X))
+                if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_X) == AnimationFlags.MoveWithAxis_X)
                 {
                     //Movement is enabled
-                    transformSum *= Matrix.CreateTranslation(new Vector3(PosX, 0, 0) * PosW);
-                    transformSum *= Matrix.CreateTranslation(new Vector3(-firstPosX, 0, 0) * firstPosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(PosX, 0, 0) * PosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(-firstPosX, 0, 0) * firstPosW);
 
                 }
-                else if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.IgnoreRootMotionX))
+                else if ((PrimaryAnimation.AnimFlags & AnimationFlags.IgnoreRootMotionX) != AnimationFlags.IgnoreRootMotionX)
                 {
                     //Root motion only
-                    rootMotion *= Matrix.CreateTranslation(new Vector3(PosX, 0, 0) * PosW);
+                    rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(PosX, 0, 0) * PosW);
 
                     //If the any other axis have the movement flag and this axis doesn't, then Full Root Motion is applied (don't know why)
-                    if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Y) && !PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Z))
+                    if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Y) != AnimationFlags.MoveWithAxis_Y && 
+                        (PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Z) != AnimationFlags.MoveWithAxis_Z)
                     {
-                        rootMotion *= Matrix.CreateTranslation(new Vector3(-firstPosX, 0, 0) * firstPosW);
+                        rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(-firstPosX, 0, 0) * firstPosW);
                     }
                 }
 
                 //Y Axis
-                if (PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Y) && !PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.ForceYRootMotion))
+                if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Y) == AnimationFlags.MoveWithAxis_Y && 
+                    (PrimaryAnimation.AnimFlags & AnimationFlags.ForceYRootMotion) != AnimationFlags.ForceYRootMotion)
                 {
                     //Movement is enabled
-                    transformSum *= Matrix.CreateTranslation(new Vector3(0, PosY, 0) * PosW);
-                    transformSum *= Matrix.CreateTranslation(new Vector3(0, -firstPosY, 0) * firstPosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(0, PosY, 0) * PosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(0, -firstPosY, 0) * firstPosW);
 
                 }
-                else if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.IgnoreRootMotionY) || PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.ForceYRootMotion))
+                else if ((PrimaryAnimation.AnimFlags & AnimationFlags.IgnoreRootMotionY) != AnimationFlags.IgnoreRootMotionY
+                    || (PrimaryAnimation.AnimFlags & AnimationFlags.ForceYRootMotion) == AnimationFlags.ForceYRootMotion)
                 {
                     //Root motion only
-                    rootMotion *= Matrix.CreateTranslation(new Vector3(0, PosY, 0) * PosW);
+                    rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(0, PosY, 0) * PosW);
 
                     //If the any other axis have the movement flag and this axis doesn't, then Full Root Motion is applied (don't know why)
-                    if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_X) && !PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Z))
+                    if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_X) != AnimationFlags.MoveWithAxis_X && 
+                        (PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Z) != AnimationFlags.MoveWithAxis_Z)
                     {
-                        rootMotion *= Matrix.CreateTranslation(new Vector3(0, -firstPosY, 0) * firstPosW);
+                        rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(0, -firstPosY, 0) * firstPosW);
                     }
                 }
 
                 //Z Axis
-                if (PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Z))
+                if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Z) == AnimationFlags.MoveWithAxis_Z)
                 {
                     //Movement is enabled
-                    transformSum *= Matrix.CreateTranslation(new Vector3(0, 0, PosZ) * PosW);
-                    transformSum *= Matrix.CreateTranslation(new Vector3(0, 0, -firstPosZ) * firstPosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(0, 0, PosZ) * PosW);
+                    transformSum *= Matrix4x4.CreateTranslation(new SimdVector3(0, 0, -firstPosZ) * firstPosW);
 
                 }
-                else if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.IgnoreRootMotionZ))
+                else if ((PrimaryAnimation.AnimFlags & AnimationFlags.IgnoreRootMotionZ) != AnimationFlags.IgnoreRootMotionZ)
                 {
                     //Root motion only
-                    rootMotion *= Matrix.CreateTranslation(new Vector3(0, 0, PosZ) * PosW);
+                    rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(0, 0, PosZ) * PosW);
 
                     //If the any other axis have the movement flag and this axis doesn't, then Full Root Motion is applied (don't know why)
-                    if (!PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_X) && !PrimaryAnimation.AnimFlags.HasFlag(AnimationFlags.MoveWithAxis_Y))
+                    if ((PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_X) != AnimationFlags.MoveWithAxis_X
+                        && (PrimaryAnimation.AnimFlags & AnimationFlags.MoveWithAxis_Y) != AnimationFlags.MoveWithAxis_Y)
                     {
-                        rootMotion *= Matrix.CreateTranslation(new Vector3(0, 0, -firstPosZ) * firstPosW);
+                        rootMotion *= Matrix4x4.CreateTranslation(new SimdVector3(0, 0, -firstPosZ) * firstPosW);
                     }
                 }
             }
@@ -710,7 +717,7 @@ namespace XenoKit.Engine.Animation
                 PrimaryAnimation.CurrentFrame_Int = PrimaryAnimation.StartFrame;
             }
 
-            Update(Matrix.Identity);
+            Update(Matrix4x4.Identity);
         }
 
         public void PrevFrame()
@@ -727,7 +734,7 @@ namespace XenoKit.Engine.Animation
                 PrimaryAnimation.CurrentFrame_Int = PrimaryAnimation.EndFrame;
             }
 
-            Update(Matrix.Identity);
+            Update(Matrix4x4.Identity);
         }
 
         public void FirstFrame()
@@ -783,7 +790,7 @@ namespace XenoKit.Engine.Animation
         /// <summary>
         /// This is where the previous animations final pose is stored (if null, no blending will be done).
         /// </summary>
-        public Matrix[] PreviousAnimRelativeMatrices = null;
+        public Matrix4x4[] PreviousAnimRelativeMatrices = null;
         /// <summary>
         /// The initial Blend Weight for this animation.
         /// </summary>
@@ -849,7 +856,7 @@ namespace XenoKit.Engine.Animation
         /// </summary>
         public int RightEye_Index;
 
-        public AnimationInstance(EAN_File _eanFile, int index, int startFrame = 0, int endFrame = -1, float blendWeight = 1f, float blendWeightIncrease = 0f, Matrix[] previousMatrices = null, AnimationFlags _animFlags = 0, bool _useTransform = true, float timeScale = 1f, bool autoTerminate = false)
+        public AnimationInstance(EAN_File _eanFile, int index, int startFrame = 0, int endFrame = -1, float blendWeight = 1f, float blendWeightIncrease = 0f, Matrix4x4[] previousMatrices = null, AnimationFlags _animFlags = 0, bool _useTransform = true, float timeScale = 1f, bool autoTerminate = false)
         {
             EanFile = _eanFile;
             EanIndex = index;

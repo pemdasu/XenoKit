@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Engine.Shapes;
-using XenoKit.Engine.View;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Objects
 {
@@ -9,7 +8,7 @@ namespace XenoKit.Engine.Objects
     {
         private Sphere sphere;
         private BoundingSphere boundingSphere;
-        public Matrix world;
+        public Matrix4x4 world;
 
         public bool IsVisible = false;
 
@@ -23,7 +22,7 @@ namespace XenoKit.Engine.Objects
             sphere = new Sphere(gameBase, MeshSize, true);
         }
 
-        public void Draw(Matrix world, bool isSelected)
+        public void Draw(Matrix4x4 world, bool isSelected)
         {
             if (IsVisible)
             {

@@ -2,6 +2,8 @@
 using XenoKit.Engine.Vfx.Particle;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Pool
 {
@@ -31,7 +33,7 @@ namespace XenoKit.Engine.Pool
 
         #region Particle Methods
 
-        public ParticleNodeBase GetParticleNodeBase(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public ParticleNodeBase GetParticleNodeBase(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             ParticleNodeBase newNode = GameBase.ObjectPoolManager.ParticleNodeBasePool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
@@ -39,7 +41,7 @@ namespace XenoKit.Engine.Pool
             return newNode;
         }
 
-        public Vfx.Particle.ParticleEmitter GetParticleEmitter(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public Vfx.Particle.ParticleEmitter GetParticleEmitter(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             Vfx.Particle.ParticleEmitter newNode = GameBase.ObjectPoolManager.ParticleEmitterPool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
@@ -47,7 +49,7 @@ namespace XenoKit.Engine.Pool
             return newNode;
         }
 
-        public ParticlePlane GetParticlePlane(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public ParticlePlane GetParticlePlane(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             ParticlePlane newNode = GameBase.ObjectPoolManager.ParticlePlanePool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
@@ -55,7 +57,7 @@ namespace XenoKit.Engine.Pool
             return newNode;
         }
 
-        public ParticleMesh GetParticleMesh(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public ParticleMesh GetParticleMesh(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             ParticleMesh newNode = GameBase.ObjectPoolManager.ParticleMeshPool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);

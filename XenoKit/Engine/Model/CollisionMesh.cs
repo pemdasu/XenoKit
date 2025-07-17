@@ -5,6 +5,7 @@ using MIConvexHull;
 using System.Collections.Generic;
 using XenoKit.Engine.Vertex;
 using System.Linq;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Model
 {
@@ -25,7 +26,7 @@ namespace XenoKit.Engine.Model
 
         public CollisionMesh(GameBase game, FMP_CollisionVertexData fmpCollisionMesh, Color color) : base(game) 
         {
-            Transform = Matrix.Identity;
+            Transform = Matrix4x4.Identity;
             this.color = color;
             CreateVertices(fmpCollisionMesh);
             CreateBuffers();
@@ -35,7 +36,7 @@ namespace XenoKit.Engine.Model
         public CollisionMesh(GameBase game, System.Numerics.Vector3[] vertices, Color color, bool isConvex, bool wireframe = true) : base(game)
         {
             UseWireframe = wireframe;
-            Transform = Matrix.Identity;
+            Transform = Matrix4x4.Identity;
             this.color = color;
 
             if (isConvex)

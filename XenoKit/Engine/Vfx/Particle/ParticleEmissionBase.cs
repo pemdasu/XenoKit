@@ -1,7 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using XenoKit.Editor;
+using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
@@ -52,7 +55,7 @@ namespace XenoKit.Engine.Vfx.Particle
             }
         }
 
-        public override void Initialize(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             EmissionData = CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(node, GameBase);
@@ -82,9 +85,9 @@ namespace XenoKit.Engine.Vfx.Particle
             StartRotation_Variance = Xv2CoreLib.Random.Range(0, Node.EmissionNode.StartRotation_Variance);
             ActiveRotation_Variance = Xv2CoreLib.Random.Range(0, Node.EmissionNode.ActiveRotation_Variance);
             RotationAmount = Node.EmissionNode.StartRotation + StartRotation_Variance;
-            RandomDirection = Node.NodeFlags2.HasFlag(NodeFlags2.RandomRotationDir) ? Xv2CoreLib.Random.RandomBool() : false;
+            RandomDirection = (Node.NodeFlags2 & NodeFlags2.RandomRotationDir) == NodeFlags2.RandomRotationDir ? Xv2CoreLib.Random.RandomBool() : false;
 
-            if (Node.NodeFlags2.HasFlag(NodeFlags2.RandomUpVector))
+            if ((Node.NodeFlags2 & NodeFlags2.RandomUpVector) == NodeFlags2.RandomUpVector)
             {
                 RandomRotX = Xv2CoreLib.Random.Range(0, 1f);
                 RandomRotY = Xv2CoreLib.Random.Range(0, 1f);
@@ -107,7 +110,7 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             ScaleBase = (Node.EmissionNode.Texture.ScaleBase.GetInterpolatedValue(CurrentTimeFactor) + ScaleBase_Variance);
 
-            if (Node.NodeFlags.HasFlag(NodeFlags1.EnableScaleXY))
+            if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
             {
                 float[] values = Node.EmissionNode.Texture.ScaleXY.GetInterpolatedValue(CurrentTimeFactor);
 
@@ -131,7 +134,7 @@ namespace XenoKit.Engine.Vfx.Particle
             PrimaryColor[2] = MathHelper.Clamp(primaryColor[2] + ColorB_Variance, 0f, 1f);
             PrimaryColor[3] = MathHelper.Clamp(PrimaryColor[3] + ColorA_Variance, 0f, 1f);
 
-            if (Node.NodeFlags.HasFlag(NodeFlags1.EnableSecondaryColor))
+            if ((Node.NodeFlags & NodeFlags1.EnableSecondaryColor) == NodeFlags1.EnableSecondaryColor)
             {
                 float[] secondaryColor = Node.EmissionNode.Texture.Color2.GetInterpolatedValue(CurrentTimeFactor);
                 SecondaryColor[3] = Node.EmissionNode.Texture.Color2_Transparency.GetInterpolatedValue(CurrentTimeFactor);
@@ -143,27 +146,27 @@ namespace XenoKit.Engine.Vfx.Particle
             }
         }
 
-        protected Matrix GetRotationAxisWorld(bool isRotPerSecond)
+        protected Matrix4x4 GetRotationAxisWorld(bool isRotPerSecond)
         {
-            Matrix attachBone = GetAttachmentBone();
+            Matrix4x4 attachBone = GetAttachmentBone();
             float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
 
             if (isRotPerSecond)
                 rotAmount /= 60f;
 
-            _ = Transform.Decompose(out Vector3 scale, out _, out Vector3 translation);
-            Matrix world = Matrix.CreateTranslation(translation) * Matrix.CreateScale(scale) * Matrix.CreateScale(ParticleSystem.Scale) * attachBone;
-            Vector3 rotAxis;
+            Matrix4x4.Decompose(Transform, out SimdVector3 scale, out _, out SimdVector3 translation);
+            Matrix4x4 world = Matrix4x4.CreateTranslation(translation) * Matrix4x4.CreateScale(scale) * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
+            SimdVector3 rotAxis;
 
-            if (Node.NodeFlags2.HasFlag(NodeFlags2.RandomUpVector))
+            if ((Node.NodeFlags2 & NodeFlags2.RandomUpVector) == NodeFlags2.RandomUpVector)
             {
-                rotAxis = new Vector3(RandomRotX + Node.EmissionNode.RotationAxis.X, RandomRotY + Node.EmissionNode.RotationAxis.Y, RandomRotZ + Node.EmissionNode.RotationAxis.Z) * rotAmount;
-                return Matrix.CreateFromYawPitchRoll(rotAxis.X, rotAxis.Y, rotAxis.Z) * Rotation * world;
+                rotAxis = new SimdVector3(RandomRotX + Node.EmissionNode.RotationAxis.X, RandomRotY + Node.EmissionNode.RotationAxis.Y, RandomRotZ + Node.EmissionNode.RotationAxis.Z) * rotAmount;
+                return Matrix4x4.CreateFromYawPitchRoll(rotAxis.X, rotAxis.Y, rotAxis.Z) * Rotation * world;
             }
             else
             {
-                rotAxis = new Vector3(Node.EmissionNode.RotationAxis.X, Node.EmissionNode.RotationAxis.Y, Node.EmissionNode.RotationAxis.Z);
-                return Matrix.CreateFromAxisAngle(rotAxis, MathHelper.ToRadians(rotAmount)) * Rotation * world;
+                rotAxis = new SimdVector3(Node.EmissionNode.RotationAxis.X, Node.EmissionNode.RotationAxis.Y, Node.EmissionNode.RotationAxis.Z);
+                return Matrix4x4.CreateFromAxisAngle(rotAxis, MathHelper.ToRadians(rotAmount)) * Rotation * world;
             }
 
             //There is one case where this is different from the game:
@@ -173,12 +176,12 @@ namespace XenoKit.Engine.Vfx.Particle
 
         }
     
-        protected bool FrustumIntersects(Matrix world, BoundingBox boundingBox)
+        protected bool FrustumIntersects(Matrix4x4 world, BoundingBox boundingBox)
         {
 #if DEBUG
             if (!SceneManager.FrustumCullEnabled) return true;
 #endif
-            if (Vector3.Distance(world.Translation, GameBase.ActiveCameraBase.CameraState.Position) < 3f) return true;
+            if (SimdVector3.Distance(world.Translation, GameBase.ActiveCameraBase.CameraState.Position) < 3f) return true;
 
             return GameBase.ActiveCameraBase.Frustum.Intersects(boundingBox.Transform(world));
         }

@@ -1,16 +1,15 @@
 ﻿using LB_Common.Numbers;
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC.Simulation;
 using XenoKit.Engine.View;
+using Xv2CoreLib;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
-using Xv2CoreLib.EEPK;
-using Xv2CoreLib.EffectContainer;
 using Xv2CoreLib.Resource.App;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector4 = System.Numerics.Vector4;
 
 namespace XenoKit.Engine.Scripting.BAC
 {
@@ -240,10 +239,10 @@ namespace XenoKit.Engine.Scripting.BAC
                 //Effect
                 if (type is BAC_Type8 effect)
                 {
-                    if (!effect.EffectFlags.HasFlag(BAC_Type8.EffectFlagsEnum.Loop) && type.TimesActivated > 0) continue;
+                    if ((effect.EffectFlags & BAC_Type8.EffectFlagsEnum.Loop) != BAC_Type8.EffectFlagsEnum.Loop && type.TimesActivated > 0) continue;
                     if (!ActivationCheck(type) || !SettingsManager.Instance.Settings.XenoKit_VfxSimulation) continue;
 
-                    if (effect.EffectFlags.HasFlag(BAC_Type8.EffectFlagsEnum.Off))
+                    if ((effect.EffectFlags & BAC_Type8.EffectFlagsEnum.Off) == BAC_Type8.EffectFlagsEnum.Off)
                     {
                         VfxManager.StopEffect(effect, BacEntryInstance);
                     }
@@ -287,7 +286,7 @@ namespace XenoKit.Engine.Scripting.BAC
                     //I've made it only play sounds if a primary animation is current playing - this prevents some audio crashes/errors
                     if (acb != null && sound.CueId != ushort.MaxValue && GameBase.IsPlaying && character.AnimationPlayer.PrimaryAnimation != null)
                     {
-                        SceneManager.AudioEngine.PlayCue(sound.CueId, acb, character, BacEntryInstance, sound.SoundFlags.HasFlag(SoundFlags.StopWhenParentEnds));
+                        SceneManager.AudioEngine.PlayCue(sound.CueId, acb, character, BacEntryInstance, (sound.SoundFlags & SoundFlags.StopWhenParentEnds) == SoundFlags.StopWhenParentEnds);
                     }
                 }
 
@@ -337,13 +336,13 @@ namespace XenoKit.Engine.Scripting.BAC
                             character.ShaderParameters.ShaderPath = Shader.ActorShaderPath.Vanish;
                             float fadeInFactor = (CurrentFrame - type.StartTime + 1) / (float)type.Duration;
 
-                            Vector4 color = new Vector4(transparency.Tint_R, transparency.Tint_G, transparency.Tint_B, transparency.Tint_A);
+                            SimdVector4 color = new SimdVector4(transparency.Tint_R, transparency.Tint_G, transparency.Tint_B, transparency.Tint_A);
                             //Vector4 startColor = color * 0.5f;
-                            Vector4 startColor = Vector4.One - color;
+                            SimdVector4 startColor = SimdVector4.One - color;
 
-                            character.ShaderParameters.g_vColor4_PS = Vector4.Lerp(startColor, color, fadeInFactor);
+                            character.ShaderParameters.g_vColor4_PS = SimdVector4.Lerp(startColor, color, fadeInFactor);
                             //character.ShaderParameters.g_vColor4_PS = new Vector4(transparency.Tint_R, transparency.Tint_G, transparency.Tint_B, transparency.Tint_A) * fadeInFactor;
-                            character.ShaderParameters.g_vParam9_PS = new Vector4(
+                            character.ShaderParameters.g_vParam9_PS = new SimdVector4(
                                 MathHelper.Max((int)(transparency.HorizontalLineSize * fadeInFactor), transparency.HorizontalLineSize > 0 ? 1 : 0),
                                 MathHelper.Max((int)(transparency.VerticalLineSize * fadeInFactor), transparency.VerticalLineSize > 0 ? 1 : 0),
                                 MathHelper.Max((int)(transparency.HorizontalLineSpacing * fadeInFactor), transparency.HorizontalLineSpacing > 0 ? 1 : 0),
@@ -551,7 +550,7 @@ namespace XenoKit.Engine.Scripting.BAC
                     if (BacEntryInstance.IsPreview || alwaysRevert)
                     {
                         SceneManager.Actors[i].BaseTransform = BacEntryInstance.OriginalMatrix[i];
-                        SceneManager.Actors[i].ActionMovementTransform = Matrix.Identity;
+                        SceneManager.Actors[i].ActionMovementTransform = Matrix4x4.Identity;
 
                         if (SceneManager.Actors[i].AnimationPlayer.PrimaryAnimation != null)
                             SceneManager.Actors[i].AnimationPlayer.PrimaryAnimation.hasMoved = false;

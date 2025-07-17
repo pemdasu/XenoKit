@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using XenoKit.Engine.View;
 using XenoKit.Engine.Objects;
 using XenoKit.Editor;
 using Xv2CoreLib.ESK;
 using Xv2CoreLib.Resource.App;
-using Microsoft.Xna.Framework.Graphics;
-using Xv2CoreLib.EAN;
 using Xv2CoreLib.BAC;
 using System.Linq;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector2 = System.Numerics.Vector2;
 
 namespace XenoKit.Engine.Animation
 {
@@ -87,13 +86,13 @@ namespace XenoKit.Engine.Animation
             }
         }
 
-        public void Draw(Xv2Bone[] bones, Xv2Bone[] Bones, Matrix transform)
+        public void Draw(Xv2Bone[] bones, Xv2Bone[] Bones, Matrix4x4 transform)
         {
             if (SceneManager.ShowVisualSkeleton && SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.BCS_Bodies, EditorTabs.Action))
             {
                 for (int i = 0; i < bones.Length; i++)
                 {
-                    Matrix newWorld = bones[i].AbsoluteAnimationMatrix * transform;
+                    Matrix4x4 newWorld = bones[i].AbsoluteAnimationMatrix * transform;
                     bool selected = SceneManager.MainGameInstance.CurrentGizmo.IsEnabledOnBone(i);
 
                     visualBones[i].Draw(newWorld, selected);
@@ -105,8 +104,8 @@ namespace XenoKit.Engine.Animation
 
                         if (distance < NameRenderDistance && ((SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly && visualBones[i].IsMouseOver()) || selected || !SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly))
                         {
-                            Vector2 screenSpace = GameBase.ActiveCameraBase.ProjectToScreenPosition(newWorld.Translation);
-                            screenSpace = new Vector2(screenSpace.X, screenSpace.Y + 5); //Text must go below the bone, not over
+                            SimdVector2 screenSpace = GameBase.ActiveCameraBase.ProjectToScreenPosition(newWorld.Translation);
+                            screenSpace = new SimdVector2(screenSpace.X, screenSpace.Y + 5); //Text must go below the bone, not over
 
                             if (selected || distance < FullAlphaDistance)
                             {

@@ -1,8 +1,8 @@
 ﻿using System;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.EEPK;
-using Microsoft.Xna.Framework;
 using XenoKit.Engine.Vfx.Asset;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
@@ -17,13 +17,13 @@ namespace XenoKit.Engine.Vfx.Particle
         private float PreviousFrame = 0f;
         public float CurrentFrameDelta { get; private set; }
         public bool IsSimulating { get; private set; }
-        public Matrix AttachmentBone { get; private set; } = Matrix.Identity;
+        public Matrix4x4 AttachmentBone { get; private set; } = Matrix4x4.Identity;
 
         protected override bool FinishAnimationBeforeTerminating => true;
 
         private bool IsDirty { get; set; }
 
-        public ParticleSystem(Matrix startWorld, Actor actor, EffectPart effectPart, EMP_File empFile, VfxEffect effect, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
+        public ParticleSystem(Matrix4x4 startWorld, Actor actor, EffectPart effectPart, EMP_File empFile, VfxEffect effect, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
         {
             Effect = new WeakReference(effect);
             EmpFile = empFile;

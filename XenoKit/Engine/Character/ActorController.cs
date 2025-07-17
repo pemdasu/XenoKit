@@ -1,17 +1,12 @@
-﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using XenoKit.Editor;
-using XenoKit.Engine;
+﻿using XenoKit.Editor;
 using XenoKit.Engine.Collision;
 using XenoKit.Engine.Scripting.BAC;
-using XenoKit.Engine.Vfx;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BDM;
-using Xv2CoreLib.DEM;
 using Xv2CoreLib.Resource;
+using SimdVector3 = System.Numerics.Vector3;
+using System;
+using Xv2CoreLib;
 
 namespace XenoKit.Engine.Character
 {
@@ -234,7 +229,7 @@ namespace XenoKit.Engine.Character
 
         #region Damage
 
-        public void ApplyDamageState(BDM_Entry bdmEntry, Vector3 damageDir, BacHitbox hitbox)
+        public void ApplyDamageState(BDM_Entry bdmEntry, SimdVector3 damageDir, BacHitbox hitbox)
         {
             if (bdmEntry != null)
             {
@@ -299,8 +294,8 @@ namespace XenoKit.Engine.Character
                     //Pushback
                     if (!MathHelpers.FloatEquals(DamageManager.PushbackStrength, 0f) && DamageManager.UsePushback)
                     {
-                        Vector3 pushbackVector = DamageManager.Victim.Transform.Translation - DamageManager.Attacker.Transform.Translation;
-                        pushbackVector.Normalize();
+                        SimdVector3 pushbackVector = DamageManager.Victim.Transform.Translation - DamageManager.Attacker.Transform.Translation;
+                        pushbackVector = SimdVector3.Normalize(pushbackVector);
                         Actor.ApplyTranslation(pushbackVector * DamageManager.PushbackStrength);
 
                         //PushbackStrength may need to be clamped with high accerlerations

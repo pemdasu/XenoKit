@@ -1,9 +1,11 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
+using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
@@ -12,7 +14,7 @@ namespace XenoKit.Engine.Vfx.Particle
         protected Xv2Submesh EmgSubmesh = null;
         private bool ChildrenWarning = false;
 
-        public override void Initialize(Matrix emitPoint, Vector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
+        public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
         }
@@ -41,7 +43,7 @@ namespace XenoKit.Engine.Vfx.Particle
             {
                 EmgSubmesh.Vertices[i].SetColor(PrimaryColor[2], PrimaryColor[1], PrimaryColor[0], PrimaryColor[3]); //Have to flip colors because they appear as BGRA in character vertex, which Xv2Submesh is using, but are RGBA for particles
 
-                if (Node.NodeFlags.HasFlag(NodeFlags1.EnableScaleXY))
+                if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
                 {
                     EmgSubmesh.Vertices[i].Position.X = EmgSubmesh.Vertices[i].Position.X * ScaleBase;
                     EmgSubmesh.Vertices[i].Position.Y = EmgSubmesh.Vertices[i].Position.Y * ScaleV;
@@ -68,7 +70,7 @@ namespace XenoKit.Engine.Vfx.Particle
                 UpdateVertices();
 
                 AbsoluteTransform = GetRotationAxisWorld(true);
-                AbsoluteTransform *= Matrix.CreateTranslation(CameraBase.TransformRelativeToCamera(AbsoluteTransform.Translation, Node.EmissionNode.Texture.RenderDepth));
+                AbsoluteTransform *= Matrix4x4.CreateTranslation(CameraBase.TransformRelativeToCamera(AbsoluteTransform.Translation, Node.EmissionNode.Texture.RenderDepth));
             }
 
             UpdateChildrenNodes();
@@ -81,7 +83,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
             if (!ParticleSystem.DrawThisFrame) return;
 
-            if (State == NodeState.Active && !Node.NodeFlags.HasFlag(NodeFlags1.Hide))
+            if (State == NodeState.Active && (Node.NodeFlags & NodeFlags1.Hide) != NodeFlags1.Hide)
             {
                 //Set samplers/textures
                 for (int i = 0; i < EmissionData.Samplers.Length; i++)

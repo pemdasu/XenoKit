@@ -1,23 +1,24 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 using XenoKit.Engine.Stage;
-using XenoKit.Engine.View;
-using Xv2CoreLib.Resource.App;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Lighting
 {
     public class SunLight : Entity
     {
-        public Vector3 Direction { get; private set; }
+        public SimdVector3 Direction { get; private set; }
 
-        private Matrix LightViewMatrix { get; set; }
-        private Matrix LightProjectionMatrix { get; set; }
-        public Matrix LightViewProjectionMatrix { get; private set; }
-        public Matrix LightViewProjectionBiasMatrix { get; private set; }
+        private Matrix4x4 LightViewMatrix { get; set; }
+        private Matrix4x4 LightProjectionMatrix { get; set; }
+        public Matrix4x4 LightViewProjectionMatrix { get; private set; }
+        public Matrix4x4 LightViewProjectionBiasMatrix { get; private set; }
 
         public BoundingFrustum LightFrustum { get; private set; }
 
-        private readonly Matrix BiasMatrix = new Matrix(
+        private readonly Matrix4x4 BiasMatrix = new Matrix4x4(
                                                 0.5f, 0.0f, 0.0f, 0.0f,
                                                 0.0f, -0.5f, 0.0f, 0.0f,
                                                 0.0f, 0.0f, 1.0f, 0.0f,
@@ -42,16 +43,16 @@ namespace XenoKit.Engine.Lighting
 
         private void UpdateLight()
         {
-            Direction = new Vector3(GameBase.CurrentStage.CurrentSpm.ShadowDirX, GameBase.CurrentStage.CurrentSpm.ShadowDirY, GameBase.CurrentStage.CurrentSpm.ShadowDirZ);
+            Direction = new SimdVector3(GameBase.CurrentStage.CurrentSpm.ShadowDirX, GameBase.CurrentStage.CurrentSpm.ShadowDirY, GameBase.CurrentStage.CurrentSpm.ShadowDirZ);
             //LightViewMatrix = Matrix.CreateLookAt(position, position + direction, Vector3.Up);
-            LightViewMatrix = CreateDirectionalLightView(Direction, Vector3.Zero, 100f);
+            LightViewMatrix = CreateDirectionalLightView(Direction, SimdVector3.Zero, 100f);
 
             float width = 500;
             float height = 500;
             float nearPlane = 0.5f;
             float farPlane = 500;
 
-            LightProjectionMatrix = Matrix.CreateOrthographic(width, height, nearPlane, farPlane);
+            LightProjectionMatrix = Matrix4x4.CreateOrthographic(width, height, nearPlane, farPlane);
 
             LightViewProjectionMatrix = LightViewMatrix * LightProjectionMatrix;
             //LightViewProjectionMatrix = CreateLightViewProjectionMatrix(Direction, CameraBase.Frustum);
@@ -106,19 +107,19 @@ namespace XenoKit.Engine.Lighting
             return lightView * lightProjection;
         }
 
-        public static Matrix CreateDirectionalLightView(Vector3 lightDirection, Vector3 sceneCenter, float sceneRadius)
+        public static Matrix4x4 CreateDirectionalLightView(SimdVector3 lightDirection, SimdVector3 sceneCenter, float sceneRadius)
         {
-            lightDirection = Vector3.Normalize(lightDirection);
+            lightDirection = SimdVector3.Normalize(lightDirection);
 
             // Create a light position sufficently far away, in the opposite direction
-            Vector3 lightPosition = sceneCenter - lightDirection * sceneRadius * 2f;
+            SimdVector3 lightPosition = sceneCenter - lightDirection * sceneRadius * 2f;
 
             // Up vector - must not be parallel to light direction to avoid artifacts
-            Vector3 up = Vector3.Up;
-            if (Vector3.Dot(up, lightDirection) > 0.99f) // If too parallel, pick another
-                up = Vector3.Right;
+            SimdVector3 up = MathHelpers.Up;
+            if (SimdVector3.Dot(up, lightDirection) > 0.99f) // If too parallel, pick another
+                up = MathHelpers.Right;
 
-            return Matrix.CreateLookAt(lightPosition, sceneCenter, up);
+            return Matrix4x4.CreateLookAt(lightPosition, sceneCenter, up);
         }
 
     }

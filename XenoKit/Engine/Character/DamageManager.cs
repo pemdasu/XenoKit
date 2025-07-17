@@ -1,7 +1,9 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using XenoKit.Editor;
+using Xv2CoreLib;
 using Xv2CoreLib.BDM;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Character
 {
@@ -10,7 +12,7 @@ namespace XenoKit.Engine.Character
         private ActorController controller;
         public bool HasEntry => BdmEntry != null;
 
-        public Matrix HitPosition { get; private set; }
+        public Matrix4x4 HitPosition { get; private set; }
         public Actor Attacker { get; private set; }
         public Actor Victim => controller.Actor;
         public Move Move { get; private set; }
@@ -21,7 +23,7 @@ namespace XenoKit.Engine.Character
         //Damage:
         public int HitDirectionAll = 0; //0 = Front, 1 = Back, 2 = Left, 3 = Right
         public int HitDirectionFrontBack = 0; //0 = Front, 1 = Back
-        public Vector3 HitVector;
+        public SimdVector3 HitVector;
 
         //Pushback
         public bool UsePushback = false;
@@ -44,7 +46,7 @@ namespace XenoKit.Engine.Character
             controller = actorController;
         }
 
-        public void InitBdmEntry(BDM_Entry bdmEntry, Vector3 damageDirection, Actor attacker, Move move, Matrix hitPosition)
+        public void InitBdmEntry(BDM_Entry bdmEntry, SimdVector3 damageDirection, Actor attacker, Move move, Matrix4x4 hitPosition)
         {
             ResetBdmEntry();
             Attacker = attacker;
@@ -161,7 +163,7 @@ namespace XenoKit.Engine.Character
             UsePushback = false;
         }
 
-        private void SetDamageDirection(Vector3 directionVector)
+        private void SetDamageDirection(SimdVector3 directionVector)
         {
             HitVector = directionVector;
             float xAbs = Math.Abs(directionVector.X);
@@ -266,32 +268,32 @@ namespace XenoKit.Engine.Character
             int result = -1;
 
             //TODO: Flags can be mixed together
-            if (stumbleFlags.HasFlag(Stumble.StumbleSet1))
+            if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet1)
             {
                 result = STUMBLE_SET_1[rnd];
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet2))
+            else if ((stumbleFlags & Stumble.StumbleSet2) == Stumble.StumbleSet2)
             {
                 result = STUMBLE_SET_2[rnd];
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet3))
+            else if ((stumbleFlags & Stumble.StumbleSet3) == Stumble.StumbleSet3)
             {
                 result = STUMBLE_SET_3[rnd];
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet4))
+            else if ((stumbleFlags & Stumble.StumbleSet4) == Stumble.StumbleSet4)
             {
                 result = STUMBLE_SET_4[rnd];
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet5))
+            else if ((stumbleFlags & Stumble.StumbleSet5) == Stumble.StumbleSet5)
             {
                 result = STUMBLE_SET_5[rnd];
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet6))
+            else if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet6)
             {
                 result = STUMBLE_SET_6[rnd];
             }
 
-            if (stumbleFlags.HasFlag(Stumble.AllStumbleSets) || result == -1)
+            if ((stumbleFlags & Stumble.AllStumbleSets) == Stumble.AllStumbleSets || result == -1)
             {
                 result = STUMBLE_SET_ALL[Xv2CoreLib.Random.Range(0, STUMBLE_SET_ALL.Length)];
             }
@@ -304,15 +306,15 @@ namespace XenoKit.Engine.Character
             int result;
 
             //TODO: Flags can be mixed together
-            if (stumbleFlags.HasFlag(Stumble.StumbleSet1))
+            if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet1)
             {
                 result = BAC_HEAVY_STUMBLE_2;
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet2))
+            else if ((stumbleFlags & Stumble.StumbleSet2) == Stumble.StumbleSet2)
             {
                 result = BAC_HEAVY_STUMBLE_1;
             }
-            else if (stumbleFlags.HasFlag(Stumble.StumbleSet3))
+            else if ((stumbleFlags & Stumble.StumbleSet3) == Stumble.StumbleSet3)
             {
                 result = BAC_HEAVY_STUMBLE_3;
             }

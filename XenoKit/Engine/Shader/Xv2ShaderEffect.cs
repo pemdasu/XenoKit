@@ -8,6 +8,11 @@ using XenoKit.Engine.Vfx.Asset;
 using Xv2CoreLib.SDS;
 using Xv2CoreLib.Resource.App;
 using XenoKit.Engine.Stage;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdVector4 = System.Numerics.Vector4;
+using SimdQuaternion = System.Numerics.Quaternion;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Shader
 {
@@ -37,10 +42,10 @@ namespace XenoKit.Engine.Shader
         public ShaderType ShaderType { get; protected set; }
         private Xv2Shader[] _shaders;
 
-        public Matrix World = Matrix.Identity;
-        private Matrix WV = Matrix.Identity;
-        public Matrix WVP = Matrix.Identity;
-        public Matrix PrevWVP = Matrix.Identity;
+        public Matrix4x4 World = Matrix4x4.Identity;
+        private Matrix4x4 WV = Matrix4x4.Identity;
+        public Matrix4x4 WVP = Matrix4x4.Identity;
+        public Matrix4x4 PrevWVP = Matrix4x4.Identity;
 
         //Settings
         public ShaderProgram shaderProgram { get; protected set; }
@@ -852,7 +857,7 @@ namespace XenoKit.Engine.Shader
             //Apply billboarding rotation if material requires it
             if (MatParam.Billboard == 1)
             {
-                Matrix billboardWorld = Matrix.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi) * Matrix.Invert(GameBase.ActiveCameraBase.ViewMatrix);
+                Matrix4x4 billboardWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * MathHelpers.Invert(GameBase.ActiveCameraBase.ViewMatrix);
                 billboardWorld.Translation = World.Translation;
                 World = billboardWorld;
             }
@@ -1392,7 +1397,7 @@ namespace XenoKit.Engine.Shader
         }
 
         //Animation
-        public void SetSkinningMatrices(Matrix[] matrices)
+        public void SetSkinningMatrices(System.Numerics.Matrix4x4[] matrices)
         {
 
             if (!SkinningEnabled && shaderProgram.UseVertexShaderBuffer[CB_VS_BOOL])
@@ -1481,8 +1486,8 @@ namespace XenoKit.Engine.Shader
     public struct ActorShaderExtraParameters
     {
         public ActorShaderPath ShaderPath;
-        public Vector4 g_vColor4_PS; //Tint color (RGB used, A ignored).
-        public Vector4 g_vParam9_PS; //X = horizontal line size, Y = vertical line size, Z = gap between horizontal lines, W = gap between vertical lines
-        public Vector4 g_vUserFlag1_VS; //X = Activate Path (115 = Vanish, 7936 = HC), Y = controls intensity of g_vColor4_PS (0 - 10 range, where 0 just tints the character, and 10 is fully opaque with no texture details) 
+        public SimdVector4 g_vColor4_PS; //Tint color (RGB used, A ignored).
+        public SimdVector4 g_vParam9_PS; //X = horizontal line size, Y = vertical line size, Z = gap between horizontal lines, W = gap between vertical lines
+        public SimdVector4 g_vUserFlag1_VS; //X = Activate Path (115 = Vanish, 7936 = HC), Y = controls intensity of g_vColor4_PS (0 - 10 range, where 0 just tints the character, and 10 is fully opaque with no texture details) 
     }
 }

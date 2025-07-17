@@ -1,20 +1,23 @@
 ﻿using Microsoft.Xna.Framework;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector2 = System.Numerics.Vector2;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.View
 {
     public interface ICameraBase
     {
-        Matrix ViewMatrix { get; }
-        Matrix ProjectionMatrix { get; }
-        Matrix ViewProjectionMatrix { get; }
+        Matrix4x4 ViewMatrix { get; }
+        Matrix4x4 ProjectionMatrix { get; }
+        Matrix4x4 ViewProjectionMatrix { get; }
         CameraState CameraState { get; }
         BoundingFrustum Frustum { get; }
 
-        Vector2 ProjectToScreenPosition(Vector3 worldPos);
+        SimdVector2 ProjectToScreenPosition(SimdVector3 worldPos);
 
-        float DistanceFromCamera(Vector3 worldPos);
+        float DistanceFromCamera(SimdVector3 worldPos);
 
-        Vector3 TransformRelativeToCamera(Vector3 position, float distanceModifier);
+        SimdVector3 TransformRelativeToCamera(SimdVector3 position, float distanceModifier);
 
         void SetReflectionView(bool reflection);
 

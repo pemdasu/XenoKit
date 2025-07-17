@@ -10,7 +10,9 @@ using XenoKit.Engine.Model;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
 using XenoKit.Engine.Animation;
-using Xv2CoreLib.Resource.App;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdVector3 = System.Numerics.Vector3;
+using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Vfx.Asset
 {
@@ -58,9 +60,9 @@ namespace XenoKit.Engine.Vfx.Asset
         public bool IsMaterialsAnimated => MaterialAnimation != null;
         public List<VfxEmaMaterialNode> MaterialNodes = new List<VfxEmaMaterialNode>();
 
-        private Matrix AttachmentBone = Matrix.Identity;
+        private Matrix4x4 AttachmentBone = Matrix4x4.Identity;
 
-        public VfxEmo(Matrix startWorld, Xv2CoreLib.EffectContainer.Asset asset, EffectPart effectPart, Actor actor, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
+        public VfxEmo(Matrix4x4 startWorld, Xv2CoreLib.EffectContainer.Asset asset, EffectPart effectPart, Actor actor, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
         {
             Asset = asset;
             InitializeFiles();
@@ -318,7 +320,7 @@ namespace XenoKit.Engine.Vfx.Asset
         {
             if (DrawThisFrame && Model != null)
             {
-                Model.Draw(Matrix.CreateScale(Scale) * AttachmentBone, 0, Materials, Textures, null, 0, Skeleton);
+                Model.Draw(Matrix4x4.CreateScale(Scale) * AttachmentBone, 0, Materials, Textures, null, 0, Skeleton);
             }
         }
 

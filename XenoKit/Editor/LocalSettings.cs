@@ -185,9 +185,9 @@ namespace XenoKit.Editor
             W = w;
         }
 
-        public Vector3 ToVector3()
+        public System.Numerics.Vector3 ToVector3()
         {
-            return new Vector3(X, Y, Z);
+            return new System.Numerics.Vector3(X, Y, Z);
         }
 
         public Color ToColor()
