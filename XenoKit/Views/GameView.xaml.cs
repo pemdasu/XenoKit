@@ -206,12 +206,14 @@ namespace XenoKit.Controls
             {
                 if (MonoGame?.camera == null) return null;
 #if DEBUG
-                return string.Format("\nDEBUG:\nCompiled Objects: {0}\nPooled Objects (Active): {1}\nPooled Objects (Free): {2}\nRender Objects: {3}\nDraw Calls: {4}",
+                return string.Format("\nDEBUG:\nCompiled Objects: {0}\nPooled Objects (Active): {1}\nPooled Objects (Free): {2}\nRender Objects: {3}\nDraw Calls: {4}\nParticle Batcher: {5} (batches) / {6} (total batched)",
                     MonoGame.CompiledObjectManager.ObjectCount,
                     MonoGame.ObjectPoolManager.ParticleEmitterPool.UsedObjectCount + MonoGame.ObjectPoolManager.ParticleNodeBasePool.UsedObjectCount + MonoGame.ObjectPoolManager.ParticlePlanePool.UsedObjectCount + MonoGame.ObjectPoolManager.ParticleMeshPool.UsedObjectCount,
                     MonoGame.ObjectPoolManager.ParticleEmitterPool.FreeObjectCount + MonoGame.ObjectPoolManager.ParticleNodeBasePool.FreeObjectCount + MonoGame.ObjectPoolManager.ParticlePlanePool.FreeObjectCount + MonoGame.ObjectPoolManager.ParticleMeshPool.FreeObjectCount,
                     MonoGame.RenderSystem.Count,
-                    MonoGame.RenderSystem.MeshDrawCalls);
+                    MonoGame.RenderSystem.MeshDrawCalls,
+                    MonoGame.RenderSystem.ParticleBatcher.NumBatches,
+                    MonoGame.RenderSystem.ParticleBatcher.NumTotalBatched);
 #else
                 return null;
 #endif

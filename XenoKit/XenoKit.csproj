@@ -508,6 +508,8 @@
     <Compile Include="Engine\Model\LodGroup.cs" />
     <Compile Include="Engine\Model\ModelScene.cs" />
     <Compile Include="Engine\Objects\InfiniteWorldGrid.cs" />
+    <Compile Include="Engine\Rendering\ParticleBatch.cs" />
+    <Compile Include="Engine\Rendering\ParticleBatcher.cs" />
     <Compile Include="Engine\Rendering\YBSPostFilterStep.cs" />
     <Compile Include="Engine\Rendering\YBSPostProcess.cs" />
     <Compile Include="Engine\Scripting\Simulation.cs" />

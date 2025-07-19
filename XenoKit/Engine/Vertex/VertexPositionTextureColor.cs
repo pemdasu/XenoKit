@@ -79,6 +79,14 @@ namespace XenoKit.Engine.Vertex
             Color_A = (byte)(rgba[3] * 255);
         }
 
+        public void SetColor(Color rgba)
+        {
+            Color_R = rgba.R;
+            Color_G = rgba.G;
+            Color_B = rgba.B;
+            Color_A = rgba.A;
+        }
+
         static VertexPositionTextureColor()
         {
             VertexElement[] elements = new VertexElement[] 

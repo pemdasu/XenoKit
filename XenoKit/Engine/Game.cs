@@ -27,6 +27,7 @@ namespace XenoKit.Engine
         public Camera camera;
         public AudioEngine AudioEngine;
         public VfxPreview VfxPreview;
+
         public FrameRateCounter FrameRate { get; private set; } = new FrameRateCounter();
 
         //Engine Values:

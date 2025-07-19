@@ -410,7 +410,7 @@ namespace XenoKit.Engine.Vfx.Particle
                         if (Node.ChildParticleNodes[i].EmissionNode.EmissionType == ParticleEmission.ParticleEmissionType.Plane)
                         {
                             newNode = ObjectPoolManager.GetParticlePlane(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
-                            GameBase.RenderSystem.AddRenderEntity(newNode);
+                            //GameBase.RenderSystem.AddRenderEntity(newNode);
                         }
                         else if (Node.ChildParticleNodes[i].EmissionNode.EmissionType == ParticleEmission.ParticleEmissionType.Mesh)
                         {

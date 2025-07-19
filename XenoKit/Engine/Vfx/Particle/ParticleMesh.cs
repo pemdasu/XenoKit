@@ -89,11 +89,9 @@ namespace XenoKit.Engine.Vfx.Particle
                 for (int i = 0; i < EmissionData.Samplers.Length; i++)
                 {
                     GraphicsDevice.SamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
-                    GraphicsDevice.VertexSamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
 
                     if (EmissionData.Textures[i] != null)
                     {
-                        GraphicsDevice.VertexTextures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
                         GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
                     }
                 }

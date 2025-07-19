@@ -57,7 +57,7 @@
                 </TransformGroup>
             </Separator.RenderTransform>
         </Separator>
-        <StackPanel Grid.Row="1" VerticalAlignment="Top" Width="596" Height="400" HorizontalAlignment="Left" Margin="10,10,0,0" Visibility="{Binding ElementName=UserControl, Path=OverlayVisibility}">
+        <StackPanel Grid.Row="1" VerticalAlignment="Top" Width="596" Height="500" HorizontalAlignment="Left" Margin="10,10,0,0" Visibility="{Binding ElementName=UserControl, Path=OverlayVisibility}">
             <TextBlock x:Name="standardOverlay" TextWrapping="Wrap" Text="{Binding ElementName=UserControl, Path=StandardOverlay}" Foreground="Magenta"/>
             <TextBlock x:Name="vfxOverlay" TextWrapping="Wrap" Text="{Binding ElementName=UserControl, Path=VfxOverlay}" Foreground="Magenta"/>
             <TextBlock x:Name="debugOverlay" TextWrapping="Wrap" Text="{Binding ElementName=UserControl, Path=DebugOverlay}" Foreground="Magenta"/>

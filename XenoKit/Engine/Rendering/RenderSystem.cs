@@ -1,5 +1,4 @@
-﻿using AForge.Math.Metrics;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -18,6 +17,7 @@ namespace XenoKit.Engine.Rendering
     {
         public readonly PostFilter PostFilter;
         public readonly YBSPostProcess YBS;
+        public readonly ParticleBatcher ParticleBatcher;
 
         private readonly List<Entity> Reflections = new List<Entity>();
         private readonly List<Entity> Characters = new List<Entity>();
@@ -134,6 +134,7 @@ namespace XenoKit.Engine.Rendering
             if(ShaderManager.IsExtShadersLoaded)
                 YBS = new YBSPostProcess(GameBase, this, NextColorPassRT0, ColorPassRT1);
 
+            ParticleBatcher = new ParticleBatcher(game);
         }
 
         private void CreateInternalResources()
@@ -306,15 +307,18 @@ namespace XenoKit.Engine.Rendering
             //Initial Effect Pass
             SetRenderTargets(NextColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget);
             GraphicsDevice.SetDepthBuffer(DepthBuffer.RenderTarget);
-            _particleCount = 0;
+            _particleCount = ParticleBatcher.NumTotalBatched;
             DrawEntity(Effects, LOW_REZ_NONE);
+            DrawParticleBatcher(LOW_REZ_NONE);
 
             //LowRez Pass
             SetRenderTargets(LowRezRT0.RenderTarget, LowRezRT1.RenderTarget);
             GraphicsDevice.Clear(Color.Transparent);
             UseDepthToDepth();
             DrawEntity(Effects, LOW_REZ);
+            DrawParticleBatcher(LOW_REZ);
             DrawEntity(Effects, LOW_REZ_SMOKE); //LowRezSmoke pass is broken... effects dont render. So for now, render them in LowRez pass until its fixed
+            DrawParticleBatcher(LOW_REZ_SMOKE);
 
             //LowRezSmoke Pass
             SetRenderTargets(LowRezSmokeRT0.RenderTarget, LowRezSmokeRT1.RenderTarget);
@@ -499,19 +503,11 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-#if DEBUG
-        public string[] DRAW_ORDER = new string[10];
-        public int CurrentDrawIdx = 0;
-#endif
-
         private void DrawEntity(List<Entity> entities, int lowRezMode)
         {
             if (SceneManager.UseRenderScene) return;
 
             int particleCount = 0;
-#if DEBUG
-            CurrentDrawIdx = 0;
-#endif
 
             //OPAQUE PASS
             CurrentDrawPass = Rendering.DrawPass.Opaque;
@@ -532,7 +528,8 @@ namespace XenoKit.Engine.Rendering
             //ALPHA BLEND PASS
             CurrentDrawPass = Rendering.DrawPass.AlphaBlend;
 
-            foreach (Entity entity in entities.OrderByDescending(x => System.Numerics.Vector3.Distance(CameraBase.CameraState.Position, x.AbsoluteTransform.Translation)))
+            //foreach (Entity entity in entities.OrderByDescending(x => System.Numerics.Vector3.Distance(CameraBase.CameraState.Position, x.AbsoluteTransform.Translation)))
+            foreach (Entity entity in entities)
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 
@@ -589,6 +586,21 @@ namespace XenoKit.Engine.Rendering
             RenderScene.Draw();
         }
 
+        private void DrawParticleBatcher(int lowRezMode)
+        {
+            CurrentDrawPass = Rendering.DrawPass.Opaque;
+            ParticleBatcher.Draw(lowRezMode);
+
+            CurrentDrawPass = Rendering.DrawPass.AlphaBlend;
+            ParticleBatcher.Draw(lowRezMode);
+
+            CurrentDrawPass = Rendering.DrawPass.Additive;
+            ParticleBatcher.Draw(lowRezMode);
+
+            CurrentDrawPass = Rendering.DrawPass.Subtractive;
+            ParticleBatcher.Draw(lowRezMode);
+        }
+
         public override void Update()
         {
             SetRenderResolution();
@@ -606,6 +618,8 @@ namespace XenoKit.Engine.Rendering
 
             if (SceneManager.UseRenderScene)
                 RenderScene.Update();
+
+            ParticleBatcher.Update();
         }
 
         public override void DelayedUpdate()

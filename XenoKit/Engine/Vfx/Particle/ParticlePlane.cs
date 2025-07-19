@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using XenoKit.Engine.Rendering;
 using XenoKit.Engine.Vertex;
 using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
@@ -22,15 +23,18 @@ namespace XenoKit.Engine.Vfx.Particle
         protected readonly VertexPositionTextureColor[] Vertices = new VertexPositionTextureColor[6];
         protected BoundingBox AABB = new BoundingBox();
 
+        private ParticleBatch Batch;
+
         public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
+            Batch = RenderSystem.ParticleBatcher.GetBatch(node);
         }
 
         public override void Release()
         {
             ObjectPoolManager.ParticlePlanePool.ReleaseObject(this);
-            GameBase.RenderSystem.RemoveRenderEntity(this);
+            //GameBase.RenderSystem.RemoveRenderEntity(this);
         }
 
         private void UpdateVertices()
@@ -79,7 +83,7 @@ namespace XenoKit.Engine.Vfx.Particle
             Vertices[VERTEX_BOTTOM_RIGHT].TextureUV.Y = ParticleUV.ScrollV + ParticleUV.StepV;
 
             //Color
-            if ((Node.NodeFlags & NodeFlags1.EnableSecondaryColor) == NodeFlags1.EnableSecondaryColor && 
+            if ((Node.NodeFlags & NodeFlags1.EnableSecondaryColor) == NodeFlags1.EnableSecondaryColor &&
                 (Node.NodeFlags & NodeFlags1.FlashOnGen) != NodeFlags1.FlashOnGen)
             {
                 Vertices[VERTEX_TOP_LEFT].SetColor(PrimaryColor);
@@ -100,6 +104,13 @@ namespace XenoKit.Engine.Vfx.Particle
             Vertices[VERTEX_TOP_RIGHT_ALT] = Vertices[VERTEX_TOP_RIGHT];
 
             //Update AABB
+            UpdateAABB();
+        }
+
+        private void UpdateAABB()
+        {
+            float scaleU_FirstVertex = ((Node.NodeFlags & NodeFlags1.EnableScaleXY) != 0) ? ScaleBase : ScaleU;
+
             float aabbX = scaleU_FirstVertex > ScaleU ? scaleU_FirstVertex : ScaleU;
             Vector3 min = new Vector3(aabbX, ScaleV, 0f);
             Vector3 max = new Vector3(-aabbX, -ScaleV, 0f);
@@ -127,7 +138,10 @@ namespace XenoKit.Engine.Vfx.Particle
             if (State == NodeState.Active)
             {
                 UpdateRotation();
-                UpdateVertices();
+                UpdateScale();
+                UpdateColor();
+                UpdateAABB();
+                //UpdateVertices();
 
                 //Update world matrix
                 Matrix4x4 newWorld;
@@ -186,20 +200,24 @@ namespace XenoKit.Engine.Vfx.Particle
 
             UpdateChildrenNodes();
             EndUpdate();
+            DrawBatch();
         }
 
-        public override void Draw()
+        public void DrawBatch()
         {
             if (EmissionData == null || ParticleSystem == null) return;
-            if (!RenderSystem.CheckDrawPass(EmissionData.Material) || !ParticleSystem.DrawThisFrame) return;
+            //if (!ParticleSystem.DrawThisFrame) return;
+            //if (!RenderSystem.CheckDrawPass(EmissionData.Material) || !ParticleSystem.DrawThisFrame) return;
 
             if (!FrustumIntersects(AbsoluteTransform, AABB))
                 return;
 
-            RenderSystem.MeshDrawCalls++;
+            //RenderSystem.MeshDrawCalls++;
 
             if (State == NodeState.Active && (Node.NodeFlags & NodeFlags1.Hide) != NodeFlags1.Hide)
             {
+                Batch.AddToBatch(CreateBatchItem());
+                /*
                 //Set samplers/textures
                 for (int i = 0; i < EmissionData.Samplers.Length; i++)
                 {
@@ -222,9 +240,27 @@ namespace XenoKit.Engine.Vfx.Particle
 
                     GraphicsDevice.DrawUserPrimitives(PrimitiveType.TriangleList, Vertices, 0, 2);
                 }
+                */
             }
 
-            base.Draw();
+        }
+
+        private ParticleBatchItem CreateBatchItem()
+        {
+            //Special case for when Scale XY is used. The first vertex still uses Scale Base for U, but not V (game bug? seems weird...)
+            float scaleU_FirstVertex = ((Node.NodeFlags & NodeFlags1.EnableScaleXY) != 0) ? ScaleBase : ScaleU;
+            bool useBottomColor = (Node.NodeFlags & NodeFlags1.EnableSecondaryColor) != 0 && (Node.NodeFlags & NodeFlags1.FlashOnGen) == 0;
+            
+            return new ParticleBatchItem()
+            {
+                UV = ParticleUV,
+                World = AbsoluteTransform,
+                ScaleU = ScaleU,
+                ScaleV = ScaleV,
+                ScaleU_First = scaleU_FirstVertex,
+                TopColor = new Color(PrimaryColor[0], PrimaryColor[1], PrimaryColor[2], PrimaryColor[3]),
+                BottomColor = useBottomColor ? new Color(SecondaryColor[0], SecondaryColor[1], SecondaryColor[2], SecondaryColor[3]) : new Color(PrimaryColor[0], PrimaryColor[1], PrimaryColor[2], PrimaryColor[3])
+            };
         }
 
     }

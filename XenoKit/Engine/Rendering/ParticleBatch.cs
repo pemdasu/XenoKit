@@ -1,0 +1,172 @@
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
+using XenoKit.Engine.Vertex;
+using XenoKit.Engine.Vfx.Particle;
+using Xv2CoreLib.EMM;
+using Xv2CoreLib.EMP_NEW;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+
+namespace XenoKit.Engine.Rendering
+{
+    public class ParticleBatch : Entity
+    {
+        private ParticleBatchItem[] BatchItems;
+        private VertexPositionTextureColor[] Vertices;
+
+        private int batchIndex = 0; //The next index to add a batch to... and the number of items batched
+
+        public readonly ParticleNode ParticleNode;
+        public readonly ParticleEmissionData EmissionData;
+
+        public int NumBatch { get; private set; }
+
+        public override int LowRezMode
+        {
+            get
+            {
+                if (EmissionData?.Material == null) return 0;
+                if (EmissionData.Material.MatParam.LowRez == 1) return 1;
+                if (EmissionData.Material.MatParam.LowRezSmoke == 1) return 2;
+                return 0;
+            }
+        }
+
+        public ParticleBatch(GameBase game, ParticleEmissionData emissionData, ParticleNode particleNode) : base(game)
+        {
+            EmissionData = emissionData;
+            ParticleNode = particleNode;
+            BatchItems = new ParticleBatchItem[64];
+            Vertices = new VertexPositionTextureColor[64 * 6];
+        }
+
+        private void ResizeIfNeeded()
+        {
+            if(batchIndex >= BatchItems.Length)
+            {
+                int oldSize = BatchItems.Length;
+                int newSize = oldSize + oldSize / 2; // grow by x1.5
+                newSize = (newSize + 63) & (~63); // grow in chunks of 64.
+                Array.Resize(ref BatchItems, newSize);
+                Array.Resize(ref Vertices, newSize * 6);
+            }
+        }
+
+        public void AddToBatch(ParticleBatchItem batch)
+        {
+            ResizeIfNeeded();
+            BatchItems[batchIndex++] = batch;
+        }
+
+        #region Draw
+
+        public override void Update()
+        {
+            EmissionData.Update();
+        }
+
+        public override void Draw()
+        {
+            NumBatch = batchIndex;
+            if (!RenderSystem.CheckDrawPass(EmissionData.Material) || batchIndex == 0) return;
+
+            UpdateVertices();
+
+            RenderSystem.MeshDrawCalls++;
+
+            //Set samplers/textures
+            for (int i = 0; i < EmissionData.Samplers.Length; i++)
+            {
+                GraphicsDevice.SamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
+
+                if (EmissionData.Textures[i] != null)
+                {
+                    GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
+                }
+            }
+
+            EmissionData.Material.World = Matrix4x4.Identity;
+
+            //Shader passes and vertex drawing
+            foreach (EffectPass pass in EmissionData.Material.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+
+                GraphicsDevice.DrawUserPrimitives(PrimitiveType.TriangleList, Vertices, 0, batchIndex * 2);
+            }
+
+            batchIndex = 0;
+        }
+
+        private void UpdateVertices()
+        {
+            const int VERTEX_TOP_LEFT = 0;
+            const int VERTEX_TOP_RIGHT = 1;
+            const int VERTEX_BOTTOM_LEFT_ALT = 2;
+            const int VERTEX_BOTTOM_LEFT = 3;
+            const int VERTEX_TOP_RIGHT_ALT = 4;
+            const int VERTEX_BOTTOM_RIGHT = 5;
+
+            for (int i = 0; i < batchIndex; i++)
+            {
+                int vertIdx = i * 6;
+
+                //Position
+                Vertices[vertIdx + VERTEX_TOP_LEFT].Position.X = -BatchItems[i].ScaleU_First;
+                Vertices[vertIdx + VERTEX_TOP_LEFT].Position.Y = BatchItems[i].ScaleV;
+                Vertices[vertIdx + VERTEX_TOP_LEFT].Position.Z = 0f;
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].Position.X = BatchItems[i].ScaleU_First;
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].Position.Y = BatchItems[i].ScaleV;
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].Position.Z = 0f;
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].Position.X = -BatchItems[i].ScaleU;
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].Position.Y = -BatchItems[i].ScaleV;
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].Position.Z = 0f;
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position.X = BatchItems[i].ScaleU;
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position.Y = -BatchItems[i].ScaleV;
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position.Z = 0f;
+
+                //UV
+                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV.X = BatchItems[i].UV.ScrollU;
+                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV.Y = BatchItems[i].UV.ScrollV;
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV.X = BatchItems[i].UV.ScrollU + BatchItems[i].UV.StepU;
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV.Y = BatchItems[i].UV.ScrollV;
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV.X = BatchItems[i].UV.ScrollU;
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV.Y = BatchItems[i].UV.ScrollV + BatchItems[i].UV.StepV;
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV.X = BatchItems[i].UV.ScrollU + BatchItems[i].UV.StepU;
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV.Y = BatchItems[i].UV.ScrollV + BatchItems[i].UV.StepV;
+
+                //Color
+                Vertices[vertIdx + VERTEX_TOP_LEFT].SetColor(BatchItems[i].TopColor);
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].SetColor(BatchItems[i].TopColor);
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].SetColor(BatchItems[i].BottomColor);
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].SetColor(BatchItems[i].BottomColor);
+
+                //Transform vertices into world space
+                Vertices[vertIdx + VERTEX_TOP_LEFT].Position = Vector3.Transform(Vertices[vertIdx + VERTEX_TOP_LEFT].Position, BatchItems[i].World);
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].Position = Vector3.Transform(Vertices[vertIdx + VERTEX_TOP_RIGHT].Position, BatchItems[i].World);
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].Position = Vector3.Transform(Vertices[vertIdx + VERTEX_BOTTOM_LEFT].Position, BatchItems[i].World);
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position = Vector3.Transform(Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position, BatchItems[i].World);
+
+                //Duplicate vertices
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT_ALT] = Vertices[vertIdx + VERTEX_BOTTOM_LEFT];
+                Vertices[vertIdx + VERTEX_TOP_RIGHT_ALT] = Vertices[vertIdx + VERTEX_TOP_RIGHT];
+            }
+        }
+
+        #endregion
+
+    }
+
+    public struct ParticleBatchItem
+    {
+        //Total size = 92 bytes
+
+        public ParticleUV UV;
+        public float ScaleU_First;
+        public float ScaleU;
+        public float ScaleV;
+        public Color TopColor;
+        public Color BottomColor;
+        public Matrix4x4 World;
+    }
+}
