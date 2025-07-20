@@ -7,7 +7,7 @@ using XenoKit.Engine.Vertex;
 
 namespace XenoKit.Engine.Rendering
 {
-    public class PostFilter : Entity
+    public class PostFilter : EngineObject
     {
         RenderSystem _renderSystem;
 
@@ -19,7 +19,7 @@ namespace XenoKit.Engine.Rendering
 
         private Vector2[] DefaultCoords1, Coords1, Coords2, Coords3, Coords4;
 
-        public PostFilter(GameBase game, RenderSystem renderSystem) : base(game)
+        public PostFilter(RenderSystem renderSystem)
         {
             _renderSystem = renderSystem;
             vertices = new VertexPositionTexture5[4];

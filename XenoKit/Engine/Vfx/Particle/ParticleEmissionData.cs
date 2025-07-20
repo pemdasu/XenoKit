@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib.EMP_NEW;
@@ -7,7 +8,7 @@ using static Xv2CoreLib.EMP_NEW.EMP_TextureSamplerDef;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
-    public class ParticleEmissionData : Entity
+    public class ParticleEmissionData : EngineObject, IDisposable
     {
         private EMP_File empFile = null;
         public EMP_File EmpFile
@@ -36,7 +37,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         private readonly EMP_TextureSamplerDef[] PreviousTextureDef = new EMP_TextureSamplerDef[2];
 
-        public ParticleEmissionData(ParticleNode node, GameBase gameBase) : base(gameBase)
+        public ParticleEmissionData(ParticleNode node)
         {
             ParticleNode = node;
             SetSamplers();
@@ -64,7 +65,7 @@ namespace XenoKit.Engine.Vfx.Particle
             IsTexturesDirty = true;
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             ParticleNode.EmissionNode.Texture.PropertyChanged -= Texture_PropertyChanged;
             ParticleNode.EmissionNode.Texture.TextureEntryRef[0].PropertyChanged -= ParticleEmissionData_PropertyChanged;
@@ -116,7 +117,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
                     if (ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef != null)
                     {
-                        Textures[i] = CompiledObjectManager.GetCompiledObject<Xv2Texture>(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.TextureRef, GameBase);
+                        Textures[i] = CompiledObjectManager.GetCompiledObject<Xv2Texture>(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.TextureRef);
                     }
                 }
             }
@@ -145,7 +146,7 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             IsMaterialsDirty = false;
 
-            Xv2ShaderEffect compiledMat = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(ParticleNode.EmissionNode.Texture.MaterialRef, GameBase);
+            Xv2ShaderEffect compiledMat = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(ParticleNode.EmissionNode.Texture.MaterialRef);
 
             if (compiledMat == null)
             {

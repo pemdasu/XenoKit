@@ -31,13 +31,13 @@ namespace XenoKit.Inspector.InspectorEntities
         public override bool Load()
         {
             EmbFile = EMB_File.LoadEmb(Path);
-            Textures = Xv2Texture.LoadTextureArray(EmbFile, SceneManager.MainGameBase);
+            Textures = Xv2Texture.LoadTextureArray(EmbFile);
             return true;
         }
 
         public void RecreateTextureArray()
         {
-            Textures = Xv2Texture.LoadTextureArray(EmbFile, SceneManager.MainGameBase);
+            Textures = Xv2Texture.LoadTextureArray(EmbFile);
         }
 
         public override bool Save()

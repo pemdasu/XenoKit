@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using XenoKit.Editor;
 using XenoKit.Engine.Vfx.Particle;
 using Xv2CoreLib.EMP_NEW;
 
 namespace XenoKit.Engine.Rendering
 {
-    public class ParticleBatcher : Entity
+    public class ParticleBatcher : EngineObject
     {
         private readonly List<ParticleBatch> _batches = new List<ParticleBatch>();
 
@@ -14,8 +15,25 @@ namespace XenoKit.Engine.Rendering
         public int NumBatches => _batches.Count;
         public int NumTotalBatched => _totalBatchedParticles;
 
-        public ParticleBatcher(GameBase game) : base(game)
+        public ParticleBatcher()
         {
+
+        }
+
+        public void SlowUpdate()
+        {
+            for (int i = _batches.Count - 1; i >= 0; i--)
+            {
+                if (_batches[i].MaxBatchSinceLastSlowUpdate > 0)
+                {
+                    _batches[i].SlowUpdate();
+                }
+                else
+                {
+                    _batches[i].Destroy();
+                    _batches.RemoveAt(i);
+                }
+            }
 
         }
 
@@ -51,7 +69,7 @@ namespace XenoKit.Engine.Rendering
             }
 
             //Create batch and return it
-            ParticleBatch batch = new ParticleBatch(GameBase, CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(particleNode, GameBase), particleNode);
+            ParticleBatch batch = new ParticleBatch(CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(particleNode), particleNode);
             _batches.Add(batch);
             return batch;
         }

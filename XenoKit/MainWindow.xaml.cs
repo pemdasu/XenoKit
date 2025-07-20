@@ -401,7 +401,7 @@ namespace XenoKit
 
             if(shadowMapRes != SettingsManager.settings.XenoKit_ShadowMapRes)
             {
-                SceneManager.MainGameInstance.CompiledObjectManager.ForceShaderUpdate();
+                Viewport.Instance.CompiledObjectManager.ForceShaderUpdate();
             }
         }
 
@@ -628,7 +628,7 @@ namespace XenoKit
 
         private void DebugMenu_ForceGC(object sender, RoutedEventArgs e)
         {
-            SceneManager.MainGameBase.CompiledObjectManager.RemoveDeadObjects();
+            Viewport.Instance.CompiledObjectManager.RemoveDeadObjects();
             GC.Collect();
 
             Log.Add("GC initiated", LogType.Debug);
@@ -636,17 +636,17 @@ namespace XenoKit
 
         private void DebugMenu_ReloadShaders_Click(object sender, RoutedEventArgs e)
         {
-            SceneManager.MainGameBase.CompiledObjectManager.ForceShaderUpdate();
+            Viewport.Instance.CompiledObjectManager.ForceShaderUpdate();
         }
 
         private void DebugMenu_DumpRenderTargets_Click(object sender, RoutedEventArgs e)
         {
-            SceneManager.MainGameBase.RenderSystem.DumpRenderTargetsNextFrame = true;
+            Viewport.Instance.RenderSystem.DumpRenderTargetsNextFrame = true;
         }
 
         private void DebugMenu_DumpShadowMap_Click(object sender, RoutedEventArgs e)
         {
-            SceneManager.MainGameBase.RenderSystem.DumpShadowMapNextFrame = true;
+            Viewport.Instance.RenderSystem.DumpShadowMapNextFrame = true;
         }
         #endregion
 

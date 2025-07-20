@@ -13,9 +13,9 @@ using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Model
 {
-    public class LodGroup : Entity
+    public class LodGroup : RenderObject
     {
-        public override EntityType EntityType => EntityType.Stage;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
         public List<Lod> LODs { get; private set; } = new List<Lod>();
         public Xv2Texture[] Textures { get; private set; }
@@ -23,13 +23,13 @@ namespace XenoKit.Engine.Model
 
         private int lodIndex = -1;
 
-        public LodGroup (FMP_Visual visual, GameBase game) : base(game)
+        public LodGroup (FMP_Visual visual)
         {
             string embPath = $"stage/{visual.EmbFile}";
             string emaPath = $"stage/{visual.EmaFile}";
 
             EMB_File embFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(embPath);
-            Textures = Xv2Texture.LoadTextureArray(embFile, game);
+            Textures = Xv2Texture.LoadTextureArray(embFile);
 
             foreach(var lod in visual.LODs)
             {
@@ -41,7 +41,7 @@ namespace XenoKit.Engine.Model
                     NSK_File nskFile = (NSK_File)FileManager.Instance.GetParsedFileFromGame(nskPath);
                     EMM_File emmFile = (EMM_File)FileManager.Instance.GetParsedFileFromGame(emmPath);
 
-                    Xv2ModelFile model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(nskFile, GameBase);
+                    Xv2ModelFile model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(nskFile);
 
                     LODs.Add(new Lod(lod.Distance, model, emmFile));
                 }
@@ -72,7 +72,7 @@ namespace XenoKit.Engine.Model
 
         private Lod GetCurrentLod()
         {
-            float distanceFromCamera = SimdVector3.Distance(CameraBase.CameraState.Position, Transform.Translation);
+            float distanceFromCamera = SimdVector3.Distance(Camera.CameraState.Position, Transform.Translation);
 
             //TODO
             return LODs[GetLodIndex(distanceFromCamera)];

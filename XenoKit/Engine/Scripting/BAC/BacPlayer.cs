@@ -13,7 +13,7 @@ using SimdVector4 = System.Numerics.Vector4;
 
 namespace XenoKit.Engine.Scripting.BAC
 {
-    public class BacPlayer : Entity
+    public class BacPlayer : EngineObject
     {
         //Parent character that this BacPlayer is for
         private readonly Actor character;
@@ -60,7 +60,7 @@ namespace XenoKit.Engine.Scripting.BAC
         /// </summary>
         private bool clearing = false;
 
-        public BacPlayer(Actor chara, GameBase gameBase) : base(gameBase)
+        public BacPlayer(Actor chara)
         {
             character = chara;
             Xv2CoreLib.Resource.UndoRedo.UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
@@ -222,11 +222,11 @@ namespace XenoKit.Engine.Scripting.BAC
                             continue;
                     }
 
-                    BacEntryInstance.AddVisualObject(hitbox, GameBase);
+                    BacEntryInstance.AddVisualObject(hitbox, ViewportInstance);
 
-                    if (GameBase.Simulation.ActiveHitboxes.FirstOrDefault(x => x.Hitbox == hitbox && x.BacEntry == BacEntryInstance) == null)
+                    if (ViewportInstance.Simulation.ActiveHitboxes.FirstOrDefault(x => x.Hitbox == hitbox && x.BacEntry == BacEntryInstance) == null)
                     {
-                        GameBase.Simulation.ActiveHitboxes.Add(new Collision.BacHitbox(BacEntryInstance, hitbox, spawnActor, BacEntryInstance.User, BacEntryInstance.User.Team));
+                        ViewportInstance.Simulation.ActiveHitboxes.Add(new Collision.BacHitbox(BacEntryInstance, hitbox, spawnActor, BacEntryInstance.User, BacEntryInstance.User.Team));
                     }
                 }
 
@@ -284,9 +284,9 @@ namespace XenoKit.Engine.Scripting.BAC
                     Xv2CoreLib.ACB.ACB_Wrapper acb = Files.Instance.GetAcbFile(sound.AcbType, BacEntryInstance.SkillMove, character, true);
 
                     //I've made it only play sounds if a primary animation is current playing - this prevents some audio crashes/errors
-                    if (acb != null && sound.CueId != ushort.MaxValue && GameBase.IsPlaying && character.AnimationPlayer.PrimaryAnimation != null)
+                    if (acb != null && sound.CueId != ushort.MaxValue && ViewportInstance.IsPlaying && character.AnimationPlayer.PrimaryAnimation != null)
                     {
-                        SceneManager.AudioEngine.PlayCue(sound.CueId, acb, character, BacEntryInstance, (sound.SoundFlags & SoundFlags.StopWhenParentEnds) == SoundFlags.StopWhenParentEnds);
+                        Viewport.Instance.AudioEngine.PlayCue(sound.CueId, acb, character, BacEntryInstance, (sound.SoundFlags & SoundFlags.StopWhenParentEnds) == SoundFlags.StopWhenParentEnds);
                     }
                 }
 
@@ -309,7 +309,7 @@ namespace XenoKit.Engine.Scripting.BAC
                             character.IsVisible = false;
                             break;
                         case 0x30: //Black Void
-                            GameBase.IsBlackVoid = true;
+                            ViewportInstance.IsBlackVoid = true;
                             break;
                     }
                 }
@@ -409,11 +409,11 @@ namespace XenoKit.Engine.Scripting.BAC
         {
             if (BacEntryInstance.LoopIsDirty)
             {
-                bool wasPlaying = GameBase.IsPlaying;
-                GameBase.IsPlaying = false;
+                bool wasPlaying = ViewportInstance.IsPlaying;
+                ViewportInstance.IsPlaying = false;
                 BacEntryInstance.LoopIsDirty = false;
                 Seek((int)BacEntryInstance.CurrentFrame);
-                GameBase.IsPlaying = wasPlaying;
+                ViewportInstance.IsPlaying = wasPlaying;
             }
             else if (BacEntryInstance.LoopEnabled && BacEntryInstance.CurrentFrame >= BacEntryInstance.LoopEndFrame && (!IsPreview || SceneManager.AllowBacLoop))
             {
@@ -424,7 +424,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 //If the camera changes, then the wrong camera frame will be used. This is how it works in game too.
                 //However, it is impossible for the animation to change within a loop, as each new primary animation will also start a new loop, effectively overwriting any Function Loops
                 character.AnimationPlayer.GoToFrame(BacEntryInstance.LoopAnimationStartFrame, false);
-                SceneManager.MainCamera.SkipToFrame(BacEntryInstance.LoopCameraStartFrame);
+                Viewport.Instance.Camera.SkipToFrame(BacEntryInstance.LoopCameraStartFrame);
             }
         }
 
@@ -436,7 +436,7 @@ namespace XenoKit.Engine.Scripting.BAC
             if (clearing) return;
 
             //Get camera state so it can be restored after resimulating the bac state. 
-            CameraState originalCameraState = SceneManager.MainGameInstance.camera.CameraState.Copy();
+            CameraState originalCameraState = Viewport.Instance.Camera.CameraState.Copy();
 
             //Calculate the number of "blending" frames between animations. With this we dont need to calculate every single animation frame, just what is needed.
             int numBlendingFrames = BAC_Type0.CalculateNumOfBlendingFrames(BacEntryInstance.BacEntry.IBacTypes, frame);
@@ -451,7 +451,7 @@ namespace XenoKit.Engine.Scripting.BAC
             Xv2CoreLib.Random.ResetWithCurrentSeed();
             VfxManager.StopEffects();
             VfxManager.ForceEffectUpdate = false;
-            SceneManager.MainCamera.ClearCameraAnimation();
+            Viewport.Instance.Camera.ClearCameraAnimation();
             character.AnimationTimeScale = 1f;
             BacEntryInstance.BacEntry.ResetTimesActivated();
             BacEntryInstance.ResetState();
@@ -474,8 +474,8 @@ namespace XenoKit.Engine.Scripting.BAC
                 {
                     character.Simulate(true, true);
                     SceneManager.Actors[1]?.Simulate(true, true);
-                    SceneManager.MainGameInstance.camera.Simulate(true, true);
-                    GameBase.Simulation.Simulate();
+                    Viewport.Instance.Camera.Simulate(true, true);
+                    ViewportInstance.Simulation.Simulate();
 
                     VfxManager.ForceEffectUpdate = true;
                     VfxManager.Simulate();
@@ -487,8 +487,8 @@ namespace XenoKit.Engine.Scripting.BAC
                     {
                         character.Simulate(frame - i < numBlendingFrames, true); //Fully update anim positions for as long as required for accurate blending
                         SceneManager.Actors[1]?.Simulate(frame - i < 10, true);
-                        SceneManager.MainGameInstance.camera.Simulate(frame - i <= 1, true); //Only fully update camera on last frame
-                        GameBase.Simulation.Simulate();
+                        Viewport.Instance.Camera.Simulate(frame - i <= 1, true); //Only fully update camera on last frame
+                        ViewportInstance.Simulation.Simulate();
 
                         //If this is the last seek frame, then set this to true so that effects fully update
                         if (i == frame && character.Controller.FreezeActionFrames == 0)
@@ -501,9 +501,9 @@ namespace XenoKit.Engine.Scripting.BAC
             }
 
             //Reset camera state if no cam anim is active. This allows the bac entry to be paused, then the camera moved, and the scene to resume without the camera resetting to the last simulated camera
-            if (SceneManager.MainGameInstance.camera.cameraInstance == null && SceneManager.UseCameras)
+            if (Viewport.Instance.Camera.cameraInstance == null && SceneManager.UseCameras)
             {
-                SceneManager.MainGameInstance.camera.CameraState.SetState(originalCameraState);
+                Viewport.Instance.Camera.CameraState.SetState(originalCameraState);
             }
         }
 
@@ -521,7 +521,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 BacEntryInstance.LoopStartFrame = newStart;
                 BacEntryInstance.LoopEndFrame = newEnd;
                 BacEntryInstance.LoopAnimationStartFrame = animStart;
-                BacEntryInstance.LoopCameraStartFrame = (int)SceneManager.MainCamera.CurrentFrame;
+                BacEntryInstance.LoopCameraStartFrame = (int)Viewport.Instance.Camera.CurrentFrame;
                 BacEntryInstance.LoopAllowIncomplete = allowIncompleteLoop;
             }
         }
@@ -588,7 +588,7 @@ namespace XenoKit.Engine.Scripting.BAC
 
             if (IsPreview)
             {
-                SceneManager.MainGameInstance.camera.ClearCameraAnimation();
+                Viewport.Instance.Camera.ClearCameraAnimation();
             }
 
             character.AnimationPlayer.SecondaryAnimations.Clear();
@@ -607,13 +607,13 @@ namespace XenoKit.Engine.Scripting.BAC
             //Values in the current BAC have changed and so the current frame must be re-simulated.
             if (BacEntryInstance != null)
             {
-                bool wasPlaying = GameBase.IsPlaying;
-                GameBase.IsPlaying = false;
+                bool wasPlaying = ViewportInstance.IsPlaying;
+                ViewportInstance.IsPlaying = false;
 
                 BacEntryInstance.CalculateEntryDuration();
                 Seek((int)BacEntryInstance.CurrentFrame, true);
 
-                GameBase.IsPlaying = wasPlaying;
+                ViewportInstance.IsPlaying = wasPlaying;
             }
         }
 
@@ -643,7 +643,7 @@ namespace XenoKit.Engine.Scripting.BAC
             SceneManager.Actors[1]?.ResetState();
             BacEntryInstance.CreateMatrixRestorePoint();
             character.AnimationTimeScale = 1f;
-            GameBase.IsPlaying = false;
+            ViewportInstance.IsPlaying = false;
         }
 
         public void SeekPrevFrame()

@@ -72,7 +72,7 @@ namespace XenoKit.Views.BAC
 
             if(BacViewModel.CueId != ushort.MaxValue)
             {
-                SceneManager.AudioEngine.PreviewCue(BacViewModel.CueId, acb);
+                Viewport.Instance.AudioEngine.PreviewCue(BacViewModel.CueId, acb);
             }
 
         }

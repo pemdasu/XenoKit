@@ -10,7 +10,7 @@ using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.View
 {
-    public class CameraBase : Entity, ICameraBase
+    public class CameraBase : EngineObject
     {
         public Matrix4x4 ViewMatrix { get; private set; }
         public Matrix4x4 ProjectionMatrix { get; private set; }
@@ -29,8 +29,6 @@ namespace XenoKit.Engine.View
             get => Input.RightClickHeldDownContext == this;
             set => Input.RightClickHeldDownContext = value ? this : null;
         }
-
-        public CameraBase(GameBase game) : base(game) { }
 
         private SimdVector3 RotateCamera(SimdVector3 position, SimdVector3 target, SimdVector2 mouseDelta, float sensitivity)
         {
@@ -127,7 +125,7 @@ namespace XenoKit.Engine.View
 
         private void HandleTranslation()
         {
-            if (!GameIsFocused) return;
+            if (!ViewportIsFocused) return;
 
             float translateSpeed = 0.2f;
 
@@ -171,7 +169,7 @@ namespace XenoKit.Engine.View
 
         private void HandlePanning()
         {
-            if (!GameIsFocused)
+            if (!ViewportIsFocused)
             {
                 IsRightClickHeldDown = false;
                 return;
@@ -204,7 +202,7 @@ namespace XenoKit.Engine.View
 
         private void HandleSpinning()
         {
-            if (!GameIsFocused)
+            if (!ViewportIsFocused)
             {
                 IsLeftClickHeldDown = false;
                 return;
@@ -228,7 +226,7 @@ namespace XenoKit.Engine.View
 
         private void HandleZooming()
         {
-            if (!GameIsFocused || Input.MouseScrollThisFrame == 0) return;
+            if (!ViewportIsFocused || Input.MouseScrollThisFrame == 0) return;
 
             if (Input.IsKeyUp(Keys.LeftAlt))
             {
@@ -252,24 +250,24 @@ namespace XenoKit.Engine.View
             HandleSpinning();
             HandleZooming();
 
-            if (GameIsFocused && Input.IsKeyDown(Keys.R) && Input.IsKeyDown(Keys.LeftControl))
+            if (ViewportIsFocused && Input.IsKeyDown(Keys.R) && Input.IsKeyDown(Keys.LeftControl))
             {
                 ResetCamera();
             }
 
-            if ((GameIsFocused) && Input.IsKeyDown(Keys.E) && Input.IsKeyDown(Keys.LeftControl))
+            if ((ViewportIsFocused) && Input.IsKeyDown(Keys.E) && Input.IsKeyDown(Keys.LeftControl))
             {
                 CameraState.Roll -= 0.1f;
             }
-            else if ((GameIsFocused) && Input.IsKeyDown(Keys.E))
+            else if ((ViewportIsFocused) && Input.IsKeyDown(Keys.E))
             {
                 CameraState.Roll--;
             }
-            if ((GameIsFocused) && Input.IsKeyDown(Keys.Q) && Input.IsKeyDown(Keys.LeftControl))
+            if ((ViewportIsFocused) && Input.IsKeyDown(Keys.Q) && Input.IsKeyDown(Keys.LeftControl))
             {
                 CameraState.Roll += 0.1f;
             }
-            else if ((GameIsFocused) && Input.IsKeyDown(Keys.Q))
+            else if ((ViewportIsFocused) && Input.IsKeyDown(Keys.Q))
             {
                 CameraState.Roll++;
             }
@@ -323,8 +321,8 @@ namespace XenoKit.Engine.View
         {
             //Projection Matrix
             float fieldOfViewRadians = (float)(Math.PI / 180 * CameraState.FieldOfView);
-            float nearClipPlane = GameBase.CurrentStage.NearClip;
-            float farClipPlane = GameBase.CurrentStage.FarClip;
+            float nearClipPlane = ViewportInstance.CurrentStage.NearClip;
+            float farClipPlane = ViewportInstance.CurrentStage.FarClip;
             float aspectRatio = GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;
 
             ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fieldOfViewRadians, aspectRatio, nearClipPlane, farClipPlane);

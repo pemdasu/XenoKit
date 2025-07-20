@@ -17,7 +17,7 @@ namespace XenoKit.Engine.Vfx
     /// <summary>
     /// This is the main effect manager class. This can play multiple effects simultaneously, and handles loops and deactivations.
     /// </summary>
-    public class VfxManager : Entity
+    public class VfxManager : EngineObject
     {
         private const int MAX_EFFECTS = 100;
         private List<VfxEffect> Effects = new List<VfxEffect>();
@@ -29,10 +29,6 @@ namespace XenoKit.Engine.Vfx
         /// </summary>
         public bool ForceEffectUpdate { get; set; }
 
-        public VfxManager(GameBase gameBase) : base(gameBase)
-        {
-
-        }
 
         #region PlayAndStop
         public async void PlayEffect(Effect effect, Actor actor)
@@ -43,7 +39,7 @@ namespace XenoKit.Engine.Vfx
                 return;
             }
 
-            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity, GameBase));
+            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity));
         }
 
         public async void PlayEffect(BAC_Type8 bacEffect, BacEntryInstance bacInstance, Actor actor)
@@ -72,7 +68,7 @@ namespace XenoKit.Engine.Vfx
                         spawnPosition = actor.GetAbsoluteBoneMatrix(actor.Skeleton.BAC_BoneIndices[(int)bacEffect.BoneLink]) * Matrix4x4.CreateTranslation(new SimdVector3(bacEffect.PositionX, bacEffect.PositionY, bacEffect.PositionZ));
                     }
 
-                    await Task.Run(() => AddEffect(bacInstance.User, eepkEffect, spawnPosition, GameBase));
+                    await Task.Run(() => AddEffect(bacInstance.User, eepkEffect, spawnPosition));
                 }
                 else
                 {
@@ -106,7 +102,7 @@ namespace XenoKit.Engine.Vfx
 
                 if (eepkEffect != null)
                 {
-                    await Task.Run(() => AddEffect(bdmInstance.Victim, eepkEffect, bdmInstance.HitPosition, GameBase));
+                    await Task.Run(() => AddEffect(bdmInstance.Victim, eepkEffect, bdmInstance.HitPosition));
                 }
                 else
                 {
@@ -115,9 +111,9 @@ namespace XenoKit.Engine.Vfx
             }
         }
 
-        private void AddEffect(Actor actor, Effect effect, Matrix4x4 world, GameBase gameBase)
+        private void AddEffect(Actor actor, Effect effect, Matrix4x4 world)
         {
-            VfxEffect vfxEffect = new VfxEffect(actor, effect, world, GameBase);
+            VfxEffect vfxEffect = new VfxEffect(actor, effect, world);
 
             lock (Effects)
             {
@@ -255,9 +251,9 @@ namespace XenoKit.Engine.Vfx
         /// </summary>
         public VfxColorFadeEntry GetActiveColorFade(string materialName, Actor actor)
         {
-            if(SceneManager.IsOnEffectTab && GameBase.IsMainInstance)
+            if(SceneManager.IsOnEffectTab)
             {
-                return SceneManager.MainGameInstance.VfxPreview.GetActiveColorFade(materialName, actor);
+                return Viewport.Instance.VfxPreview.GetActiveColorFade(materialName, actor);
             }
 
             foreach(VfxEffect effect in Effects.Where(x => x.Actor == actor))
@@ -279,9 +275,9 @@ namespace XenoKit.Engine.Vfx
 
         public VfxLight GetActiveLight(Matrix world)
         {
-            if (SceneManager.IsOnEffectTab && GameBase.IsMainInstance)
+            if (SceneManager.IsOnEffectTab)
             {
-                return SceneManager.MainGameInstance.VfxPreview.GetActiveLight();
+                return Viewport.Instance.VfxPreview.GetActiveLight();
             }
 
             foreach (VfxEffect effect in Effects)

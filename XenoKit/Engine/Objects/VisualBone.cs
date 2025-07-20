@@ -4,7 +4,7 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Objects
 {
-    public class VisualBone : Entity
+    public class VisualBone : EngineObject
     {
         private Sphere sphere;
         private BoundingSphere boundingSphere;
@@ -17,9 +17,9 @@ namespace XenoKit.Engine.Objects
         private Color SelectedColor = Color.Red;
         private const float MeshSize = 0.01f;
 
-        public VisualBone(GameBase gameBase) : base(gameBase)
+        public VisualBone()
         {
-            sphere = new Sphere(gameBase, MeshSize, true);
+            sphere = new Sphere(MeshSize, true);
         }
 
         public void Draw(Matrix4x4 world, bool isSelected)
@@ -27,7 +27,7 @@ namespace XenoKit.Engine.Objects
             if (IsVisible)
             {
                 this.world = world;
-                sphere.Draw(world, CameraBase.ViewMatrix, CameraBase.ProjectionMatrix, (isSelected) ? SelectedColor : DefaultColor);
+                sphere.Draw(world, Camera.ViewMatrix, Camera.ProjectionMatrix, (isSelected) ? SelectedColor : DefaultColor);
             }
         }
 
@@ -36,7 +36,7 @@ namespace XenoKit.Engine.Objects
             boundingSphere = new BoundingSphere(Vector3.Zero, MeshSize);
             boundingSphere = boundingSphere.Transform(world);
 
-            float? value = EngineUtils.IntersectDistance(boundingSphere, Input.MousePosition, GameBase);
+            float? value = EngineUtils.IntersectDistance(boundingSphere, Input.MousePosition);
 
             return (value != null && !float.IsNaN(value.Value));
         }

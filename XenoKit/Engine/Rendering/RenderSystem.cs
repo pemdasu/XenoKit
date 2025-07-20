@@ -13,23 +13,24 @@ using Xv2CoreLib.Resource.App;
 
 namespace XenoKit.Engine.Rendering
 {
-    public class RenderSystem : Entity
+    public class RenderSystem : RenderObject
     {
         public readonly PostFilter PostFilter;
         public readonly YBSPostProcess YBS;
         public readonly ParticleBatcher ParticleBatcher;
+        private readonly SpriteBatch SpriteBatch;
 
-        private readonly List<Entity> Reflections = new List<Entity>();
-        private readonly List<Entity> Characters = new List<Entity>();
-        private readonly List<Entity> Stages = new List<Entity>();
-        private readonly List<Entity> Effects = new List<Entity>(); //PBIND, TBIND, EMO
+        private readonly List<RenderObject> Reflections = new List<RenderObject>();
+        private readonly List<RenderObject> Characters = new List<RenderObject>();
+        private readonly List<RenderObject> Stages = new List<RenderObject>();
+        private readonly List<RenderObject> Effects = new List<RenderObject>(); //PBIND, TBIND, EMO
 
-        private readonly List<Entity> ReflectionsToRemove = new List<Entity>();
-        private readonly List<Entity> CharasToRemove = new List<Entity>();
-        private readonly List<Entity> StagesToRemove = new List<Entity>();
-        private readonly List<Entity> EffectsToRemove = new List<Entity>();
+        private readonly List<RenderObject> ReflectionsToRemove = new List<RenderObject>();
+        private readonly List<RenderObject> CharasToRemove = new List<RenderObject>();
+        private readonly List<RenderObject> StagesToRemove = new List<RenderObject>();
+        private readonly List<RenderObject> EffectsToRemove = new List<RenderObject>();
 
-        private Entity RenderScene = null;
+        private RenderObject RenderScene = null;
 
         private int _particleCount = 0;
         public int ActiveParticleCount { get; private set; }
@@ -117,13 +118,13 @@ namespace XenoKit.Engine.Rendering
         //private Texture2D TestOutlineTexture;
         //private Texture2D TestOutlineTexture2;
 
-        public RenderSystem(GameBase game, bool createInternalResources) : base(game)
+        public RenderSystem(SpriteBatch spriteBatch, bool createInternalResources)
         {
             SetRenderResolution();
             CurrentRT_Width = RenderWidth;
             CurrentRT_Height = RenderHeight;
 
-            PostFilter = new PostFilter(game, this);
+            PostFilter = new PostFilter(this);
 
             if (createInternalResources)
                 CreateInternalResources();
@@ -132,9 +133,10 @@ namespace XenoKit.Engine.Rendering
             //TestOutlineTexture2 = Textures.TextureLoader.ConvertToTexture2D(SettingsManager.Instance.GetAbsPathInAppFolder("EdgeLineTest2.dds"), GraphicsDevice);
 
             if(ShaderManager.IsExtShadersLoaded)
-                YBS = new YBSPostProcess(GameBase, this, NextColorPassRT0, ColorPassRT1);
+                YBS = new YBSPostProcess(this, NextColorPassRT0, ColorPassRT1);
 
-            ParticleBatcher = new ParticleBatcher(game);
+            ParticleBatcher = new ParticleBatcher();
+            SpriteBatch = spriteBatch;
         }
 
         private void CreateInternalResources()
@@ -145,22 +147,22 @@ namespace XenoKit.Engine.Rendering
             }
 
             //Load shaders used for the shadow and normal passes. These are used instead of the regular shaders defined in EMM during those passes.
-            ShadowModel_W = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel_W"), GameBase, ShaderType.CharaShadow);
-            ShadowModel = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel"), GameBase);
-            //GI_ShadowModel_Grass = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("GI_ShadowModel_Grass"), GameBase);
-            NORMAL_FADE_WATERDEPTH_W_M = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("NORMAL_FADE_WATERDEPTH_W_M"), GameBase, ShaderType.CharaNormals);
+            ShadowModel_W = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel_W"), ShaderType.CharaShadow);
+            ShadowModel = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel"));
+            //GI_ShadowModel_Grass = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("GI_ShadowModel_Grass"));
+            NORMAL_FADE_WATERDEPTH_W_M = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("NORMAL_FADE_WATERDEPTH_W_M"), ShaderType.CharaNormals);
 
             //Load all the shaders that are used in the rendering process
-            AGE_TEST_EDGELINE_MRT = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_TEST_EDGELINE_MRT"), GameBase);
-            BIRD_BG_EDGELINE_RGB_HF = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("BIRD_BG_EDGELINE_RGB_HF"), GameBase);
-            DepthToDepth = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DepthToDepth"), GameBase);
-            DepthToColor = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DepthToColor"), GameBase);
-            AddTex = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AddTex"), GameBase);
-            NineConeFilter = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("NineConeFilter"), GameBase);
-            AGE_MERGE_AddLowRez_AddMrt = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_MERGE_AddLowRez_AddMrt"), GameBase);
-            Sampler0 = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("Sampler0"), GameBase);
-            EDGELINE_VFX = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("EDGELINE_VFX"), GameBase);
-            AGE_TEST_DEPTH_TO_PFXD = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_TEST_DEPTH_TO_PFXD"), GameBase);
+            AGE_TEST_EDGELINE_MRT = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_TEST_EDGELINE_MRT"));
+            BIRD_BG_EDGELINE_RGB_HF = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("BIRD_BG_EDGELINE_RGB_HF"));
+            DepthToDepth = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DepthToDepth"));
+            DepthToColor = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DepthToColor"));
+            AddTex = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AddTex"));
+            NineConeFilter = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("NineConeFilter"));
+            AGE_MERGE_AddLowRez_AddMrt = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_MERGE_AddLowRez_AddMrt"));
+            Sampler0 = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("Sampler0"));
+            EDGELINE_VFX = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("EDGELINE_VFX"));
+            AGE_TEST_DEPTH_TO_PFXD = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("AGE_TEST_DEPTH_TO_PFXD"));
 
             //Create RTs
             ReflectionRT = new RenderTargetWrapper(this, 0.25f, SurfaceFormat.Color, true, "ReflectionRT");
@@ -205,7 +207,7 @@ namespace XenoKit.Engine.Rendering
 
         private void SetRenderResolution()
         {
-            if(GameBase.IsFullScreen)
+            if(ViewportInstance.IsFullScreen)
             {
                 RenderResolution[0] = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
                 RenderResolution[1] = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
@@ -233,7 +235,7 @@ namespace XenoKit.Engine.Rendering
 
             //Reflection Pass
             IsReflectionPass = true;
-            CameraBase.SetReflectionView(true);
+            Camera.SetReflectionView(true);
             GraphicsDevice.SetRenderTarget(ReflectionRT.RenderTarget);
             GraphicsDevice.Clear(ReflectionBackgroundColor);
             DrawEntity(Reflections, -1); //Ignore LowRez param, since reflections are already rendering at 1/4 screen res
@@ -241,7 +243,7 @@ namespace XenoKit.Engine.Rendering
 
             //Shadow Pass (Chara + Stage Enviroment)
             IsShadowPass = true;
-            CameraBase.SetReflectionView(false);
+            Camera.SetReflectionView(false);
             GraphicsDevice.SetRenderTarget(ShadowPassRT0.RenderTarget);
             GraphicsDevice.SetDepthBuffer(ShadowPassRT0.RenderTarget);
             GraphicsDevice.Clear(Color.Red);
@@ -277,7 +279,7 @@ namespace XenoKit.Engine.Rendering
             if (SceneManager.UseRenderScene)
                 DrawRenderScene();
 
-            if (!GameBase.IsBlackVoid)
+            if (!ViewportInstance.IsBlackVoid)
                 DrawEntity(Stages, LOW_REZ_NONE);
 
             //Black Chara Outline Shader
@@ -453,7 +455,7 @@ namespace XenoKit.Engine.Rendering
                     ProcessScreenshot(renderTarget, path, Color.Transparent);
                     break;
                 case ScreenshotType.CustomBackgroundColor:
-                    ProcessScreenshot(renderTarget, path, SceneManager.ScreenshotBackgroundColor);
+                    ProcessScreenshot(renderTarget, path, Viewport.ScreenshotBackgroundColor);
                     break;
             }
 
@@ -491,19 +493,19 @@ namespace XenoKit.Engine.Rendering
 
         #region Update
 
-        private void DrawSimpleEntity(List<Entity> entities, bool normalPass)
+        private void DrawSimpleEntity(List<RenderObject> entities, bool normalPass)
         {
-            foreach (Entity entity in entities)
+            foreach (RenderObject entity in entities)
             {
                 if (entity.DrawThisFrame)
                 {
-                    if (entity.EntityType != EntityType.Actor && normalPass) continue; //skip if stage and its a normal pass (stages only have a shadow pass here)
+                    if (entity.EngineObjectType != EngineObjectTypeEnum.Actor && normalPass) continue; //skip if stage and its a normal pass (stages only have a shadow pass here)
                     entity.DrawPass(normalPass);
                 }
             }
         }
 
-        private void DrawEntity(List<Entity> entities, int lowRezMode)
+        private void DrawEntity(List<RenderObject> entities, int lowRezMode)
         {
             if (SceneManager.UseRenderScene) return;
 
@@ -512,7 +514,7 @@ namespace XenoKit.Engine.Rendering
             //OPAQUE PASS
             CurrentDrawPass = Rendering.DrawPass.Opaque;
 
-            foreach (Entity entity in entities)
+            foreach (RenderObject entity in entities)
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 
@@ -520,7 +522,7 @@ namespace XenoKit.Engine.Rendering
                 {
                     entity.Draw();
 
-                    if (entity.EntityType == EntityType.VFX)
+                    if (entity.EngineObjectType == EngineObjectTypeEnum.VFX)
                         particleCount++;
                 }
             }
@@ -529,7 +531,7 @@ namespace XenoKit.Engine.Rendering
             CurrentDrawPass = Rendering.DrawPass.AlphaBlend;
 
             //foreach (Entity entity in entities.OrderByDescending(x => System.Numerics.Vector3.Distance(CameraBase.CameraState.Position, x.AbsoluteTransform.Translation)))
-            foreach (Entity entity in entities)
+            foreach (RenderObject entity in entities)
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 
@@ -542,7 +544,7 @@ namespace XenoKit.Engine.Rendering
             //ADDITIVE PASS
             CurrentDrawPass = Rendering.DrawPass.Additive;
 
-            foreach (Entity entity in entities)
+            foreach (RenderObject entity in entities)
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 
@@ -555,7 +557,7 @@ namespace XenoKit.Engine.Rendering
             //SUBTRACTIVE PASS
             CurrentDrawPass = Rendering.DrawPass.Subtractive;
 
-            foreach (Entity entity in entities)
+            foreach (RenderObject entity in entities)
             {
                 if (entity.LowRezMode != lowRezMode && lowRezMode != -1) continue;
 
@@ -644,7 +646,7 @@ namespace XenoKit.Engine.Rendering
             //Update RTs if the ViewPort size has changed.
             foreach (RenderTargetWrapper rt in registeredRenderTargets)
             {
-                if (rt.ShouldUpdate() && GameIsFocused)
+                if (rt.ShouldUpdate() && ViewportIsFocused)
                 {
                     resolutionChanged = true;
                     
@@ -657,17 +659,22 @@ namespace XenoKit.Engine.Rendering
 
             if (resolutionChanged)
             {
-                SuperSampleFactor = GameBase.IsFullScreen ? 1f : SettingsManager.settings.XenoKit_SuperSamplingFactor;
+                SuperSampleFactor = ViewportInstance.IsFullScreen ? 1f : SettingsManager.settings.XenoKit_SuperSamplingFactor;
             }
 
             DrawThisFrame = true;
         }
 
-        private void EntityListUpdate(List<Entity> entities, List<Entity> entitiesToRemove)
+        public void SlowUpdate()
+        {
+            ParticleBatcher.SlowUpdate();
+        }
+
+        private void EntityListUpdate(List<RenderObject> entities, List<RenderObject> entitiesToRemove)
         {
             if (entitiesToRemove.Count > 0)
             {
-                foreach (Entity entity in entitiesToRemove)
+                foreach (RenderObject entity in entitiesToRemove)
                 {
                     entities.Remove(entity);
                 }
@@ -698,9 +705,9 @@ namespace XenoKit.Engine.Rendering
         {
             Rectangle destination = scaleToViewport ? new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height) : new Rectangle(0, 0, (int)(renderTarget.Width * scale), (int)(renderTarget.Height * scale));
 
-            GameBase.spriteBatch.Begin(depthStencilState: DepthStencilState.DepthRead, blendState: BlendState.AlphaBlend);
-            GameBase.spriteBatch.Draw(renderTarget, destination, Color.White);
-            GameBase.spriteBatch.End();
+            SpriteBatch.Begin(depthStencilState: DepthStencilState.DepthRead, blendState: BlendState.AlphaBlend);
+            SpriteBatch.Draw(renderTarget, destination, Color.White);
+            SpriteBatch.End();
         }
 
         private void DumpRenderTargets()
@@ -747,11 +754,11 @@ namespace XenoKit.Engine.Rendering
 
         #region AddRemoveEntity
 
-        public void AddReflectionRenderEntity(Entity entity)
+        public void AddReflectionRenderEntity(RenderObject entity)
         {
             if (entity == null) return;
 
-            if(entity.EntityType == EntityType.Stage)
+            if(entity.EngineObjectType == EngineObjectTypeEnum.Stage)
             {
                 if (!Reflections.Contains(entity))
                 {
@@ -769,11 +776,11 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        public void RemoveReflectionRenderEntity(Entity entity)
+        public void RemoveReflectionRenderEntity(RenderObject entity)
         {
             if (entity == null) return;
 
-            if (entity.EntityType == EntityType.Stage)
+            if (entity.EngineObjectType == EngineObjectTypeEnum.Stage)
             {
                 if (Reflections.Contains(entity))
                 {
@@ -792,52 +799,52 @@ namespace XenoKit.Engine.Rendering
             ReflectionsToRemove.AddRange(Reflections);
         }
 
-        public void AddRenderEntity(Entity entity)
+        public void AddRenderEntity(RenderObject entity)
         {
             if (entity == null) return;
 
-            switch (entity.EntityType)
+            switch (entity.EngineObjectType)
             {
-                case EntityType.Actor:
+                case EngineObjectTypeEnum.Actor:
                     if(!Characters.Contains(entity))
                         Characters.Add(entity);
                     break;
-                case EntityType.Stage:
+                case EngineObjectTypeEnum.Stage:
                     if (!Stages.Contains(entity))
                         Stages.Add(entity);
                     break;
-                case EntityType.VFX:
-                case EntityType.Model: //Currently Xv2Submesh is only used in this case for an EMO. If that ever changes, this will also need to be changed
+                case EngineObjectTypeEnum.VFX:
+                case EngineObjectTypeEnum.Model: //Currently Xv2Submesh is only used in this case for an EMO. If that ever changes, this will also need to be changed
                     if (!Effects.Contains(entity))
                         Effects.Add(entity);
                     break;
                 default:
-                    Log.Add($"RenderSystem: Cannot add EntityType {entity.EntityType}!", LogType.Debug);
+                    Log.Add($"RenderSystem: Cannot add EntityType {entity.EngineObjectType}!", LogType.Debug);
                     break;
             }
         }
 
-        public void RemoveRenderEntity(Entity entity)
+        public void RemoveRenderEntity(RenderObject entity)
         {
-            switch (entity.EntityType)
+            switch (entity.EngineObjectType)
             {
-                case EntityType.Actor:
+                case EngineObjectTypeEnum.Actor:
                     CharasToRemove.Add(entity);
                     break;
-                case EntityType.Stage:
+                case EngineObjectTypeEnum.Stage:
                     StagesToRemove.Add(entity);
                     break;
-                case EntityType.VFX:
-                case EntityType.Model: //Currently Xv2Submesh is only used in this case for an EMO. If that ever changes, this will also need to be changed
+                case EngineObjectTypeEnum.VFX:
+                case EngineObjectTypeEnum.Model: //Currently Xv2Submesh is only used in this case for an EMO. If that ever changes, this will also need to be changed
                     EffectsToRemove.Add(entity);
                     break;
                 default:
-                    Log.Add($"RenderSystem: Cannot remove EntityType {entity.EntityType}!", LogType.Debug);
+                    Log.Add($"RenderSystem: Cannot remove EntityType {entity.EngineObjectType}!", LogType.Debug);
                     break;
             }
         }
 
-        public void AddRenderEntity<T>(IEnumerable<T> entities) where T : Entity
+        public void AddRenderEntity<T>(IEnumerable<T> entities) where T : RenderObject
         {
             foreach (T entity in entities)
             {
@@ -845,7 +852,7 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        public void RemoveRenderEntity<T>(IEnumerable<T> entities) where T : Entity
+        public void RemoveRenderEntity<T>(IEnumerable<T> entities) where T : RenderObject
         {
             foreach(T entity in entities)
             {
@@ -853,7 +860,7 @@ namespace XenoKit.Engine.Rendering
             }
         }
         
-        public void MoveRenderEntityToFront(Entity entity)
+        public void MoveRenderEntityToFront(RenderObject entity)
         {
             if (Characters.Contains(entity))
             {
@@ -872,7 +879,7 @@ namespace XenoKit.Engine.Rendering
             }
         }
         
-        public void SetRenderScene(Entity scene)
+        public void SetRenderScene(RenderObject scene)
         {
             RenderScene = scene;
         }

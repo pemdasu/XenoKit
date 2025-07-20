@@ -19,12 +19,10 @@ using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
 using Xv2CoreLib.Resource.UndoRedo;
 using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector3 = System.Numerics.Vector3;
-using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Model
 {
-    public class ModelScene : Entity, IDynamicTabObject
+    public class ModelScene : RenderObject, IDynamicTabObject
     {
         private bool PathsRelativeToGame = false;
         public string EmdPath { get; private set; }
@@ -59,18 +57,18 @@ namespace XenoKit.Engine.Model
         public ObservableCollection<object> SelectedItems { get; private set; } = new ObservableCollection<object>();
         private readonly List<Xv2Submesh> _selectedSubmeshes = new List<Xv2Submesh>();
 
-        public ModelScene(GameBase game, Xv2ModelFile model) : base(game)
+        public ModelScene(Xv2ModelFile model)
         {
             Model = model;
             Model.MaterialsChanged += Model_MaterialsChanged;
 
             if(Model.Type == ModelType.Nsk)
             {
-                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceNskFile.EskFile, GameBase);
+                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceNskFile.EskFile);
             }
             else if(Model.Type == ModelType.Emo)
             {
-                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceEmoFile.Skeleton, GameBase);
+                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceEmoFile.Skeleton);
             }
 
             DytSampler = new SamplerInfo()
@@ -93,7 +91,7 @@ namespace XenoKit.Engine.Model
                 }
             };
 
-            DrawableAABB = new DrawableBoundingBox(game);
+            DrawableAABB = new DrawableBoundingBox();
             SelectedItems.CollectionChanged += SelectedItems_CollectionChanged;
         }
 
@@ -197,7 +195,7 @@ namespace XenoKit.Engine.Model
         {
             if (DytFile != null)
             {
-                DytTexture = Xv2Texture.LoadTextureArray(DytFile, GameBase);
+                DytTexture = Xv2Texture.LoadTextureArray(DytFile);
             }
             else
             {
@@ -209,7 +207,7 @@ namespace XenoKit.Engine.Model
         {
             if (EmbFile != null)
             {
-                Textures = Xv2Texture.LoadTextureArray(EmbFile, GameBase);
+                Textures = Xv2Texture.LoadTextureArray(EmbFile);
             }
             else
             {
@@ -222,7 +220,7 @@ namespace XenoKit.Engine.Model
         private void InitMaterials()
         {
 
-            Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType, GameBase);
+            Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType);
             Model.InitMaterialIndex(Materials);
             IsMaterialsDirty = false;
         }
@@ -251,7 +249,7 @@ namespace XenoKit.Engine.Model
 
             if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && IsAnyModelObjectSelected())
             {
-                SceneManager.MainGameInstance.camera.LookAt(BoundingBox);
+                Viewport.Instance.Camera.LookAt(BoundingBox);
                 Log.Add("LookAt from Update");
             }
         }

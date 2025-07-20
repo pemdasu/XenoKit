@@ -400,7 +400,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Position))
                     return AccentBrush;
@@ -413,7 +413,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Rotation))
                     return AccentBrush;
@@ -426,7 +426,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Scale))
                     return AccentBrush;
@@ -487,7 +487,7 @@ namespace XenoKit.Controls
             //AnimFile = new AnimationFile((EAN_File)FileManager.Instance.GetParsedFileFromGame("chara/GOK/GOK.ean"));
             InitializeComponent();
             DataContext = this;
-            Game.GameUpdate += SceneManager_UpdateEvent;
+            Viewport.UpdateEvent += SceneManager_UpdateEvent;
             VisualSkeleton.SelectedBoneChanged += VisualSkeleton_SelectedBoneChanged;
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
             SceneManager.AnimationDataChanged += SceneManager_AnimationDataChanged;
@@ -709,7 +709,7 @@ namespace XenoKit.Controls
                             SkinnedEntity?.AnimationPlayer?.PlayPrimaryAnimation(SelectedEanFile, SelectedAnimation.ID_UShort, 0, ushort.MaxValue, 1, 0, 0, false, 1f, true);
 
                             if (SceneManager.AutoPlay)
-                                SceneManager.MainGameBase.IsPlaying = true;
+                                Viewport.Instance.IsPlaying = true;
                         }
                         break;
                     default:
@@ -1382,11 +1382,11 @@ namespace XenoKit.Controls
             //Update AnimatorGizmo
             if (SelectedEanFile?.Skeleton?.Exists(boneName) == true && SelectedAnimation != null)
             {
-                SceneManager.AnimatorGizmo.SetContext(SkinnedEntity, boneName);
+                Viewport.Instance.GetAnimatorGizmo().SetContext(SkinnedEntity, boneName);
             }
             else
             {
-                SceneManager.AnimatorGizmo.RemoveContext();
+                Viewport.Instance.GetAnimatorGizmo().RemoveContext();
             }
 
             UpdateKeyframeValues();

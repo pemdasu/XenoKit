@@ -60,11 +60,6 @@ namespace XenoKit.Engine.Gizmo
         protected override bool AllowRotation => RotationEnabled;
         protected override bool AllowTranslate => PositionEnabled;
 
-        public BacMatrixGizmo(GameBase gameBase) : base(gameBase)
-        {
-
-        }
-
         public void SetContext(IBacTypeMatrix matrix, bool pos, bool rot, bool scale, string boneName, bool ignoreRotationOnBase, EditorTabs contextTab)
         {
             this.matrix = matrix;
@@ -87,7 +82,7 @@ namespace XenoKit.Engine.Gizmo
 
         public override bool IsContextValid()
         {
-            return matrix != null && SceneManager.IsOnTab(contextTab) && !GameBase.IsPlaying;
+            return matrix != null && SceneManager.IsOnTab(contextTab) && !ViewportInstance.IsPlaying;
         }
 
         protected override void StartTransformOperation()

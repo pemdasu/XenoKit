@@ -19,7 +19,7 @@ using Xv2CoreLib.ESK;
 
 namespace XenoKit.Engine
 {
-    public class CharaPartSet : Entity
+    public class CharaPartSet : EngineObject
     {
         //PartSet (base)
         public int ID;
@@ -43,9 +43,8 @@ namespace XenoKit.Engine
         //Custom Colors
         public List<CustomColorGroup> BcsColors = new List<CustomColorGroup>();
 
-        public CharaPartSet(GameBase gameBase, Actor chara, int partSetId) : base(gameBase)
+        public CharaPartSet(Actor chara, int partSetId)
         {
-            GameBase = gameBase;
             ID = partSetId;
             this.chara = chara;
             LoadPartSet();
@@ -111,7 +110,7 @@ namespace XenoKit.Engine
                 return;
             }
 
-            Parts[index] = new CharaPart(GameBase, chara, part, (PartType)index);
+            Parts[index] = new CharaPart(chara, part, (PartType)index);
 
             if (loadFlags)
             {
@@ -296,12 +295,12 @@ namespace XenoKit.Engine
 
                 if (permanent)
                 {
-                    Parts[index] = new CharaPart(GameBase, chara, part, (PartType)index);
+                    Parts[index] = new CharaPart(chara, part, (PartType)index);
                     TransformedParts[index] = null;
                 }
                 else
                 {
-                    TransformedParts[index] = new CharaPart(GameBase, chara, part, (PartType)index);
+                    TransformedParts[index] = new CharaPart(chara, part, (PartType)index);
                 }
             }
         }
@@ -348,7 +347,7 @@ namespace XenoKit.Engine
 
             if (part != null)
             {
-                BacTransformedParts[index] = new CharaPart(GameBase, chara, part, (PartType)index);
+                BacTransformedParts[index] = new CharaPart(chara, part, (PartType)index);
                 BacPermanentParts[index] = permanent;
             }
         }
@@ -565,7 +564,7 @@ namespace XenoKit.Engine
         }
     }
 
-    public class CharaPart : Entity
+    public class CharaPart : EngineObject
     {
         private Actor chara;
         private PartSet parentPartSet;
@@ -608,9 +607,8 @@ namespace XenoKit.Engine
         private bool IsTexturesDirty = false;
         private bool IsDytDirty = false;
 
-        public CharaPart(GameBase gameBase, Actor chara, Part part, PartType type) : base(gameBase)
+        public CharaPart(Actor chara, Part part, PartType type)
         {
-            GameBase = gameBase;
             this.chara = chara;
             this.part = part;
             partType = type;
@@ -641,9 +639,8 @@ namespace XenoKit.Engine
             LoadChildPhysicsParts();
         }
 
-        public CharaPart(GameBase gameBase, Actor chara, PhysicsPart part, Part parentPart, CharaPart parent, PartType type) : base(gameBase)
+        public CharaPart(Actor chara, PhysicsPart part, Part parentPart, CharaPart parent, PartType type)
         {
-            GameBase = gameBase;
             this.chara = chara;
             this.part = parentPart;
             parentPartSet = chara.CharacterData.BcsFile.File.GetParentPartSet(part);
@@ -707,7 +704,7 @@ namespace XenoKit.Engine
             if (Model != null)
                 Model.MaterialsChanged -= RefreshMaterialsOnEdit;
 
-            Model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(EmdFile, GameBase);
+            Model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(EmdFile);
 
             if (reloadMaterials)
                 LoadMaterials();
@@ -729,7 +726,7 @@ namespace XenoKit.Engine
 
             if (Model != null)
             {
-                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Chara, GameBase);
+                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Chara);
                 Model.InitMaterialIndex(Materials);
                 //Materials = Model.InitializeMaterials(ShaderType.Chara, EmmFile);
 
@@ -764,7 +761,7 @@ namespace XenoKit.Engine
                 return;
             }
 
-            Textures = Xv2Texture.LoadTextureArray(EmbFile, GameBase);
+            Textures = Xv2Texture.LoadTextureArray(EmbFile);
         }
 
         public void LoadDyts()
@@ -775,7 +772,7 @@ namespace XenoKit.Engine
                 return;
             }
 
-            Dyts = Xv2Texture.LoadTextureArray(DytFile, GameBase);
+            Dyts = Xv2Texture.LoadTextureArray(DytFile);
         }
 
         public void LoadSkeleton()
@@ -786,7 +783,7 @@ namespace XenoKit.Engine
                 return;
             }
 
-            Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(EskFile, GameBase);
+            Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(EskFile);
 
             if(Skeleton != null)
             {
@@ -878,7 +875,7 @@ namespace XenoKit.Engine
 
             for (int i = 0; i < physicsPartCount; i++)
             {
-                PhysicsParts[i] = new CharaPart(GameBase, chara, part.PhysicsParts[i], part, this, partType);
+                PhysicsParts[i] = new CharaPart(chara, part.PhysicsParts[i], part, this, partType);
             }
         }
 

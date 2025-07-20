@@ -39,7 +39,7 @@ namespace XenoKit.Engine.Animation
         }
         private bool ExternalControl = false;
 
-        public EmaAnimationPlayer(Xv2Skeleton skeleton, GameBase game) : base(game)
+        public EmaAnimationPlayer(Xv2Skeleton skeleton)
         {
             Skeleton = skeleton;
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
@@ -126,7 +126,7 @@ namespace XenoKit.Engine.Animation
             HandleFinishedAnimations();
 
             //Advance frame
-            if (GameBase.IsPlaying && IsUsingAnimation && !ExternalControl)
+            if (ViewportInstance.IsPlaying && IsUsingAnimation && !ExternalControl)
             {
                 AdvanceFrame();
             }

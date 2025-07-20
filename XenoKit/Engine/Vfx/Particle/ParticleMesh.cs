@@ -22,14 +22,14 @@ namespace XenoKit.Engine.Vfx.Particle
         public override void SetValues()
         {
             base.SetValues();
-            EmgSubmesh = CompiledObjectManager.GetCompiledObject<Xv2Submesh>(Node.EmissionNode.Mesh.EmgFile, GameBase);
+            EmgSubmesh = CompiledObjectManager.GetCompiledObject<Xv2Submesh>(Node.EmissionNode.Mesh.EmgFile);
 
         }
 
         public override void Release()
         {
             ObjectPoolManager.ParticleMeshPool.ReleaseObject(this);
-            GameBase.RenderSystem.RemoveRenderEntity(this);
+            ViewportInstance.RenderSystem.RemoveRenderEntity(this);
         }
 
         public void UpdateVertices()
@@ -70,7 +70,7 @@ namespace XenoKit.Engine.Vfx.Particle
                 UpdateVertices();
 
                 AbsoluteTransform = GetRotationAxisWorld(true);
-                AbsoluteTransform *= Matrix4x4.CreateTranslation(CameraBase.TransformRelativeToCamera(AbsoluteTransform.Translation, Node.EmissionNode.Texture.RenderDepth));
+                AbsoluteTransform *= Matrix4x4.CreateTranslation(Camera.TransformRelativeToCamera(AbsoluteTransform.Translation, Node.EmissionNode.Texture.RenderDepth));
             }
 
             UpdateChildrenNodes();

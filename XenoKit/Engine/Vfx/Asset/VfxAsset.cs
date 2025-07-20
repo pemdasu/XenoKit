@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.Resource;
@@ -8,7 +9,7 @@ using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Vfx.Asset
 {
-    public abstract class VfxAsset : Entity
+    public abstract class VfxAsset : RenderObject, IDisposable
     {
         public float CurrentFrame { get; protected set; }
         public bool HasStarted { get; protected set; }
@@ -29,7 +30,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private AssetType AssetType;
         public bool AssetTypeChanged { get; private set; }
 
-        public VfxAsset(Matrix4x4 startWorld, EffectPart effectPart, Actor actor, GameBase gameBase) : base(gameBase)
+        public VfxAsset(Matrix4x4 startWorld, EffectPart effectPart, Actor actor)
         {
             EffectPart = effectPart;
             Actor = actor;
@@ -78,9 +79,9 @@ namespace XenoKit.Engine.Vfx.Asset
             //Apply CurrentRotation, if enabled
             if (EffectPart.EnableRotationValues)
             {
-                float rotX = MathHelper.ToRadians(Random.Range(EffectPart.RotationX_Min, EffectPart.RotationX_Max));
-                float rotY = MathHelper.ToRadians(Random.Range(EffectPart.RotationY_Min, EffectPart.RotationY_Max));
-                float rotZ = MathHelper.ToRadians(Random.Range(EffectPart.RotationZ_Min, EffectPart.RotationZ_Max));
+                float rotX = MathHelper.ToRadians(Xv2CoreLib.Random.Range(EffectPart.RotationX_Min, EffectPart.RotationX_Max));
+                float rotY = MathHelper.ToRadians(Xv2CoreLib.Random.Range(EffectPart.RotationY_Min, EffectPart.RotationY_Max));
+                float rotZ = MathHelper.ToRadians(Xv2CoreLib.Random.Range(EffectPart.RotationZ_Min, EffectPart.RotationZ_Max));
 
                 CurrentRotation = Matrix4x4.CreateFromYawPitchRoll(rotX, rotY, rotZ);
             }
@@ -89,7 +90,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 CurrentRotation = Matrix4x4.Identity;
             }
 
-            Scale = Random.Range(EffectPart.ScaleMin, EffectPart.ScaleMax);
+            Scale = Xv2CoreLib.Random.Range(EffectPart.ScaleMin, EffectPart.ScaleMax);
 
             //Reset start state
             CurrentFrame = 0f;
@@ -111,7 +112,7 @@ namespace XenoKit.Engine.Vfx.Asset
             }
         }
 
-        public override void Dispose()
+        public virtual void Dispose()
         {
             EffectPart.PropertyChanged -= EffectPart_PropertyChanged;
         }
@@ -169,7 +170,7 @@ namespace XenoKit.Engine.Vfx.Asset
             }
             else
             {
-                float distanceToCamera = System.Math.Abs(Vector3.Distance(GameBase.ActiveCameraBase.CameraState.Position, Transform.Translation));
+                float distanceToCamera = System.Math.Abs(Vector3.Distance(ViewportInstance.Camera.CameraState.Position, Transform.Translation));
                 DrawThisFrame = distanceToCamera >= EffectPart.NearFadeDistance && distanceToCamera < EffectPart.FarFadeDistance;
             }
 
@@ -201,9 +202,9 @@ namespace XenoKit.Engine.Vfx.Asset
             if (EffectPart.AttachementType == EffectPart.Attachment.Camera)
             {
                 //Place transform directly in front of the camera
-                SimdVector3 direction = GameBase.ActiveCameraBase.CameraState.TargetPosition - GameBase.ActiveCameraBase.CameraState.Position;
+                SimdVector3 direction = ViewportInstance.Camera.CameraState.TargetPosition - ViewportInstance.Camera.CameraState.Position;
                 SimdVector3 cameraForward = SimdVector3.Normalize(direction);
-                SimdVector3 positionInFrontOfCamera = GameBase.ActiveCameraBase.CameraState.Position + (cameraForward * 1f);
+                SimdVector3 positionInFrontOfCamera = ViewportInstance.Camera.CameraState.Position + (cameraForward * 1f);
 
                 transform.Translation = positionInFrontOfCamera;
             }
@@ -230,7 +231,7 @@ namespace XenoKit.Engine.Vfx.Asset
                     break;
                 case EffectPart.OrientationType.Camera:
                     //Effect Position + rotate to face camera.
-                    transform = CurrentRotation * Matrix4x4.CreateBillboard(transform.Translation, SceneManager.MainCamera.CameraBase.CameraState.Position, MathHelpers.Up, MathHelpers.Forward);
+                    transform = CurrentRotation * Matrix4x4.CreateBillboard(transform.Translation, Viewport.Instance.Camera.CameraState.Position, MathHelpers.Up, MathHelpers.Forward);
                     break;
                 case EffectPart.OrientationType.RotateMovement:
                     //This rotates the effect by 45 degrees if there is active movement going on.

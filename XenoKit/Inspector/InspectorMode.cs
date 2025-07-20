@@ -302,7 +302,7 @@ namespace XenoKit.Inspector
         {
             if (file is MeshInspectorEntity)
             {
-                SceneManager.MainGameBase.RenderSystem.AddRenderEntity(file);
+                Viewport.Instance.RenderSystem.AddRenderEntity(file);
             }
             else if (file is SkinnedInspectorEntity skinned)
             {
@@ -349,7 +349,7 @@ namespace XenoKit.Inspector
             //Before the entity can be removed, any meshes attached to it need to be removed from the renderer, and if it is a Texture/Material then it needs to be removed from its parent mesh
             if (file is MeshInspectorEntity)
             {
-                SceneManager.MainGameBase.RenderSystem.RemoveRenderEntity(file);
+                Viewport.Instance.RenderSystem.RemoveRenderEntity(file);
             }
             else if (file is SkinnedInspectorEntity skinned)
             {
@@ -514,7 +514,7 @@ namespace XenoKit.Inspector
 
                 if (item is MeshInspectorEntity)
                 {
-                    SceneManager.MainGameBase.RenderSystem.RemoveRenderEntity(item);
+                    Viewport.Instance.RenderSystem.RemoveRenderEntity(item);
                 }
 
                 if (item.ChildEntities != null)
@@ -528,7 +528,7 @@ namespace XenoKit.Inspector
             {
                 if (item is MeshInspectorEntity)
                 {
-                    SceneManager.MainGameBase.RenderSystem.AddRenderEntity(item);
+                    Viewport.Instance.RenderSystem.AddRenderEntity(item);
                 }
 
                 if (item.ChildEntities != null)

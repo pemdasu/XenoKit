@@ -13,6 +13,8 @@ namespace XenoKit.Engine.Vfx.Particle
     /// </summary>
     public abstract class ParticleEmissionBase : ParticleNodeBase
     {
+        public virtual System.Numerics.Matrix4x4 AbsoluteTransform { get; protected set; }
+
         protected ParticleEmissionData EmissionData;
         protected ParticleUV ParticleUV = new ParticleUV();
 
@@ -35,15 +37,6 @@ namespace XenoKit.Engine.Vfx.Particle
         protected float[] PrimaryColor = new float[4];
         protected float[] SecondaryColor = new float[4];
 
-        public override int AlphaBlendType
-        {
-            get
-            {
-                if (EmissionData?.Material == null) return -1;
-                if (EmissionData.Material.MatParam.AlphaBlend == 0 || EmissionData.Material.MatParam.AlphaBlendType == 3) return -1;
-                return EmissionData.Material.MatParam.AlphaBlendType;
-            }
-        }
         public override int LowRezMode
         {
             get
@@ -58,7 +51,7 @@ namespace XenoKit.Engine.Vfx.Particle
         public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
-            EmissionData = CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(node, GameBase);
+            EmissionData = CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(node);
             EmissionData.EmpFile = system.EmpFile;
             SetValues();
         }
@@ -181,9 +174,9 @@ namespace XenoKit.Engine.Vfx.Particle
 #if DEBUG
             if (!SceneManager.FrustumCullEnabled) return true;
 #endif
-            if (SimdVector3.Distance(world.Translation, GameBase.ActiveCameraBase.CameraState.Position) < 3f) return true;
+            if (SimdVector3.Distance(world.Translation, ViewportInstance.Camera.CameraState.Position) < 3f) return true;
 
-            return GameBase.ActiveCameraBase.Frustum.Intersects(boundingBox.Transform(world));
+            return ViewportInstance.Camera.Frustum.Intersects(boundingBox.Transform(world));
         }
     }
 }

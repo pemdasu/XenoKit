@@ -16,8 +16,8 @@ namespace XenoKit.Inspector.InspectorEntities
     public class MeshInspectorEntity : InspectorEntity
     {
         public override string FileType => "Model";
-        private EntityType _entityType;
-        public override EntityType EntityType => _entityType;
+        private EngineObjectTypeEnum _entityType;
+        public override EngineObjectTypeEnum EngineObjectType => _entityType;
         public override bool DrawThisFrame => Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.Inspector;
 
         public SkinnedInspectorEntity Parent { get; set; }
@@ -49,10 +49,10 @@ namespace XenoKit.Inspector.InspectorEntities
         public MeshInspectorEntity(SkinnedInspectorEntity parent, NSK_File nskFile, string path) : base(path)
         {
             Parent = parent;
-            _entityType = EntityType.Stage;
+            _entityType = EngineObjectTypeEnum.Stage;
             Path = path;
             NskFile = nskFile;
-            Model = Xv2ModelFile.LoadNsk(SceneManager.MainGameBase, NskFile);
+            Model = Xv2ModelFile.LoadNsk(NskFile);
             ShaderType = ShaderType.Stage;
             LoadAssets();
         }
@@ -60,11 +60,11 @@ namespace XenoKit.Inspector.InspectorEntities
         public MeshInspectorEntity(SkinnedInspectorEntity parent, EMO_File emoFile, string path) : base(path)
         {
             Parent = parent;
-            _entityType = EntityType.Model;
+            _entityType = EngineObjectTypeEnum.Model;
             ShaderType = ShaderType.Default;
             Path = path;
             EmoFile = emoFile;
-            Model = Xv2ModelFile.LoadEmo(SceneManager.MainGameBase, EmoFile);
+            Model = Xv2ModelFile.LoadEmo(EmoFile);
             LoadAssets();
         }
 
@@ -74,27 +74,27 @@ namespace XenoKit.Inspector.InspectorEntities
             {
                 case ".emd":
                     EmdFile = EMD_File.Load(Path);
-                    Model = Xv2ModelFile.LoadEmd(SceneManager.MainGameBase, EmdFile);
+                    Model = Xv2ModelFile.LoadEmd(EmdFile);
                     ShaderType = ShaderType.Chara;
-                    _entityType = EntityType.Actor;
+                    _entityType = EngineObjectTypeEnum.Actor;
                     break;
                 case ".nsk":
                     NskFile = NSK_File.Load(Path);
-                    Model = Xv2ModelFile.LoadNsk(SceneManager.MainGameBase, NskFile);
+                    Model = Xv2ModelFile.LoadNsk(NskFile);
                     ShaderType = ShaderType.Stage;
-                    _entityType = EntityType.Stage;
+                    _entityType = EngineObjectTypeEnum.Stage;
                     break;
                 case ".emo":
                     EmoFile = EMO_File.Load(Path);
-                    Model = Xv2ModelFile.LoadEmo(SceneManager.MainGameBase, EmoFile);
+                    Model = Xv2ModelFile.LoadEmo(EmoFile);
                     ShaderType = ShaderType.Default;
-                    _entityType = EntityType.Model;
+                    _entityType = EngineObjectTypeEnum.Model;
                     break;
                 case ".emg":
                     EmgFile = EMG_File.Load(Path);
-                    Model = Xv2ModelFile.LoadEmgInContainer(SceneManager.MainGameBase, EmgFile);
+                    Model = Xv2ModelFile.LoadEmgInContainer(EmgFile);
                     ShaderType = ShaderType.Default;
-                    _entityType = EntityType.Model;
+                    _entityType = EngineObjectTypeEnum.Model;
                     break;
                 default:
                     throw new ArgumentException($"Unexpected model file type: {Path}");
@@ -218,7 +218,7 @@ namespace XenoKit.Inspector.InspectorEntities
                 ChildEntities.Add(material);
 
             MaterialFile = material;
-            CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType, GameBase);
+            CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType);
             Model.InitMaterialIndex(CompiledMaterials);
         }
 
@@ -266,7 +266,7 @@ namespace XenoKit.Inspector.InspectorEntities
                 {
                     if(file is MeshInspectorEntity mesh)
                     {
-                        SceneManager.MainGameBase.RenderSystem.MoveRenderEntityToFront(mesh);
+                        Engine.Viewport.Instance.RenderSystem.MoveRenderEntityToFront(mesh);
                     }
                 }
             }
@@ -282,7 +282,7 @@ namespace XenoKit.Inspector.InspectorEntities
         {
             if (IsMaterialsDirty)
             {
-                CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType, GameBase);
+                CompiledMaterials = Xv2ShaderEffect.LoadMaterials(MaterialFile?.EmmFile, ShaderType);
                 Model.InitMaterialIndex(CompiledMaterials);
                 IsMaterialsDirty = false;
             }

@@ -12,7 +12,7 @@ using SimdVector2 = System.Numerics.Vector2;
 
 namespace XenoKit.Engine.Animation
 {
-    public class VisualSkeleton : Entity
+    public class VisualSkeleton : EngineObject
     {
         public static event EventHandler SelectedBoneChanged;
 
@@ -41,7 +41,7 @@ namespace XenoKit.Engine.Animation
         private IBacBone CurrentBacBoneEntry = null;
         private bool hideBones = SettingsManager.settings.XenoKit_HideLessImportantBones;
 
-        public VisualSkeleton(Actor chara, GameBase gameBase) : base(gameBase)
+        public VisualSkeleton(Actor chara)
         {
             character = chara;
             Input.LeftDoubleClick += Input_LeftDoubleClick;
@@ -80,7 +80,7 @@ namespace XenoKit.Engine.Animation
             if (SceneManager.ShowVisualSkeleton)
             {
                 for (int i = visualBones.Count; i < bones.Length; i++)
-                    visualBones.Add(new VisualBone(GameBase));
+                    visualBones.Add(new VisualBone());
 
                 UpdateVisibilities();
             }
@@ -93,28 +93,28 @@ namespace XenoKit.Engine.Animation
                 for (int i = 0; i < bones.Length; i++)
                 {
                     Matrix4x4 newWorld = bones[i].AbsoluteAnimationMatrix * transform;
-                    bool selected = SceneManager.MainGameInstance.CurrentGizmo.IsEnabledOnBone(i);
+                    bool selected = Viewport.Instance.CurrentGizmo.IsEnabledOnBone(i);
 
                     visualBones[i].Draw(newWorld, selected);
 
                     //Render Bone names
                     if (SettingsManager.Instance.Settings.XenoKit_RenderBoneNames && visualBones[i].IsVisible)
                     {
-                        float distance = GameBase.ActiveCameraBase.DistanceFromCamera(newWorld.Translation);
+                        float distance = ViewportInstance.Camera.DistanceFromCamera(newWorld.Translation);
 
                         if (distance < NameRenderDistance && ((SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly && visualBones[i].IsMouseOver()) || selected || !SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly))
                         {
-                            SimdVector2 screenSpace = GameBase.ActiveCameraBase.ProjectToScreenPosition(newWorld.Translation);
+                            SimdVector2 screenSpace = ViewportInstance.Camera.ProjectToScreenPosition(newWorld.Translation);
                             screenSpace = new SimdVector2(screenSpace.X, screenSpace.Y + 5); //Text must go below the bone, not over
 
                             if (selected || distance < FullAlphaDistance)
                             {
-                                TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor);
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor);
                             }
                             else
                             {
                                 //Text gradually fades with camera distance
-                                TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))));
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))));
                             }
                         }
                     }

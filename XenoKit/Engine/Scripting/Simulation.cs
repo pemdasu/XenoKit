@@ -3,18 +3,14 @@ using XenoKit.Engine.Collision;
 
 namespace XenoKit.Engine.Scripting
 {
-    public class Simulation : Entity
+    public class Simulation : EngineObject
     {
         public readonly List<BacHitbox> ActiveHitboxes = new List<BacHitbox>();
 
-        public Simulation(GameBase game) : base(game)
-        {
-
-        }
 
         public override void Update()
         {
-            if (!GameBase.IsPlaying || !SceneManager.IsOnTab(EditorTabs.Action)) return;
+            if (!ViewportInstance.IsPlaying || !SceneManager.IsOnTab(EditorTabs.Action)) return;
             UpdateInternal();
         }
 

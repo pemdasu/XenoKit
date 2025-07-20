@@ -7,7 +7,7 @@ using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Lighting
 {
-    public class SunLight : Entity
+    public class SunLight : EngineObject
     {
         public SimdVector3 Direction { get; private set; }
 
@@ -25,7 +25,7 @@ namespace XenoKit.Engine.Lighting
                                                 0.5f, 0.5f, 0.0f, 1.0f
                                               );
 
-        public SunLight(GameBase game) : base(game) 
+        public SunLight()
         {
             Xv2Stage.CurrentSpmChanged += Xv2Stage_CurrentSpmChanged;
             LightFrustum = new BoundingFrustum(Matrix.Identity);
@@ -43,7 +43,7 @@ namespace XenoKit.Engine.Lighting
 
         private void UpdateLight()
         {
-            Direction = new SimdVector3(GameBase.CurrentStage.CurrentSpm.ShadowDirX, GameBase.CurrentStage.CurrentSpm.ShadowDirY, GameBase.CurrentStage.CurrentSpm.ShadowDirZ);
+            Direction = new SimdVector3(ViewportInstance.CurrentStage.CurrentSpm.ShadowDirX, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirY, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirZ);
             //LightViewMatrix = Matrix.CreateLookAt(position, position + direction, Vector3.Up);
             LightViewMatrix = CreateDirectionalLightView(Direction, SimdVector3.Zero, 100f);
 
@@ -70,7 +70,7 @@ namespace XenoKit.Engine.Lighting
                                                        Vector3.Up);
 
             // Get the corners of the frustum
-            Vector3[] frustumCorners = CameraBase.Frustum.GetCorners();
+            Vector3[] frustumCorners = Camera.Frustum.GetCorners();
 
             // Transform the positions of the corners into the direction of the light
             for (int i = 0; i < frustumCorners.Length; i++)

@@ -15,7 +15,7 @@
             <RowDefinition Height="0"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <engine:Game Grid.Row="1" x:Name="monoGame" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,95"/>
+        <engine:Viewport Grid.Row="1" x:Name="monoGame" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,95"/>
 
         <!-- TODO sometime: FIX this all to use RowDefs -->
 

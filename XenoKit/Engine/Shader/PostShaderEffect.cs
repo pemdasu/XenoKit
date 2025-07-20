@@ -40,18 +40,17 @@ namespace XenoKit.Engine.Shader
         //Samplers:
         public readonly SamplerState[] ImageSampler = new SamplerState[4];
 
-        public PostShaderEffect(ShaderProgram shaderProgram, GameBase game) : base(game)
+        public PostShaderEffect(ShaderProgram shaderProgram)
         {
             if (!Enum.TryParse(shaderProgram.Name, out PostProccessShader type))
                 type = PostProccessShader.Undefined;
 
             Shader = type;
-            GraphicsDevice = game.GraphicsDevice;
+            GraphicsDevice = Viewport.Instance.GraphicsDevice;
             Material = EmmMaterial.NewMaterial();
             Material.ShaderProgram = shaderProgram.Name;
             this.shaderProgram = shaderProgram;
             ShaderType = ShaderType.PostFilter;
-            GameBase = game;
 
             InitSamplers();
             InitTechnique();
@@ -104,9 +103,9 @@ namespace XenoKit.Engine.Shader
                 ComparisonFunction = CompareFunction.Never,
                 Filter = textureFilter,
                 MipMapLevelOfDetailBias = 0,
-                Name = GameBase.ShaderManager.GetSamplerName(texSlot),
+                Name = Viewport.Instance.ShaderManager.GetSamplerName(texSlot),
                 FilterMode = TextureFilterMode.Default,
-                GraphicsDevice = GameBase.GraphicsDevice
+                GraphicsDevice = Viewport.Instance.GraphicsDevice
             };
         }
 
@@ -169,10 +168,10 @@ namespace XenoKit.Engine.Shader
                 case PostProccessShader.AGE_TEST_EDGELINE_MRT:
                     Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.0f, 9, 3f, 0.6f));
                     //Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.00039f, 0.00069f, 3f, 0.6f));
-                    //float factor = GameBase.RenderSystem.SuperSampleFactor > 1 ? 0.85f : 1f;
+                    //float factor = Viewport.Instance.RenderSystem.SuperSampleFactor > 1 ? 0.85f : 1f;
                     //Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.00039f, 0.00055f, 3f, 0.6f) * factor);
                     //Attempt to fix a weird bug where outlines disappear
-                    if (GameBase.RenderSystem.SuperSampleFactor > 1)
+                    if (Viewport.Instance.RenderSystem.SuperSampleFactor > 1)
                     {
                         Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.000312f, 0.000552f, 2.4f, 0.5f));
                     }
@@ -183,7 +182,7 @@ namespace XenoKit.Engine.Shader
                     break;
                 case PostProccessShader.AGE_TEST_DEPTH_TO_PFXD:
                     Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.04187f, 0.95813f, 80f, 0f));
-                    Parameters["g_vScreen_VS"]?.SetValue(new Vector4(GameBase.RenderSystem.RenderWidth, GameBase.RenderSystem.RenderHeight, 0.10f, 10106.85645f));
+                    Parameters["g_vScreen_VS"]?.SetValue(new Vector4(Viewport.Instance.RenderSystem.RenderWidth, Viewport.Instance.RenderSystem.RenderHeight, 0.10f, 10106.85645f));
                     break;
                 case PostProccessShader.BIRD_BG_EDGELINE_RGB_HF:
                     Parameters["g_vEdge_PS"]?.SetValue(new Vector4(0.1f, 0.1f, 0.1f, 5f));

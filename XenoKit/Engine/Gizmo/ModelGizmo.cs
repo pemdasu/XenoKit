@@ -49,10 +49,6 @@ namespace XenoKit.Engine.Gizmo
         protected override bool AllowRotation => true;
         protected override bool AllowScale => true;
 
-        public ModelGizmo(GameBase gameBase) : base(gameBase)
-        {
-            
-        }
 
         public void SetContext(IList<Xv2Submesh> _transforms, Xv2Bone attachBone)
         {

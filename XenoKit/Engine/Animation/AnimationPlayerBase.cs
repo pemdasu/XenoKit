@@ -3,15 +3,10 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Animation
 {
-    public abstract class AnimationPlayerBase : Entity
+    public abstract class AnimationPlayerBase : EngineObject
     {
         protected Xv2Skeleton Skeleton;
         protected virtual bool IsUsingAnimation => false;
-
-        public AnimationPlayerBase(GameBase game) : base(game)
-        {
-
-        }
 
         protected void ClearPreviousFrame()
         {

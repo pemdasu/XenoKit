@@ -258,7 +258,7 @@ namespace XenoKit.Engine.Scripting.BAC
             UpdateVisualObjects();
 
             //Advance current frame
-            if (User.GameBase.IsPlaying)
+            if (User.ViewportInstance.IsPlaying)
             {
                 PreviousFrame = CurrentFrame;
                 CurrentFrame += Actor.ActiveTimeScale;
@@ -324,13 +324,13 @@ namespace XenoKit.Engine.Scripting.BAC
             ClearVisualObjects();
         }
 
-        public void AddVisualObject(BAC_Type1 hitbox, GameBase game)
+        public void AddVisualObject(BAC_Type1 hitbox, Viewport game)
         {
             if (IsPreview)
             {
                 if(VisualSimulationCues.FirstOrDefault(x => x.BacType == hitbox) == null)
                 {
-                    VisualSimulationCues.Add(new HitboxPreview(hitbox, this, game));
+                    VisualSimulationCues.Add(new HitboxPreview(hitbox, this));
                 }
             }
         }
@@ -347,7 +347,6 @@ namespace XenoKit.Engine.Scripting.BAC
                 }
                 else
                 {
-                    VisualSimulationCues[i].Dispose();
                     VisualSimulationCues.RemoveAt(i);
                 }
             }
@@ -356,11 +355,6 @@ namespace XenoKit.Engine.Scripting.BAC
         private void ClearVisualObjects()
         {
             if (!IsPreview) return;
-
-            foreach(BacVisualCueObject visualCue in VisualSimulationCues)
-            {
-                visualCue.Dispose();
-            }
 
             VisualSimulationCues.Clear();
         }

@@ -7,7 +7,7 @@ using Xv2CoreLib.Havok;
 
 namespace XenoKit.Engine.Stage
 {
-    public class StageCollider : Entity
+    public class StageCollider : EngineObject
     {
         public FMP_Collider Collider { get; set; }
 
@@ -15,13 +15,13 @@ namespace XenoKit.Engine.Stage
 
         private List<CollisionMesh> CollisionMeshes = new List<CollisionMesh>();
 
-        public StageCollider(FMP_Collider collider, GameBase game) : base(game)
+        public StageCollider(FMP_Collider collider)
         {
             Collider = collider;
 
             foreach (var collidor in collider.Colliders)
             {
-                Colliders.Add(new StageCollider(collidor, game));
+                Colliders.Add(new StageCollider(collidor));
             }
 
             CreateMeshes();
@@ -33,7 +33,7 @@ namespace XenoKit.Engine.Stage
 
             if (Collider.CollisionVertexData.HasData())
             {
-                //CollisionMeshes.Add(new CollisionMesh(GameBase, Collider.CollisionVertexData, Color.Green));
+                //CollisionMeshes.Add(new CollisionMesh(Collider.CollisionVertexData, Color.Green));
             }
 
             foreach(var havokCol in Collider.HavokColliders)
@@ -48,7 +48,7 @@ namespace XenoKit.Engine.Stage
 
                         if(extractedMesh != null && extractedMesh?.HasData() == true)
                         {
-                            //CollisionMeshes.Add(new CollisionMesh(GameBase, extractedMesh, Color.Purple));
+                            //CollisionMeshes.Add(new CollisionMesh(extractedMesh, Color.Purple));
                         }
                     }
                     else if (havokFile.IsConvexMesh())
@@ -57,7 +57,7 @@ namespace XenoKit.Engine.Stage
 
                         if(convexVertices.Length > 0)
                         {
-                            //CollisionMeshes.Add(new CollisionMesh(GameBase, convexVertices, Color.Red));
+                            //CollisionMeshes.Add(new CollisionMesh(convexVertices, Color.Red));
                         }
                     }
                 }

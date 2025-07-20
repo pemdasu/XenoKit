@@ -23,7 +23,7 @@ namespace XenoKit.Engine.Audio
 
         //State:
         private readonly ACB_Wrapper acb;
-        private readonly Entity Entity;
+        private readonly EngineObject Entity;
         private readonly AudioEngine AudioEngine;
 
         //Deferred actions:
@@ -56,7 +56,7 @@ namespace XenoKit.Engine.Audio
         private Stopwatch Stopwatch = new Stopwatch();
 
 
-        public CueInstance(AudioEngine audioEngine, ACB_Wrapper acb, int cueId, Entity entity, bool _isPreview, ScriptEntity scriptEntity, bool terminateWhenOutOfScope)
+        public CueInstance(AudioEngine audioEngine, ACB_Wrapper acb, int cueId, EngineObject entity, bool _isPreview, ScriptEntity scriptEntity, bool terminateWhenOutOfScope)
         {
             this.acb = acb;
             AcbName = acb.AcbFile.Name;

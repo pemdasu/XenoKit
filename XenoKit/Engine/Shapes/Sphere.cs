@@ -6,7 +6,7 @@ namespace XenoKit.Engine.Shapes
 {
     public class Sphere : GeometricPrimitive
     {
-        public Sphere(GameBase gameBase, float diameter, bool alwaysVisible = false, int tessellation = 16) : base(gameBase)
+        public Sphere(float diameter, bool alwaysVisible = false, int tessellation = 16)
         {
             base.alwaysVisible = alwaysVisible;
 
@@ -80,7 +80,7 @@ namespace XenoKit.Engine.Shapes
                 AddIndex(CurrentVertex - 2 - i);
             }
 
-            InitializePrimitive(gameBase.GraphicsDevice);
+            InitializePrimitive(GraphicsDevice);
         }
     
         

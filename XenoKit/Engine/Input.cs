@@ -9,8 +9,6 @@ namespace XenoKit.Engine
 
     public class Input
     {
-        private GameBase game;
-
         public MouseState MouseState { get; private set; }
         public MouseState PreviousMouseState { get; private set; }
         public KeyboardState KeyboardState { get; private set; }
@@ -44,11 +42,6 @@ namespace XenoKit.Engine
 
         //Const
         private const int DoubleClickPeriod = 60;
-
-        public Input(GameBase game)
-        {
-            this.game = game;
-        }
 
         public void Update(WpfMouse mouse, WpfKeyboard keyboard)
         {

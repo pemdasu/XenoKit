@@ -6,7 +6,7 @@ using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Shapes
 {
-    public class Plane : Entity
+    public class Plane : RenderObject
     {
         public SimdVector3 Size;
         private Color color;
@@ -14,11 +14,11 @@ namespace XenoKit.Engine.Shapes
         public VertexPositionColorTexture[] _vertices { get; set; }
         private BasicEffect effect;
 
-        public Plane(SimdVector3 position, SimdVector3 size, GameBase gameBase, Color _color) : base(gameBase)
+        public Plane(SimdVector3 position, SimdVector3 size, Color _color)
         {
             color = _color;
             Size = size;
-            effect = new BasicEffect(gameBase.GraphicsDevice);
+            effect = new BasicEffect(GraphicsDevice);
             effect.Alpha = 1f;
             effect.VertexColorEnabled = true;
             Transform = Matrix4x4.CreateWorld(position, MathHelpers.Forward, MathHelpers.Up);
@@ -53,8 +53,8 @@ namespace XenoKit.Engine.Shapes
 
         public override void Draw()
         {
-            effect.Projection = CameraBase.ProjectionMatrix;
-            effect.View = CameraBase.ViewMatrix;
+            effect.Projection = Camera.ProjectionMatrix;
+            effect.View = Camera.ViewMatrix;
             effect.World = Transform;
 
             foreach (var pass in effect.CurrentTechnique.Passes)

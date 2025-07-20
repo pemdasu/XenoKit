@@ -6,14 +6,14 @@ namespace XenoKit.Engine.Vfx
     /// <summary>
     /// This is a light weight class intended for simple effect and asset previewing, for use when editing effects (Effect Tab).
     /// </summary>
-    public class VfxPreview : Entity
+    public class VfxPreview : EngineObject
     {
         public VfxEffect Effect = null;
         public VfxEffect Asset = null;
 
         private readonly EffectPart DefaultEffectPart;
 
-        public VfxPreview(GameBase game) : base(game)
+        public VfxPreview()
         {
             DefaultEffectPart = new EffectPart();
         }
@@ -57,7 +57,7 @@ namespace XenoKit.Engine.Vfx
             if (Effect != null)
                 Effect.Dispose();
 
-            Effect = new VfxEffect(SceneManager.Actors[0], effect, System.Numerics.Matrix4x4.Identity, GameBase);
+            Effect = new VfxEffect(SceneManager.Actors[0], effect, System.Numerics.Matrix4x4.Identity);
         }
 
         public void PreviewAsset(Xv2CoreLib.EffectContainer.Asset asset)
@@ -69,7 +69,7 @@ namespace XenoKit.Engine.Vfx
 
             DefaultEffectPart.AssetRef = asset;
             DefaultEffectPart.AssetType = asset.assetType;
-            Asset = new VfxEffect(SceneManager.Actors[0], DefaultEffectPart, GameBase);
+            Asset = new VfxEffect(SceneManager.Actors[0], DefaultEffectPart);
         }
 
         public void Stop()
@@ -79,12 +79,12 @@ namespace XenoKit.Engine.Vfx
             if (SceneManager.IsOnTab(EditorTabs.Effect))
             {
                 Effect?.Initialize();
-                GameBase.IsPlaying = false;
+                ViewportInstance.IsPlaying = false;
             }
             else
             {
                 Asset?.InitializeFromAsset();
-                GameBase.IsPlaying = false;
+                ViewportInstance.IsPlaying = false;
             }
         }
 

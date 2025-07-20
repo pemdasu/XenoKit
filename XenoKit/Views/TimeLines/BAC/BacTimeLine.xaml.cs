@@ -91,7 +91,7 @@ namespace XenoKit.Views.TimeLines
             }
             set
             {
-                _seekFrame = !SceneManager.IsPlaying && SceneManager.Actors[0] != null ? value : -1;
+                _seekFrame = Viewport.Instance?.IsPlaying == false && SceneManager.Actors[0] != null ? value : -1;
                 UpdateCurrentFrame();
             }
         }
@@ -124,8 +124,8 @@ namespace XenoKit.Views.TimeLines
             mainScroll.SizeChanged += MainScroll_SizeChanged;
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
             SceneManager.BacDataChanged += SceneManager_BacDataChanged;
-            SceneManager.DelayedUpdate += DelayedUpdate;
-            Game.GameUpdate += new EventHandler(GameUpdate);
+            Viewport.DelayedEventUpdateEvent += DelayedUpdate;
+            Viewport.UpdateEvent += GameUpdate;
 
             currentFrameLine = new Line();
             currentFrameLine.Stroke = Brushes.White;
@@ -1368,7 +1368,7 @@ namespace XenoKit.Views.TimeLines
 
         private bool CanFocus()
         {
-            return SelectedItem != null && SceneManager.Actors[0] != null && !SceneManager.MainGameBase.IsPlaying;
+            return SelectedItem != null && SceneManager.Actors[0] != null && !Viewport.Instance.IsPlaying;
         }
         #endregion
 

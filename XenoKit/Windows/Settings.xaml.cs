@@ -44,7 +44,7 @@ namespace XenoKit.Windows
                 if (SettingsManager.settings.XenoKit_RimLightingEnabled != value)
                 {
                     SettingsManager.settings.XenoKit_RimLightingEnabled = value;
-                    SceneManager.MainGameBase.ShaderManager.ClearGlobalSampler(15);
+                    Viewport.Instance.ShaderManager.ClearGlobalSampler(15);
                 }
             }
         }
@@ -105,10 +105,10 @@ namespace XenoKit.Windows
         }
         public System.Windows.Media.Color BackgroundColor
         {
-            get => System.Windows.Media.Color.FromRgb(SceneManager.ViewportBackgroundColor.R, SceneManager.ViewportBackgroundColor.G, SceneManager.ViewportBackgroundColor.B);
+            get => System.Windows.Media.Color.FromRgb(Viewport.ViewportBackgroundColor.R, Viewport.ViewportBackgroundColor.G, Viewport.ViewportBackgroundColor.B);
             set
             {
-                SceneManager.ViewportBackgroundColor = new Microsoft.Xna.Framework.Color(value.R, value.G, value.B);
+                Viewport.ViewportBackgroundColor = new Microsoft.Xna.Framework.Color(value.R, value.G, value.B);
             }
         }
 

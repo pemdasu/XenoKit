@@ -57,7 +57,7 @@ namespace XenoKit.Engine.Audio
             DeferredTasks.Add(new Task(action));
         }
 
-        public void PlayCue(int cueId, ACB_Wrapper acbFile, Entity entity, ScriptEntity scriptEntity = null, bool terminateWhenOutOfScope = false)
+        public void PlayCue(int cueId, ACB_Wrapper acbFile, EngineObject entity, ScriptEntity scriptEntity = null, bool terminateWhenOutOfScope = false)
         {
             if (!SettingsManager.settings.XenoKit_AudioSimulation) return;
 
@@ -74,7 +74,7 @@ namespace XenoKit.Engine.Audio
             DeferredTasks.Add(new Task(action));
         }
 
-        public void PlayCue(AcbTableReference targetId, TargetType targetType, string acbName, ACB_Wrapper thisAcb, Entity entity)
+        public void PlayCue(AcbTableReference targetId, TargetType targetType, string acbName, ACB_Wrapper thisAcb, EngineObject entity)
         {
             if (!SettingsManager.settings.XenoKit_AudioSimulation) return;
 

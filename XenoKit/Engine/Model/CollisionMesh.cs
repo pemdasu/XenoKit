@@ -9,7 +9,7 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Model
 {
-    public class CollisionMesh : Entity
+    public class CollisionMesh : RenderObject
     {
         private VertexBuffer VertexBuffer;
         private IndexBuffer IndexBuffer;
@@ -24,7 +24,7 @@ namespace XenoKit.Engine.Model
 
         private readonly bool UseWireframe = true;
 
-        public CollisionMesh(GameBase game, FMP_CollisionVertexData fmpCollisionMesh, Color color) : base(game) 
+        public CollisionMesh(FMP_CollisionVertexData fmpCollisionMesh, Color color)
         {
             Transform = Matrix4x4.Identity;
             this.color = color;
@@ -33,7 +33,7 @@ namespace XenoKit.Engine.Model
             CreateAABB();
         }
 
-        public CollisionMesh(GameBase game, System.Numerics.Vector3[] vertices, Color color, bool isConvex, bool wireframe = true) : base(game)
+        public CollisionMesh(System.Numerics.Vector3[] vertices, Color color, bool isConvex, bool wireframe = true)
         {
             UseWireframe = wireframe;
             Transform = Matrix4x4.Identity;
@@ -189,10 +189,10 @@ namespace XenoKit.Engine.Model
         {
             if (Vertices.Length == 0 || Indices.Length == 0) return;
 
-            if (CameraBase.Frustum.Intersects(AABB.Transform(Transform)))
+            if (Camera.Frustum.Intersects(AABB.Transform(Transform)))
             {
-                Material.Projection = CameraBase.ProjectionMatrix;
-                Material.View = CameraBase.ViewMatrix;
+                Material.Projection = Camera.ProjectionMatrix;
+                Material.View = Camera.ViewMatrix;
                 Material.World = Transform;
 
                 DrawInternal();
@@ -204,10 +204,10 @@ namespace XenoKit.Engine.Model
             if (Vertices.Length == 0) return;
             Material.World = Transform * world;
 
-            if (CameraBase.Frustum.Intersects(AABB.Transform(Material.World)))
+            if (Camera.Frustum.Intersects(AABB.Transform(Material.World)))
             {
-                Material.Projection = CameraBase.ProjectionMatrix;
-                Material.View = CameraBase.ViewMatrix;
+                Material.Projection = Camera.ProjectionMatrix;
+                Material.View = Camera.ViewMatrix;
 
                 DrawInternal();
             }

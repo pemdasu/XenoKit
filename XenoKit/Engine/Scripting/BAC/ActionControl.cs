@@ -16,7 +16,7 @@ namespace XenoKit.Engine.Scripting.BAC
         None,
     }
 
-    public class ActionControl : Entity
+    public class ActionControl : EngineObject
     {
         public SimulationType SimulationType { get; private set; }
         public ActionPreviewState PreviewState { get; private set; }
@@ -26,17 +26,17 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public event ActionFinishedEventHandler ActionFinished;
 
-        public ActionControl(Actor parent, GameBase gameBase) : base(gameBase)
+        public ActionControl(Actor parent)
         {
             Character = parent;
-            BacPlayer = new BacPlayer(parent, gameBase);
+            BacPlayer = new BacPlayer(parent);
             SceneManager.BacDataChanged += SceneManager_BacValuesChanged;
         }
 
         public override void Update()
         {
             //Check Preview Scope
-            if (GameBase.IsPlaying && BacPlayer.IsPreview && SceneManager.CurrentSceneState != EditorTabs.Action)
+            if (ViewportInstance.IsPlaying && BacPlayer.IsPreview && SceneManager.CurrentSceneState != EditorTabs.Action)
             {
                 BacPlayer.ClearBacEntry();
                 SimulationType = SimulationType.None;
@@ -46,7 +46,7 @@ namespace XenoKit.Engine.Scripting.BAC
 
             if (SimulationType == SimulationType.ActionDirect && BacPlayer.HasBacEntry)
             {
-                if (BacPlayer.CurrentDuration <= BacPlayer.CurrentFrame && (GameBase.IsPlaying || Character.ActorSlot != 0))
+                if (BacPlayer.CurrentDuration <= BacPlayer.CurrentFrame && (ViewportInstance.IsPlaying || Character.ActorSlot != 0))
                 {
                     if (BacPlayer.BacEntryInstance.IsFinished && PreviewState == ActionPreviewState.Finished)
                     {
@@ -58,7 +58,7 @@ namespace XenoKit.Engine.Scripting.BAC
                             }
                             else
                             {
-                                GameBase.IsPlaying = false;
+                                ViewportInstance.IsPlaying = false;
                             }
                         }
                         else

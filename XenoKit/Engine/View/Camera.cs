@@ -33,7 +33,7 @@ namespace XenoKit.Engine.View
             }
         }
         
-        public Camera(GameBase gameInstance) : base(gameInstance)
+        public Camera()
         {
             SceneManager.CameraDataChanged += SceneManager_CameraDataChanged;
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
@@ -52,11 +52,11 @@ namespace XenoKit.Engine.View
             locked = true;
 
             //Update camera animation only if playing
-            if (cameraInstance != null && SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Camera) && GameBase.IsPlaying)
-                UpdateCameraAnimation(GameBase.IsPlaying);
+            if (cameraInstance != null && SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Camera) && ViewportInstance.IsPlaying)
+                UpdateCameraAnimation(ViewportInstance.IsPlaying);
 
             //Enable manual camera controls (if no anim is playing)
-            if ((GameBase.IsPlaying && cameraInstance == null) || !GameBase.IsPlaying || !SceneManager.UseCameras || SceneManager.CurrentSceneState != EditorTabs.Camera)
+            if ((ViewportInstance.IsPlaying && cameraInstance == null) || !ViewportInstance.IsPlaying || !SceneManager.UseCameras || SceneManager.CurrentSceneState != EditorTabs.Camera)
             {
                 BackupCameraState = null;
                 ValidateCamera();
@@ -74,7 +74,7 @@ namespace XenoKit.Engine.View
         public void Simulate(bool updateCamAnim, bool advance)
         {
 #if DEBUG
-            if (GameBase.IsPlaying) throw new InvalidOperationException("DONT CALL SIMULATE WHEN PLAYING!");
+            if (ViewportInstance.IsPlaying) throw new InvalidOperationException("DONT CALL SIMULATE WHEN PLAYING!");
 #endif
 
             locked = true;
@@ -105,7 +105,7 @@ namespace XenoKit.Engine.View
                     ClearCameraAnimation();
                     return;
                 }
-                else if (SceneManager.IsOnTab(EditorTabs.Camera) && SceneManager.Loop && GameBase.IsPlaying)
+                else if (SceneManager.IsOnTab(EditorTabs.Camera) && SceneManager.Loop && ViewportInstance.IsPlaying)
                 {
                     CurrentFrame = cameraInstance.StartFrame;
                 }
@@ -234,7 +234,7 @@ namespace XenoKit.Engine.View
             cameraInstance = new CameraAnimInstance(eanFile, camAnim, bacCamEntry, autoTerminate, targetCharaIndex, actor);
 
             //Render first frame if not auto playing
-            if (!GameBase.IsPlaying && alwaysShowFirstFrame)
+            if (!ViewportInstance.IsPlaying && alwaysShowFirstFrame)
                 UpdateCameraAnimation(false);
         }
 

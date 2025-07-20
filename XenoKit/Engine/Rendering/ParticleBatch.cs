@@ -1,25 +1,32 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using XenoKit.Editor;
 using XenoKit.Engine.Vertex;
 using XenoKit.Engine.Vfx.Particle;
-using Xv2CoreLib.EMM;
+using XenoKit.Helper.Find;
 using Xv2CoreLib.EMP_NEW;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Rendering
 {
-    public class ParticleBatch : Entity
+    public class ParticleBatch : RenderObject
     {
         private ParticleBatchItem[] BatchItems;
         private VertexPositionTextureColor[] Vertices;
 
         private int batchIndex = 0; //The next index to add a batch to... and the number of items batched
 
+        private bool _tryDownsize = false;
+        private int _batchNumAtLastSlowUpdate = 0;
+        private int _maxBatchNumSinceLastSlowUpdate = 0;
+        private const int MinBatchItemCount = 64;
+
         public readonly ParticleNode ParticleNode;
         public readonly ParticleEmissionData EmissionData;
 
         public int NumBatch { get; private set; }
+        public int MaxBatchSinceLastSlowUpdate => _maxBatchNumSinceLastSlowUpdate;
 
         public override int LowRezMode
         {
@@ -32,17 +39,17 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        public ParticleBatch(GameBase game, ParticleEmissionData emissionData, ParticleNode particleNode) : base(game)
+        public ParticleBatch(ParticleEmissionData emissionData, ParticleNode particleNode)
         {
             EmissionData = emissionData;
             ParticleNode = particleNode;
-            BatchItems = new ParticleBatchItem[64];
-            Vertices = new VertexPositionTextureColor[64 * 6];
+            BatchItems = new ParticleBatchItem[MinBatchItemCount];
+            Vertices = new VertexPositionTextureColor[MinBatchItemCount * 6];
         }
 
-        private void ResizeIfNeeded()
+        private void ExpandIfNeeded(int targetSize)
         {
-            if(batchIndex >= BatchItems.Length)
+            if(targetSize >= BatchItems.Length)
             {
                 int oldSize = BatchItems.Length;
                 int newSize = oldSize + oldSize / 2; // grow by x1.5
@@ -52,10 +59,42 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
+        private void DownsizeIfNeeded(int targetSize)
+        {
+            if (targetSize < BatchItems.Length && BatchItems.Length > MinBatchItemCount)
+            {
+                int newSize = MathHelper.Clamp(((targetSize + 64 - 1) / 64) * 64, MathHelper.Max(64, NumBatch), int.MaxValue);
+
+                if(newSize != BatchItems.Length)
+                {
+                    Array.Resize(ref BatchItems, newSize);
+                    Array.Resize(ref Vertices, newSize * 6);
+                }
+            }
+        }
+
         public void AddToBatch(ParticleBatchItem batch)
         {
-            ResizeIfNeeded();
+            ExpandIfNeeded(batchIndex);
             BatchItems[batchIndex++] = batch;
+        }
+
+        public void SlowUpdate()
+        {
+            _tryDownsize = true;
+        }
+
+        private void TryDownsize()
+        {
+            if (_maxBatchNumSinceLastSlowUpdate < BatchItems.Length && NumBatch < _maxBatchNumSinceLastSlowUpdate)
+            {
+                //Resize to the max amount of ParticleBatchItems used since the last SlowUpdate
+                DownsizeIfNeeded(_maxBatchNumSinceLastSlowUpdate + 1);
+            }
+
+            _batchNumAtLastSlowUpdate = NumBatch;
+            _maxBatchNumSinceLastSlowUpdate = 0;
+            _tryDownsize = false;
         }
 
         #region Draw
@@ -68,7 +107,18 @@ namespace XenoKit.Engine.Rendering
         public override void Draw()
         {
             NumBatch = batchIndex;
+
+            if (_tryDownsize)
+            {
+                TryDownsize();
+            }
+            else if (batchIndex > _maxBatchNumSinceLastSlowUpdate)
+            {
+                _maxBatchNumSinceLastSlowUpdate = batchIndex;
+            }
+
             if (!RenderSystem.CheckDrawPass(EmissionData.Material) || batchIndex == 0) return;
+
 
             UpdateVertices();
 

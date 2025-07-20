@@ -7,20 +7,20 @@ using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Pool
 {
-    public class ObjectPoolManager : Entity
+    public class ObjectPoolManager : EngineObject
     {
         public readonly PoolInstance<ParticleNodeBase> ParticleNodeBasePool;
         public readonly PoolInstance<Vfx.Particle.ParticleEmitter> ParticleEmitterPool;
         public readonly PoolInstance<ParticlePlane> ParticlePlanePool;
         public readonly PoolInstance<ParticleMesh> ParticleMeshPool;
 
-        public ObjectPoolManager(GameBase game) : base(game)
+        public ObjectPoolManager()
         {
             //Pool size for base node can be reduced when ShapeDraw, Cone Extrude and Mesh are added, as only Null will use the pool at that point
-            ParticleNodeBasePool = new PoolInstance<ParticleNodeBase>(1000, game);
-            ParticleEmitterPool = new PoolInstance<Vfx.Particle.ParticleEmitter>(500, game);
-            ParticlePlanePool = new PoolInstance<ParticlePlane>(5000, game);
-            ParticleMeshPool = new PoolInstance<ParticleMesh>(500, game);
+            ParticleNodeBasePool = new PoolInstance<ParticleNodeBase>(1000);
+            ParticleEmitterPool = new PoolInstance<Vfx.Particle.ParticleEmitter>(500);
+            ParticlePlanePool = new PoolInstance<ParticlePlane>(5000);
+            ParticleMeshPool = new PoolInstance<ParticleMesh>(500);
         }
 
         public override void DelayedUpdate()
@@ -35,7 +35,7 @@ namespace XenoKit.Engine.Pool
 
         public ParticleNodeBase GetParticleNodeBase(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
-            ParticleNodeBase newNode = GameBase.ObjectPoolManager.ParticleNodeBasePool.GetObject();
+            ParticleNodeBase newNode = ViewportInstance.ObjectPoolManager.ParticleNodeBasePool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             newNode.Reclaim();
             return newNode;
@@ -43,7 +43,7 @@ namespace XenoKit.Engine.Pool
 
         public Vfx.Particle.ParticleEmitter GetParticleEmitter(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
-            Vfx.Particle.ParticleEmitter newNode = GameBase.ObjectPoolManager.ParticleEmitterPool.GetObject();
+            Vfx.Particle.ParticleEmitter newNode = ViewportInstance.ObjectPoolManager.ParticleEmitterPool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             newNode.Reclaim();
             return newNode;
@@ -51,7 +51,7 @@ namespace XenoKit.Engine.Pool
 
         public ParticlePlane GetParticlePlane(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
-            ParticlePlane newNode = GameBase.ObjectPoolManager.ParticlePlanePool.GetObject();
+            ParticlePlane newNode = ViewportInstance.ObjectPoolManager.ParticlePlanePool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             newNode.Reclaim();
             return newNode;
@@ -59,7 +59,7 @@ namespace XenoKit.Engine.Pool
 
         public ParticleMesh GetParticleMesh(ref Matrix4x4 emitPoint, ref SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
-            ParticleMesh newNode = GameBase.ObjectPoolManager.ParticleMeshPool.GetObject();
+            ParticleMesh newNode = ViewportInstance.ObjectPoolManager.ParticleMeshPool.GetObject();
             newNode.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             newNode.Reclaim();
             return newNode;

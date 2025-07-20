@@ -28,7 +28,7 @@ namespace XenoKit.Engine.Gizmo
         Scale
     }
 
-    public abstract class GizmoBase : Entity
+    public abstract class GizmoBase : EngineObject
     {
         public bool IsVisible { get; protected set; }
         private bool WasAutoHidden { get; set; }
@@ -191,9 +191,8 @@ namespace XenoKit.Engine.Gizmo
         protected virtual bool AllowRotation => true;
         protected virtual bool AllowScale => true;
 
-        public GizmoBase(GameBase gameBase) : base(gameBase)
+        public GizmoBase()
         {
-
             _lineEffect = new BasicEffect(GraphicsDevice) { VertexColorEnabled = true, AmbientLightColor = Vector3.One, EmissiveColor = Vector3.One };
             _meshEffect = new BasicEffect(GraphicsDevice);
             _quadEffect = new BasicEffect(GraphicsDevice) { World = Matrix.Identity, DiffuseColor = _highlightColor.ToVector3(), Alpha = 0.5f };
@@ -337,8 +336,8 @@ namespace XenoKit.Engine.Gizmo
                 }
 
                 _meshEffect.World = _modelLocalSpace[i] * _gizmoWorld;
-                _meshEffect.View = GameBase.ActiveCameraBase.ViewMatrix;
-                _meshEffect.Projection = GameBase.ActiveCameraBase.ProjectionMatrix;
+                _meshEffect.View = ViewportInstance.Camera.ViewMatrix;
+                _meshEffect.Projection = ViewportInstance.Camera.ProjectionMatrix;
 
                 _meshEffect.DiffuseColor = _axisColors[i].ToVector3();
                 _meshEffect.EmissiveColor = _axisColors[i].ToVector3();
@@ -362,8 +361,8 @@ namespace XenoKit.Engine.Gizmo
 
             //Lines
             _lineEffect.World = _gizmoWorld;
-            _lineEffect.View = GameBase.ActiveCameraBase.ViewMatrix;
-            _lineEffect.Projection = GameBase.ActiveCameraBase.ProjectionMatrix;
+            _lineEffect.View = ViewportInstance.Camera.ViewMatrix;
+            _lineEffect.Projection = ViewportInstance.Camera.ProjectionMatrix;
 
             foreach (var pass in _lineEffect.CurrentTechnique.Passes)
             {
@@ -392,8 +391,8 @@ namespace XenoKit.Engine.Gizmo
                                 GraphicsDevice.RasterizerState = RasterizerState.CullNone;
 
                                 _quadEffect.World = _gizmoWorld;
-                                _quadEffect.View = GameBase.ActiveCameraBase.ViewMatrix;
-                                _quadEffect.Projection = GameBase.ActiveCameraBase.ProjectionMatrix;
+                                _quadEffect.View = ViewportInstance.Camera.ViewMatrix;
+                                _quadEffect.Projection = ViewportInstance.Camera.ProjectionMatrix;
 
                                 _quadEffect.CurrentTechnique.Passes[0].Apply();
 
@@ -456,7 +455,7 @@ namespace XenoKit.Engine.Gizmo
 
             _lastIntersectionPosition = _intersectPosition;
 
-            if (IsLeftClickHeld && ActiveAxis != GizmoAxis.None && TransformOperation != null && ((!GameBase.IsPlaying && AutoPause) || !AutoPause))
+            if (IsLeftClickHeld && ActiveAxis != GizmoAxis.None && TransformOperation != null && ((!ViewportInstance.IsPlaying && AutoPause) || !AutoPause))
             {
                 switch (ActiveMode)
                 {
@@ -464,7 +463,7 @@ namespace XenoKit.Engine.Gizmo
                     case GizmoMode.Translate:
                         {
                             Vector3 delta = Vector3.Zero;
-                            Ray ray = EngineUtils.CalculateRay(Input.MousePosition, GameBase);
+                            Ray ray = EngineUtils.CalculateRay(Input.MousePosition);
 
                             Matrix transform = Matrix.Invert(_rotationMatrix);
                             ray.Position = Vector3.Transform(ray.Position, transform);
@@ -562,7 +561,7 @@ namespace XenoKit.Engine.Gizmo
                     case GizmoMode.Rotate:
                         {
                             float delta = (Input.MousePosition.X - Input.PreviousMouseState.X);
-                            delta *= (float)ElapsedTime.ElapsedGameTime.TotalSeconds;
+                            delta *= (float)Viewport.Instance.GameTime.ElapsedGameTime.TotalSeconds;
 
                             if (PrecisionModeEnabled)
                                 delta *= PRECISION_MODE_SCALE;
@@ -649,9 +648,9 @@ namespace XenoKit.Engine.Gizmo
         {
             if (Input.MouseState.LeftButton == ButtonState.Pressed && Input.LeftClickHeldDownContext != this && ActiveAxis != GizmoAxis.None)
             {
-                if (GameBase.IsPlaying && AutoPause)
+                if (ViewportInstance.IsPlaying && AutoPause)
                 {
-                    GameBase.IsPlaying = false;
+                    ViewportInstance.IsPlaying = false;
                 }
 
                 Input.LeftClickHeldDownContext = this;
@@ -660,7 +659,7 @@ namespace XenoKit.Engine.Gizmo
                 StartTransformOperation();
             }
 
-            if ((Input.MouseState.LeftButton == ButtonState.Released && Input.LeftClickHeldDownContext == this) || ((GameBase.IsPlaying && AutoPause) && Input.LeftClickHeldDownContext == this))
+            if ((Input.MouseState.LeftButton == ButtonState.Released && Input.LeftClickHeldDownContext == this) || ((ViewportInstance.IsPlaying && AutoPause) && Input.LeftClickHeldDownContext == this))
             {
                 Input.LeftClickHeldDownContext = null;
 
@@ -692,11 +691,11 @@ namespace XenoKit.Engine.Gizmo
         {
             _position = new Vector3(WorldMatrix.Translation.X, WorldMatrix.Translation.Y, WorldMatrix.Translation.Z);
 
-            Vector3 vLength = GameBase.ActiveCameraBase.CameraState.Position - _position;
+            Vector3 vLength = ViewportInstance.Camera.CameraState.Position - _position;
 
             //Force elements to have a min size
             const float minDistance = 0.5f;
-            if (Vector3.Distance(GameBase.ActiveCameraBase.CameraState.Position, _position) < minDistance)
+            if (Vector3.Distance(ViewportInstance.Camera.CameraState.Position, _position) < minDistance)
             {
                 //vLength = new Vector3(0, 0, minDistance);
             }
@@ -815,7 +814,7 @@ namespace XenoKit.Engine.Gizmo
             if (!IsVisible) return;
 
             float closestintersection = float.MaxValue;
-            Ray ray = EngineUtils.CalculateRay(mousePosition, GameBase);
+            Ray ray = EngineUtils.CalculateRay(mousePosition);
 
             if (ActiveMode == GizmoMode.Translate)
             {

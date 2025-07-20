@@ -23,7 +23,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         private bool IsDirty { get; set; }
 
-        public ParticleSystem(Matrix4x4 startWorld, Actor actor, EffectPart effectPart, EMP_File empFile, VfxEffect effect, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
+        public ParticleSystem(Matrix4x4 startWorld, Actor actor, EffectPart effectPart, EMP_File empFile, VfxEffect effect) : base(startWorld, effectPart, actor)
         {
             Effect = new WeakReference(effect);
             EmpFile = empFile;
@@ -39,7 +39,7 @@ namespace XenoKit.Engine.Vfx.Particle
         private void InitializeParticleSystem()
         {
             AttachmentBone = GetAdjustedTransform();
-            RootNode = new ParticleRootNode(EmpFile, this, EffectPart, GameBase);
+            RootNode = new ParticleRootNode(EmpFile, this, EffectPart);
             RootNode.Play();
         }
 
@@ -100,7 +100,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
             PreviousFrame = CurrentFrame;
 
-            if (GameBase.IsPlaying)
+            if (ViewportInstance.IsPlaying)
                 CurrentFrame += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
         }
 

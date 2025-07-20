@@ -231,20 +231,20 @@ namespace XenoKit.Views
 
         private void TryEnableModelGizmo()
         {
-            if (SceneManager.MainGameInstance != null)
+            if (Viewport.Instance != null)
             {
-                SceneManager.MainGameInstance.ModelGizmo.SetCallback(TransformOperationBegin, TransformOperationComplete);
+                Viewport.Instance.ModelGizmo.SetCallback(TransformOperationBegin, TransformOperationComplete);
                 UpdateTransformValues();
 
                 var submeshes = ModelScene.Model.GetAllSubmeshesFromSourceObject(SelectedItem);
 
                 if(submeshes?.Count > 0)
                 {
-                    SceneManager.MainGameInstance.ModelGizmo.SetContext(submeshes, GetAttachBone(submeshes));
+                    Viewport.Instance.ModelGizmo.SetContext(submeshes, GetAttachBone(submeshes));
                 }
                 else
                 {
-                    SceneManager.MainGameInstance.ModelGizmo.RemoveContext();
+                    Viewport.Instance.ModelGizmo.RemoveContext();
                 }
             }
         }
@@ -457,7 +457,7 @@ namespace XenoKit.Views
         {
             if(SelectedTexture == null)
             {
-                SceneManager.MainGameInstance.camera.LookAt(ModelScene.BoundingBox);
+                Viewport.Instance.Camera.LookAt(ModelScene.BoundingBox);
                 Log.Add("LookAt from View");
             }
         }

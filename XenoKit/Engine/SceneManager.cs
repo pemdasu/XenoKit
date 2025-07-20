@@ -1,15 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Timers;
 using XenoKit.Editor;
-using XenoKit.Engine.Audio;
-using XenoKit.Engine.Gizmo;
 using XenoKit.Engine.Model;
-using XenoKit.Engine.View;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.Resource.App;
@@ -90,33 +84,6 @@ namespace XenoKit.Engine
 
     public static class SceneManager
     {
-        public static GameBase MainGameBase => MainGameInstance;
-        public static Game MainGameInstance = null;
-
-        public static Camera MainCamera => MainGameInstance != null ? MainGameInstance.camera : null;
-        public static AudioEngine AudioEngine { get { return MainGameInstance?.AudioEngine; } }
-        public static AnimatorGizmo AnimatorGizmo { get { return MainGameInstance?.GetAnimatorGizmo(); } }
-
-        //Exposed MainGameBase values: (mainly here for compat with old code when these were on SceneManager)
-        /// <summary>
-        /// Read-only. Exposed from GameBase.IsPlaying.
-        /// </summary>
-        public static bool IsPlaying => MainGameBase?.IsPlaying == true;
-
-        //Matrix
-        public static Matrix ViewMatrix { get { return MainGameInstance.camera.ViewMatrix; } }
-        public static Matrix ProjectionMatrix { get { return MainGameInstance.camera.ProjectionMatrix; } }
-
-        //Game loop
-        private static bool forceUpdateCamera = false;
-
-        //Other
-        /// <summary>
-        /// The bone currently selected in the animation tab.
-        /// </summary>
-        public static string CurrentSelectedBoneName = "";
-
-
         #region SceneState
         public static EditorTabs PrevSceneState = EditorTabs.Nothing;
         public static EditorTabs CurrentSceneState = 0;
@@ -124,12 +91,6 @@ namespace XenoKit.Engine
         public static bool IsOnEffectTab = false;
         public static bool IsOnInspectorTab = false;
         public static bool UseRenderScene = false;
-
-        public static Vector4 SystemTime; //Seconds elsapsed while "IsPlaying". For use in DBXV2 Shaders.
-        public static Vector4 ScreenSize;
-
-        public static Color ViewportBackgroundColor = new Color(20, 20, 20, 255);
-        public static Color ScreenshotBackgroundColor = new Color(20, 20, 20, 255);
 
         /// <summary>
         /// 
@@ -146,7 +107,7 @@ namespace XenoKit.Engine
             IsOnInspectorTab = false;
             CurrentDynamicTab = DynamicTabs.None;
             UseRenderScene = false;
-            MainGameBase?.RenderSystem.SetRenderScene(null);
+            Viewport.Instance?.RenderSystem.SetRenderScene(null);
 
             //Set default actor values
             ActorsEnable[0] = true;
@@ -166,7 +127,7 @@ namespace XenoKit.Engine
                     {
                         CurrentDynamicTab = DynamicTabs.ModelScene;
                         UseRenderScene = true;
-                        MainGameBase.RenderSystem.SetRenderScene(modelScene);
+                        Viewport.Instance.RenderSystem.SetRenderScene(modelScene);
                     }
                 }
                 else
@@ -285,16 +246,16 @@ namespace XenoKit.Engine
             }
 
             //Changing tabs with an active bac entry will put the simulation in a bad state, best to stop it
-            if (prevTab == EditorTabs.Action && MainGameBase.IsPlaying)
+            if (prevTab == EditorTabs.Action && Viewport.Instance.IsPlaying)
             {
                 Stop();
-                MainGameBase.IsPlaying = true;
+                Viewport.Instance.IsPlaying = true;
             }
 
             EditorTabChanged?.Invoke(null, EventArgs.Empty);
 
             //Return false if state hasn't actually changed
-            if (MainGameInstance == null || (PrevSceneState == CurrentSceneState)) return false;
+            if (Viewport.Instance == null || (PrevSceneState == CurrentSceneState)) return false;
 
             //State has changed, so update PrevSceneState
             PrevSceneState = prevTab;
@@ -322,7 +283,7 @@ namespace XenoKit.Engine
 
         private static void ResetState(bool resetAnims)
         {
-            MainGameInstance.ResetState(resetAnims);
+            Viewport.Instance.ResetState(resetAnims);
         }
         #endregion
 
@@ -489,10 +450,10 @@ namespace XenoKit.Engine
 
             //Remove previous actor from RenderDepthSystem
             if (Actors[actorSlot] != null)
-                MainGameBase.RenderSystem.RemoveRenderEntity(Actors[actorSlot]);
+                Viewport.Instance.RenderSystem.RemoveRenderEntity(Actors[actorSlot]);
 
             //Set new actor there
-            MainGameBase.RenderSystem.AddRenderEntity(character);
+            Viewport.Instance.RenderSystem.AddRenderEntity(character);
 
             Actors[actorSlot] = character;
             character.ActorSlot = actorSlot;
@@ -519,7 +480,7 @@ namespace XenoKit.Engine
                 Actors[actorSlot] = null;
 
                 //Remove actor from RenderDepthSystem
-                MainGameBase.RenderSystem.RemoveRenderEntity(actor);
+                Viewport.Instance.RenderSystem.RemoveRenderEntity(actor);
 
                 Log.Add($"{actor.Name} removed as the {GetActorName(actorSlot)} actor.");
 
@@ -536,7 +497,7 @@ namespace XenoKit.Engine
 
         public static void FocusActor(Actor actor)
         {
-            MainCamera.CameraState.SetFocus(actor);
+            Viewport.Instance.Camera.CameraState.SetFocus(actor);
         }
 
         private static string GetActorName(int charaIdx)
@@ -592,65 +553,9 @@ namespace XenoKit.Engine
 
         #endregion
 
-        #region Update
-        public static event EventHandler DelayedUpdate;
-        public static event EventHandler SlowUpdate;
-        private static int DelayedUpdateTimer = 0;
-
-        private static int SlowUpdateTimer = 0;
-        private const int SlowUpdateTimerAmount = 18000; //Every 5 minutes
-
-
-        public static void Update(GameTime time)
-        {
-            //Set screen size. This is used by shaders.
-            ScreenSize.X = (float)MainGameInstance.ActualWidth;
-            ScreenSize.Y = (float)MainGameInstance.ActualHeight;
-
-            //Force update camera this frame
-            if (forceUpdateCamera && MainCamera.cameraInstance != null && !MainGameBase.IsPlaying)
-            {
-                MainCamera.UpdateCameraAnimation(false);
-                forceUpdateCamera = false;
-            }
-
-            if (MainGameBase.IsPlaying)
-                SystemTime.X += 0.0166f; //Hardcoded timestep (1 second / 60 frames)
-
-            //Code for raising the DelayedUpdate event. This event fires off after a configurable interval and is used by some performance heavy UI operations.
-            if (DelayedUpdateTimer >= SettingsManager.Instance.Settings.XenoKit_DelayedUpdateFrameInterval)
-            {
-                DelayedUpdate?.Invoke(null, EventArgs.Empty);
-                DelayedUpdateTimer = 0;
-            }
-            else
-            {
-                DelayedUpdateTimer++;
-            }
-
-            //A slow update timer for cleaning up dead objects. This needs to be done regularly, but not so often
-            if (SlowUpdateTimer >= SlowUpdateTimerAmount)
-            {
-                SlowUpdate?.Invoke(null, EventArgs.Empty);
-                SlowUpdateTimer = 0;
-            }
-            else
-            {
-                SlowUpdateTimer++;
-            }
-
-            if(Files.Instance.SelectedItem != null)
-            {
-                Files.Instance.SelectedItem.Update();
-            }
-
-        }
-
-        #endregion
-
         public static void Play()
         {
-            if (MainGameBase.IsPlaying) return;
+            if (Viewport.Instance.IsPlaying) return;
 
             if (CurrentSceneState == EditorTabs.Action)
             {
@@ -674,34 +579,33 @@ namespace XenoKit.Engine
             }
             else if (CurrentSceneState == EditorTabs.Camera)
             {
-                MainCamera.Resume();
+                Viewport.Instance.Camera.Resume();
             }
 
-            MainGameBase.IsPlaying = true;
+            Viewport.Instance.IsPlaying = true;
             PlayStateChanged?.Invoke(null, EventArgs.Empty);
         }
 
         public static void Pause()
         {
-            MainGameBase.IsPlaying = false;
+            Viewport.Instance.IsPlaying = false;
             PlayStateChanged?.Invoke(null, EventArgs.Empty);
         }
 
         public static void Stop()
         {
-            if (MainGameInstance != null)
+            if (Viewport.Instance != null)
             {
-                MainGameInstance.AudioEngine.StopCues();
-                MainGameInstance.camera.Stop();
-                MainGameInstance.DestroyAllEntities();
+                Viewport.Instance.AudioEngine.StopCues();
+                Viewport.Instance.Camera.Stop();
 
                 if (IsOnTab(EditorTabs.Effect))
                 {
-                    MainGameInstance.VfxPreview.Stop();
+                    Viewport.Instance.VfxPreview.Stop();
                 }
                 else
                 {
-                    MainGameInstance.VfxManager.StopEffects();
+                    Viewport.Instance.VfxManager.StopEffects();
                 }
 
             }
@@ -720,7 +624,7 @@ namespace XenoKit.Engine
 
             Inspector.InspectorMode.Instance.ActiveSkinnedEntity?.AnimationPlayer?.FirstFrame();
 
-            MainGameBase.IsPlaying = false;
+            Viewport.Instance.IsPlaying = false;
             PlayStateChanged?.Invoke(null, EventArgs.Empty);
         }
 
@@ -736,7 +640,7 @@ namespace XenoKit.Engine
             Actors[charIndex].AnimationPlayer.PlayPrimaryAnimation(eanFile, eanIndex, 0, ushort.MaxValue, 1, 0, 0, false, 1f, true);
 
             if (forceAutoPlay)
-                MainGameBase.IsPlaying = true;
+                Viewport.Instance.IsPlaying = true;
         }
 
         public static void PlayBacEntry(BAC_File bacFile, BAC_Entry bacEntry, Move move, int charIndex, bool resetPosition)
@@ -751,12 +655,12 @@ namespace XenoKit.Engine
                 Actors[charIndex].MergeTransforms();
 
             Actors[charIndex].ActionControl.PreviewBacEntry(bacFile, bacEntry, move, Actors[charIndex]);
-            MainGameBase.IsPlaying = AutoPlay;
+            Viewport.Instance.IsPlaying = AutoPlay;
         }
 
         public static void PlayCameraAnimation(EAN_File eanFile, EAN_Animation animation, BAC_Type10 bacCamEntry, Actor actor, int targetCharaIndex, bool autoTerminate = true)
         {
-            MainGameInstance.camera.PlayCameraAnimation(eanFile, animation, bacCamEntry, actor, targetCharaIndex, autoTerminate);
+            Viewport.Instance.Camera.PlayCameraAnimation(eanFile, animation, bacCamEntry, actor, targetCharaIndex, autoTerminate);
         }
 
         /// <summary>
@@ -767,10 +671,10 @@ namespace XenoKit.Engine
         {
             ResetSceneCheck();
             EnsureActorIsSet(0);
-            MainGameInstance.camera.PlayCameraAnimation(eanFile, camera, null, Actors[0], 0, false, false);
+            Viewport.Instance.Camera.PlayCameraAnimation(eanFile, camera, null, Actors[0], 0, false, false);
 
             if (AutoPlay)
-                MainGameBase.IsPlaying = true;
+                Viewport.Instance.IsPlaying = true;
         }
 
         public static void ForceStopBacPlayer()
@@ -790,26 +694,19 @@ namespace XenoKit.Engine
         public static void CameraSelectionChanged(EAN_File eanFile, EAN_Animation camera)
         {
             if (AutoPlay)
-                MainGameInstance.camera.PlayCameraAnimation(eanFile, camera, null, Actors[0], 0, false);
+                Viewport.Instance.Camera.PlayCameraAnimation(eanFile, camera, null, Actors[0], 0, false);
         }
 
         public static void CameraChangeCurrentFrame(int frame)
         {
-            MainGameInstance.camera.SkipToFrame(frame);
+            Viewport.Instance.Camera.SkipToFrame(frame);
         }
 
-        /// <summary>
-        /// Ensures the camera gets updated this frame, even if it is currently paused.
-        /// </summary>
-        public static void UpdateCameraAnimation()
-        {
-            forceUpdateCamera = true;
-        }
         #endregion
 
         public static void SetDefaultSpm(SPM_File spmFile)
         {
-            MainGameInstance?.SetDefaultSpm(spmFile);
+            Viewport.Instance?.SetDefaultSpm(spmFile);
         }
 
     }

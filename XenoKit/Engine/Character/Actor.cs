@@ -14,11 +14,10 @@ using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine
 {
-    public class Actor : Entity, ISkinned
+    public class Actor : RenderObject, ISkinned
     {
         //TODO: Clean this mess up!
-        public override Matrix4x4 AbsoluteTransform => Transform;
-        public override EntityType EntityType => EntityType.Actor;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Actor;
 
         public int Team => ActorSlot == 1 ? 1 : 0;
         public int ActorSlot = 0;
@@ -115,26 +114,25 @@ namespace XenoKit.Engine
         public float[] EyeIrisRight_UV { get; set; } = new float[4];
         public bool BacEyeMovementUsed = false;
 
-        public Actor(GameBase gameBase, Xv2Character character, int initialPartSet = 0) : base(gameBase)
+        public Actor(Xv2Character character, int initialPartSet = 0)
         {
-            GameBase = gameBase;
-            Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(character.EskFile.File, GameBase);
+            Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(character.EskFile.File);
             Name = character.Name[0];
             ResetPosition();
-            ActionControl = new ActionControl(this, gameBase);
+            ActionControl = new ActionControl(this);
             Controller = new ActorController(this);
             Moveset = new Move(character);
             CharacterData = character;
             AABB = new float[6];
 
-            _debugSkeleton = new DebugSkeleton(gameBase);
-            _visualSkeleton = new VisualSkeleton(this, gameBase);
+            _debugSkeleton = new DebugSkeleton();
+            _visualSkeleton = new VisualSkeleton(this);
 
             //Create animation player
             AnimationPlayer = new AnimationPlayer(Skeleton, this);
 
             //Load PartSet
-            PartSet = new CharaPartSet(gameBase, this, initialPartSet);
+            PartSet = new CharaPartSet(this, initialPartSet);
         }
 
         #region Transform
@@ -226,7 +224,7 @@ namespace XenoKit.Engine
                 Controller.State = ActorState.Idle;
             }
 
-            if (GameBase.IsPlaying)
+            if (ViewportInstance.IsPlaying)
                 UpdateBdmTimeScale();
 
             Controller.Update();
@@ -257,11 +255,11 @@ namespace XenoKit.Engine
         public void Simulate(bool fullAnimUpdate, bool advance)
         {
 #if DEBUG
-            if (GameBase.IsPlaying) throw new InvalidOperationException("invalid operation, cannot do this while GameBase.IsPlaying is true.");
+            if (Viewport.Instance.IsPlaying) throw new InvalidOperationException("invalid operation, cannot do this while Viewport.IsPlaying is true.");
 #else
-            if (GameBase.IsPlaying)
+            if (Viewport.Instance.IsPlaying)
             {
-                Log.Add("Character.Simulate(): invalid operation, cannot do this while GameBase.IsPlaying is true.", LogType.Error);
+                Log.Add("Character.Simulate(): invalid operation, cannot do this while Viewport.IsPlaying is true.", LogType.Error);
                 return;
             }
 #endif
@@ -289,7 +287,7 @@ namespace XenoKit.Engine
 
         public override void Draw()
         {
-            if (!GameBase.RenderCharacters || !IsVisible) return;
+            if (!ViewportInstance.RenderCharacters || !IsVisible) return;
 
             if(RenderSystem.CurrentDrawPass == Rendering.DrawPass.Opaque)
                 ActionControl.Draw();
@@ -308,7 +306,7 @@ namespace XenoKit.Engine
 
         public override void DrawPass(bool normalPass)
         {
-            if (!GameBase.RenderCharacters || !IsVisible) return;
+            if (!ViewportInstance.RenderCharacters || !IsVisible) return;
             PartSet.DrawSimple(normalPass);
         }
 

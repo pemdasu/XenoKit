@@ -260,7 +260,7 @@ namespace XenoKit.Views
         private void EquipPartSet()
         {
             if (SelectedPartSet != null)
-                Files.Instance.SelectedItem.character.PartSet = new CharaPartSet(SceneManager.MainGameBase, Files.Instance.SelectedItem?.character, SelectedPartSet.ID);
+                Files.Instance.SelectedItem.character.PartSet = new CharaPartSet(Files.Instance.SelectedItem?.character, SelectedPartSet.ID);
         }
 
         public RelayCommand ApplyTransformationCommand => new RelayCommand(ApplyTransformation, CanEquipPartSet);

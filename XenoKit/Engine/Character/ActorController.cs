@@ -260,7 +260,7 @@ namespace XenoKit.Engine.Character
 
                 //On the first frame, activate the effects and sounds declared on the BDM entry and initialize any other settings
                 //The current animation will be frozen for 1 frame while this happens
-                if (DamageManager.CurrentFrame == 0 && (Actor.GameBase.IsPlaying || simulate))
+                if (DamageManager.CurrentFrame == 0 && (Actor.ViewportInstance.IsPlaying || simulate))
                 {
                     FreezeActionFrames = DamageManager.BdmSubEntry.VictimStun + 1;
                     DamageManager.Attacker.Controller.FreezeActionFrames = DamageManager.BdmSubEntry.UserStun + 1;
@@ -282,9 +282,9 @@ namespace XenoKit.Engine.Character
                     {
                         Xv2CoreLib.ACB.ACB_Wrapper acb = Files.Instance.GetAcbFile((Xv2CoreLib.BAC.AcbType)DamageManager.BdmSubEntry.AcbType, DamageManager.Move, Actor, true);
 
-                        if (acb != null && DamageManager.BdmSubEntry.CueId != -1 && Actor.GameBase.IsPlaying && Actor.AnimationPlayer.PrimaryAnimation != null)
+                        if (acb != null && DamageManager.BdmSubEntry.CueId != -1 && Actor.ViewportInstance.IsPlaying && Actor.AnimationPlayer.PrimaryAnimation != null)
                         {
-                            SceneManager.AudioEngine.PlayCue(DamageManager.BdmSubEntry.CueId, acb, Actor);
+                            Viewport.Instance.AudioEngine.PlayCue(DamageManager.BdmSubEntry.CueId, acb, Actor);
                         }
                     }
                 }
@@ -309,7 +309,7 @@ namespace XenoKit.Engine.Character
                 }
 
                 //Advance bdm frame if playing, or simulating a frame. This does not need to be time scaled
-                if (Actor.GameBase.IsPlaying || simulate)
+                if (Actor.ViewportInstance.IsPlaying || simulate)
                     DamageManager.CurrentFrame++;
             }
         }

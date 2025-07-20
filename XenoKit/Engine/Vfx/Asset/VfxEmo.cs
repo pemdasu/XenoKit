@@ -18,7 +18,7 @@ namespace XenoKit.Engine.Vfx.Asset
 {
     public class VfxEmo : VfxAsset
     {
-        public override EntityType EntityType => EntityType.Model;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Model;
         private readonly Xv2CoreLib.EffectContainer.Asset Asset;
 
         private Xv2ModelFile Model;
@@ -62,7 +62,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
         private Matrix4x4 AttachmentBone = Matrix4x4.Identity;
 
-        public VfxEmo(Matrix4x4 startWorld, Xv2CoreLib.EffectContainer.Asset asset, EffectPart effectPart, Actor actor, GameBase gameBase) : base(startWorld, effectPart, actor, gameBase)
+        public VfxEmo(Matrix4x4 startWorld, Xv2CoreLib.EffectContainer.Asset asset, EffectPart effectPart, Actor actor) : base(startWorld, effectPart, actor)
         {
             Asset = asset;
             InitializeFiles();
@@ -87,12 +87,12 @@ namespace XenoKit.Engine.Vfx.Asset
             {
                 if (file.fileType == EffectFile.FileType.EMO)
                 {
-                    Model = (file.EmoFile != null) ? CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(file.EmoFile, GameBase) : null;
-                    AnimationPlayer = new EmaAnimationPlayer(Skeleton, GameBase);
+                    Model = (file.EmoFile != null) ? CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(file.EmoFile) : null;
+                    AnimationPlayer = new EmaAnimationPlayer(Skeleton);
                 }
                 else if (file.fileType == EffectFile.FileType.EMB)
                 {
-                    Textures = (file.EmbFile != null) ? Xv2Texture.LoadTextureArray(file.EmbFile, GameBase) : null;
+                    Textures = (file.EmbFile != null) ? Xv2Texture.LoadTextureArray(file.EmbFile) : null;
                 }
                 else if (file.fileType == EffectFile.FileType.EMM)
                 {
@@ -111,7 +111,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
             if (Model != null)
             {
-                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Default, GameBase);
+                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Default);
                 Model.InitMaterialIndex(Materials);
             }
             else
@@ -303,7 +303,7 @@ namespace XenoKit.Engine.Vfx.Asset
             {
                 Time += 1f;
             }
-            else if (GameBase.IsPlaying)
+            else if (ViewportInstance.IsPlaying)
             {
                 Time += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
             }

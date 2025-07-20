@@ -4,8 +4,6 @@ namespace XenoKit.Engine.Pool
 {
     public class PoolInstance<T> where T : PooledEntity, new()
     {
-        private GameBase GameBase;
-
         private readonly int PoolSize;
         private readonly List<T> InUse = new List<T>();
         private readonly List<T> Available = new List<T>();
@@ -14,10 +12,9 @@ namespace XenoKit.Engine.Pool
         public int FreeObjectCount => Available.Count;
         public int UsedObjectCount => InUse.Count;
 
-        public PoolInstance(int poolSize, GameBase game)
+        public PoolInstance(int poolSize)
         {
             PoolSize = poolSize;
-            GameBase = game;
         }
 
         public T GetObject()
@@ -35,7 +32,6 @@ namespace XenoKit.Engine.Pool
                 else
                 {
                     T _object = new T();
-                    _object.SetGameBaseInstance(GameBase);
 
                     if (InUse.Count + Available.Count < PoolSize)
                         InUse.Add(_object);
@@ -81,13 +77,29 @@ namespace XenoKit.Engine.Pool
         }
     }
 
-    public abstract class PooledEntity : Entity
+    public abstract class PooledEntity : RenderObject
     {
         public virtual bool IsAlive => true;
 
         public PooledEntity() { }
 
         public abstract void ClearObjectState();
+
+        public virtual void Dispose()
+        {
+
+        }
+
+        public virtual void Destroy()
+        {
+            Dispose();
+            IsDestroyed = true;
+        }
+
+        public virtual void Reclaim()
+        {
+            IsDestroyed = false;
+        }
     }
 
 }

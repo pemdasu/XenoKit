@@ -4,7 +4,7 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
 {
     public static class EyeMovementPositions
     {
-        public static CustomVector4[] EyePositions = new CustomVector4[]
+        public static readonly CustomVector4[] EyePositions = new CustomVector4[]
         {
             new CustomVector4(-0.1f, -0.1f, 0, 0), //Left, Up
             new CustomVector4(0, -0.1f, 0, 0), //Up

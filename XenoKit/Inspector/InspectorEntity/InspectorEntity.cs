@@ -6,7 +6,7 @@ using Xv2CoreLib.Resource;
 namespace XenoKit.Inspector.InspectorEntities
 {
     [Serializable]
-    public class InspectorEntity : Entity, INotifyPropertyChanged
+    public class InspectorEntity : RenderObject, INotifyPropertyChanged, IDisposable
     {
         #region NotifyPropertyChanged
         public event PropertyChangedEventHandler PropertyChanged;
@@ -55,7 +55,7 @@ namespace XenoKit.Inspector.InspectorEntities
 
         public AsyncObservableCollection<InspectorEntity> ChildEntities { get; set; } = new AsyncObservableCollection<InspectorEntity>();
 
-        public InspectorEntity(string path) : base(SceneManager.MainGameBase)
+        public InspectorEntity(string path)
         {
             Name = System.IO.Path.GetFileNameWithoutExtension(path);
             Path = path;
@@ -96,6 +96,11 @@ namespace XenoKit.Inspector.InspectorEntities
         public virtual InspectorEntity Clone()
         {
             throw new NotImplementedException("Only implemented on Material and Texture entities!");
+        }
+    
+        public void Dispose()
+        {
+
         }
     }
 }

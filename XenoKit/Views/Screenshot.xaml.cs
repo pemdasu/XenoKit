@@ -59,10 +59,10 @@ namespace XenoKit.Views
         }
         public System.Windows.Media.Color BackgroundColor
         {
-            get => System.Windows.Media.Color.FromScRgb(SceneManager.ScreenshotBackgroundColor.A / 255f, SceneManager.ScreenshotBackgroundColor.R / 255f, SceneManager.ScreenshotBackgroundColor.G / 255f, SceneManager.ScreenshotBackgroundColor.B / 255f);
+            get => System.Windows.Media.Color.FromScRgb(Viewport.ScreenshotBackgroundColor.A / 255f, Viewport.ScreenshotBackgroundColor.R / 255f, Viewport.ScreenshotBackgroundColor.G / 255f, Viewport.ScreenshotBackgroundColor.B / 255f);
             set
             {
-                SceneManager.ScreenshotBackgroundColor = new Microsoft.Xna.Framework.Color(value.R, value.G, value.B, value.A);
+                Viewport.ScreenshotBackgroundColor = new Microsoft.Xna.Framework.Color(value.R, value.G, value.B, value.A);
             }
         }
 
@@ -76,7 +76,7 @@ namespace XenoKit.Views
             CameraTargetPos.PropertyChanged += CameraProperty_Changed;
             PropertyChanged += CameraProperty_Changed;
 
-            SceneManager.DelayedUpdate += SceneManager_DelayedUpdate;
+            Viewport.DelayedEventUpdateEvent += SceneManager_DelayedUpdate;
         }
 
         private void SceneManager_DelayedUpdate(object sender, EventArgs e)
@@ -89,7 +89,7 @@ namespace XenoKit.Views
 
             cameraUpdateFromView = false;
 
-            if(SceneManager.MainGameBase != null)
+            if(Viewport.Instance != null)
             {
                 UpdateCameraValuesFromView();
             }
@@ -97,27 +97,27 @@ namespace XenoKit.Views
 
         private void UpdateCameraValuesFromView()
         {
-            if(SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.X != CameraPos.X ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.Y != CameraPos.Y ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.Z != CameraPos.Z ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.X != CameraTargetPos.X ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.Y != CameraTargetPos.Y ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.Z != CameraTargetPos.Z ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.Roll != Roll ||
-               SceneManager.MainGameBase.ActiveCameraBase.CameraState.FieldOfView != FieldOfView)
+            if(Viewport.Instance.Camera.CameraState.Position.X != CameraPos.X ||
+               Viewport.Instance.Camera.CameraState.Position.Y != CameraPos.Y ||
+               Viewport.Instance.Camera.CameraState.Position.Z != CameraPos.Z ||
+               Viewport.Instance.Camera.CameraState.TargetPosition.X != CameraTargetPos.X ||
+               Viewport.Instance.Camera.CameraState.TargetPosition.Y != CameraTargetPos.Y ||
+               Viewport.Instance.Camera.CameraState.TargetPosition.Z != CameraTargetPos.Z ||
+               Viewport.Instance.Camera.CameraState.Roll != Roll ||
+               Viewport.Instance.Camera.CameraState.FieldOfView != FieldOfView)
             {
                 cameraUpdateFromView = true;
 
-                CameraPos.X = SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.X;
-                CameraPos.Y = SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.Y;
-                CameraPos.Z = SceneManager.MainGameBase.ActiveCameraBase.CameraState.Position.Z;
+                CameraPos.X = Viewport.Instance.Camera.CameraState.Position.X;
+                CameraPos.Y = Viewport.Instance.Camera.CameraState.Position.Y;
+                CameraPos.Z = Viewport.Instance.Camera.CameraState.Position.Z;
 
-                CameraTargetPos.X = SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.X;
-                CameraTargetPos.Y = SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.Y;
-                CameraTargetPos.Z = SceneManager.MainGameBase.ActiveCameraBase.CameraState.TargetPosition.Z;
+                CameraTargetPos.X = Viewport.Instance.Camera.CameraState.TargetPosition.X;
+                CameraTargetPos.Y = Viewport.Instance.Camera.CameraState.TargetPosition.Y;
+                CameraTargetPos.Z = Viewport.Instance.Camera.CameraState.TargetPosition.Z;
 
-                Roll = SceneManager.MainGameBase.ActiveCameraBase.CameraState.Roll;
-                FieldOfView = SceneManager.MainGameBase.ActiveCameraBase.CameraState.FieldOfView;
+                Roll = Viewport.Instance.Camera.CameraState.Roll;
+                FieldOfView = Viewport.Instance.Camera.CameraState.FieldOfView;
             }
         }
 
@@ -130,9 +130,9 @@ namespace XenoKit.Views
 
         private void UpdateCamera()
         {
-            if(SceneManager.MainGameBase != null)
+            if(Viewport.Instance != null)
             {
-                SceneManager.MainGameBase.ActiveCameraBase.CameraState.SetState(CameraPos, CameraTargetPos, _roll, _fieldOfView);
+                Viewport.Instance.Camera.CameraState.SetState(CameraPos, CameraTargetPos, _roll, _fieldOfView);
                 cameraUpdateFromValues = 10;
                 Log.Add("Updating camera state");
             }
@@ -149,14 +149,14 @@ namespace XenoKit.Views
                 return;
             }
 
-            SceneManager.MainGameBase.ActiveCameraBase.CameraState.SetState(LocalSettings.Instance.CameraStates[slot]);
+            Viewport.Instance.Camera.CameraState.SetState(LocalSettings.Instance.CameraStates[slot]);
         }
 
         public RelayCommand<int> SaveCameraPresetCommand => new RelayCommand<int>(SaveCameraPreset);
         private void SaveCameraPreset(int slot)
         {
             if (slot < 0 || slot >= LocalSettings.Instance.CameraStates.Length) return;
-            LocalSettings.Instance.CameraStates[slot] = new SerializedCameraState(SceneManager.MainGameBase.ActiveCameraBase.CameraState);
+            LocalSettings.Instance.CameraStates[slot] = new SerializedCameraState(Viewport.Instance.Camera.CameraState);
         }
     }
 }

@@ -6,7 +6,7 @@ using Xv2CoreLib.BAC;
 
 namespace XenoKit.Engine.Gizmo
 {
-    public class HitboxGizmo : Entity
+    public class HitboxGizmo : EngineObject
     {
         protected Matrix WorldMatrix
         {
@@ -37,9 +37,9 @@ namespace XenoKit.Engine.Gizmo
         private bool isBaseBone = false;
         private bool RefreshHitbox = false;
 
-        public HitboxGizmo(GameBase gameBase) : base(gameBase)
+        public HitboxGizmo() : base()
         {
-            BoundingBox = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Green, true, gameBase);
+            BoundingBox = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Green, true);
             SceneManager.ActorChanged += SceneManager_ActorChanged;
         }
 
@@ -112,7 +112,7 @@ namespace XenoKit.Engine.Gizmo
 
         public bool IsContextValid()
         {
-            return Hitbox != null && Controls.BacTab.StaticSelectedBacType == Hitbox && SceneManager.CurrentSceneState == EditorTabs.Action && !GameBase.IsPlaying;
+            return Hitbox != null && Controls.BacTab.StaticSelectedBacType == Hitbox && SceneManager.CurrentSceneState == EditorTabs.Action && !ViewportInstance.IsPlaying;
         }
 
         private void Hitbox_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

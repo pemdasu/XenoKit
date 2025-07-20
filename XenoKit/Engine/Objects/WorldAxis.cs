@@ -3,19 +3,19 @@ using XenoKit.Engine.Shapes;
 
 namespace XenoKit.Engine.Objects
 {
-    public class WorldAxis : Entity
+    public class WorldAxis : RenderObject
     {
         public Cube oCube;
         public Cube yCube;
         public Cube xCube;
         public Cube zCube;
 
-        public WorldAxis(GameBase gameBase) : base(gameBase)
+        public WorldAxis()
         {
-            oCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.1f, 0.1f, 0.1f), gameBase, Color.White);
-            xCube = new Cube(new Vector3(1, 0, 0), new Vector3(0.1f, 0.1f, 0.1f), gameBase, Color.Red);
-            yCube = new Cube(new Vector3(0, 1, 0), new Vector3(0.1f, 0.1f, 0.1f), gameBase, Color.Green);
-            zCube = new Cube(new Vector3(0, 0, 1), new Vector3(0.1f, 0.1f, 0.1f), gameBase, Color.Blue);
+            oCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.1f, 0.1f, 0.1f), Color.White);
+            xCube = new Cube(new Vector3(1, 0, 0), new Vector3(0.1f, 0.1f, 0.1f), Color.Red);
+            yCube = new Cube(new Vector3(0, 1, 0), new Vector3(0.1f, 0.1f, 0.1f), Color.Green);
+            zCube = new Cube(new Vector3(0, 0, 1), new Vector3(0.1f, 0.1f, 0.1f), Color.Blue);
         }
 
         public override void Draw()

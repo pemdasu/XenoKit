@@ -1,11 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using XenoKit.Engine.Shapes;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.Resource.App;
 
 namespace XenoKit.Engine.Scripting.BAC.Simulation
 {
-    public class HitboxPreview : BacVisualCueObject
+    public class HitboxPreview : BacVisualCueObject, IDisposable
     {
         protected Matrix WorldMatrix
         {
@@ -36,10 +37,10 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
         private bool isBaseBone = false;
         private bool RefreshHitbox = false;
 
-        public HitboxPreview(BAC_Type1 hitbox, BacEntryInstance bacEntryInstance, GameBase gameBase) : base(hitbox, bacEntryInstance, gameBase)
+        public HitboxPreview(BAC_Type1 hitbox, BacEntryInstance bacEntryInstance) : base(hitbox, bacEntryInstance)
         {
             Hitbox = hitbox;
-            BoundingBox = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Blue, true, gameBase);
+            BoundingBox = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Blue, true);
 
             UpdateHitbox();
             Hitbox.PropertyChanged += Hitbox_PropertyChanged;
@@ -99,12 +100,10 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
             RefreshHitbox = true;
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             if(Hitbox != null)
                 Hitbox.PropertyChanged -= Hitbox_PropertyChanged;
-
-            base.Dispose();
         }
 
         protected override bool IsContextValid()
@@ -112,7 +111,7 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
             int type = Controls.BacTab.StaticSelectedBacType != null ? Controls.BacTab.StaticSelectedBacType.TypeID : -1;
 
             //Valid context if IsPlaying OR selected bac type isn't a hitbox (in which case, a HitboxGizmo will be visible)
-            return (GameBase.IsPlaying || type != 1) && IsValidForCurrentFrame() && SettingsManager.Instance.Settings.XenoKit_HitboxSimulation;
+            return (ViewportInstance.IsPlaying || type != 1) && IsValidForCurrentFrame() && SettingsManager.Instance.Settings.XenoKit_HitboxSimulation;
         }
 
     }

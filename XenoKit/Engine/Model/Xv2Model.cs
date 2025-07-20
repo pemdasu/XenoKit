@@ -23,7 +23,7 @@ using SimdQuaternion = System.Numerics.Quaternion;
 
 namespace XenoKit.Engine.Model
 {
-    public class Xv2ModelFile : Entity
+    public class Xv2ModelFile : RenderObject
     {
         public EventHandler MaterialsChanged;
         public NSK_File SourceNskFile { get; private set; }
@@ -35,15 +35,15 @@ namespace XenoKit.Engine.Model
         public List<Xv2Model> Models { get; private set; } = new List<Xv2Model>();
         public Xv2Skeleton Skeleton { get; private set; }
 
-        private Xv2ModelFile(GameBase gameBase) : base(gameBase)
+        private Xv2ModelFile()
         {
         }
 
         #region Load
-        public static Xv2ModelFile LoadEmd(GameBase gameBase, EMD_File emdFile, string name = null)
+        public static Xv2ModelFile LoadEmd(EMD_File emdFile, string name = null)
         {
             //Create EmdModel
-            Xv2ModelFile newEmdFile = new Xv2ModelFile(gameBase);
+            Xv2ModelFile newEmdFile = new Xv2ModelFile();
             newEmdFile.Name = name;
             newEmdFile.Type = ModelType.Emd;
             newEmdFile.SourceEmdFile = emdFile;
@@ -52,10 +52,10 @@ namespace XenoKit.Engine.Model
             return newEmdFile;
         }
 
-        public static Xv2ModelFile LoadNsk(GameBase gameBase, NSK_File nskFile, string name = null)
+        public static Xv2ModelFile LoadNsk(NSK_File nskFile, string name = null)
         {
             //Create EmdModel
-            Xv2ModelFile modelFile = new Xv2ModelFile(gameBase);
+            Xv2ModelFile modelFile = new Xv2ModelFile();
             modelFile.Name = name;
             modelFile.Type = ModelType.Nsk;
             modelFile.SourceNskFile = nskFile;
@@ -66,9 +66,9 @@ namespace XenoKit.Engine.Model
             return modelFile;
         }
 
-        public static Xv2ModelFile LoadEmo(GameBase gameBase, EMO_File emoFile)
+        public static Xv2ModelFile LoadEmo(EMO_File emoFile)
         {
-            Xv2ModelFile modelFile = new Xv2ModelFile(gameBase);
+            Xv2ModelFile modelFile = new Xv2ModelFile();
             modelFile.Type = ModelType.Emo;
             modelFile.SourceEmoFile = emoFile;
             modelFile.LoadEmo(true);
@@ -80,7 +80,7 @@ namespace XenoKit.Engine.Model
         /// <summary>
         /// Load the first submesh from an EMG, and ignore samplers and blend weights. This is intended for loading particle EMGs.
         /// </summary>
-        public static Xv2Submesh LoadEmg(GameBase gameBase, EMG_File emgFile)
+        public static Xv2Submesh LoadEmg(EMG_File emgFile)
         {
             if (emgFile.EmgMeshes.Count == 0) return null;
             if (emgFile.EmgMeshes[0].Submeshes.Count == 0) return null;
@@ -88,7 +88,7 @@ namespace XenoKit.Engine.Model
             EMG_Mesh mesh = emgFile.EmgMeshes[0];
             EMG_Submesh submesh = emgFile.EmgMeshes[0].Submeshes[0];
 
-            Xv2Submesh xv2Submesh = new Xv2Submesh(gameBase, submesh.MaterialName, ModelType.Emg, submesh, null);
+            Xv2Submesh xv2Submesh = new Xv2Submesh(submesh.MaterialName, ModelType.Emg, submesh, null);
 
             xv2Submesh.BoundingBox = mesh.AABB.ConvertToBoundingBox();
             xv2Submesh.BoundingBoxCenter = mesh.AABB.GetCenter();
@@ -116,14 +116,14 @@ namespace XenoKit.Engine.Model
             return xv2Submesh;
         }
 
-        public static Xv2ModelFile LoadEmgInContainer(GameBase gameBase, EMG_File emgFile)
+        public static Xv2ModelFile LoadEmgInContainer(EMG_File emgFile)
         {
-            Xv2ModelFile modelFile = new Xv2ModelFile(gameBase);
+            Xv2ModelFile modelFile = new Xv2ModelFile();
             modelFile.Type = ModelType.Emg;
 
-            modelFile.Models.Add(new Xv2Model("root_model", null, gameBase));
-            modelFile.Models[0].Meshes.Add(new Xv2Mesh("root_mesh", null, modelFile.Models[0], gameBase));
-            modelFile.Models[0].Meshes[0].Submeshes.Add(LoadEmg(gameBase, emgFile));
+            modelFile.Models.Add(new Xv2Model("root_model", null));
+            modelFile.Models[0].Meshes.Add(new Xv2Mesh("root_mesh", null, modelFile.Models[0]));
+            modelFile.Models[0].Meshes[0].Submeshes.Add(LoadEmg(emgFile));
 
             return modelFile;
         }
@@ -135,11 +135,11 @@ namespace XenoKit.Engine.Model
             //Models
             foreach (EMD_Model emdModel in SourceEmdFile.Models)
             {
-                Xv2Model model = new Xv2Model(emdModel.Name, emdModel, GameBase);
+                Xv2Model model = new Xv2Model(emdModel.Name, emdModel);
 
                 foreach (EMD_Mesh emdMesh in emdModel.Meshes)
                 {
-                    Xv2Mesh mesh = new Xv2Mesh(emdMesh.Name, emdMesh, model, GameBase);
+                    Xv2Mesh mesh = new Xv2Mesh(emdMesh.Name, emdMesh, model);
 
                     foreach (EMD_Submesh emdSubmesh in emdMesh.Submeshes)
                     {
@@ -147,7 +147,7 @@ namespace XenoKit.Engine.Model
 
                         foreach (EMD_Triangle triangleList in emdSubmesh.Triangles)
                         {
-                            Xv2Submesh submesh = new Xv2Submesh(GameBase, emdSubmesh.Name, Type, emdSubmesh, mesh);
+                            Xv2Submesh submesh = new Xv2Submesh(emdSubmesh.Name, Type, emdSubmesh, mesh);
 
                             submesh.BoundingBox = emdSubmesh.AABB.ConvertToBoundingBox();
                             submesh.BoundingBoxCenter = emdSubmesh.AABB.GetCenter();
@@ -226,7 +226,7 @@ namespace XenoKit.Engine.Model
             {
                 foreach (var model in SourceEmoFile.Parts[a].EmgFiles)
                 {
-                    Xv2Model xv2Model = new Xv2Model(SourceEmoFile.Parts[a].Name, model, GameBase);
+                    Xv2Model xv2Model = new Xv2Model(SourceEmoFile.Parts[a].Name, model);
                     var bone = SourceEmoFile.Skeleton.Bones.FirstOrDefault(x => x.EmoPartIndex == partIdx);
 
                     //The bone and model name SHOULD be the same (they are in all vanilla files), but just to guard against them possibilily being different, we can overwrite the model name with the bone name
@@ -236,11 +236,11 @@ namespace XenoKit.Engine.Model
 
                     foreach (var mesh in model.EmgMeshes)
                     {
-                        Xv2Mesh xv2Mesh = new Xv2Mesh("", mesh, xv2Model, GameBase);
+                        Xv2Mesh xv2Mesh = new Xv2Mesh("", mesh, xv2Model);
 
                         foreach (var submesh in mesh.Submeshes)
                         {
-                            Xv2Submesh xv2Submesh = new Xv2Submesh(GameBase, submesh.MaterialName, Type, submesh, xv2Mesh);
+                            Xv2Submesh xv2Submesh = new Xv2Submesh(submesh.MaterialName, Type, submesh, xv2Mesh);
 
                             xv2Submesh.BoundingBox = mesh.AABB.ConvertToBoundingBox();
                             xv2Submesh.BoundingBoxCenter = mesh.AABB.GetCenter();
@@ -577,7 +577,7 @@ namespace XenoKit.Engine.Model
 
     }
 
-    public class Xv2Model : Entity
+    public class Xv2Model : RenderObject
     {
         public Xv2Bone AttachBone { get; private set; }
 
@@ -589,7 +589,7 @@ namespace XenoKit.Engine.Model
         public SimdVector3 BoundingBoxCenter { get; set; }
 
 
-        public Xv2Model(string name, object sourceModelObj, GameBase gameBase) : base(gameBase)
+        public Xv2Model(string name, object sourceModelObj)
         {
             Name = name;
             SourceModel = sourceModelObj;
@@ -645,7 +645,7 @@ namespace XenoKit.Engine.Model
         }
     }
 
-    public class Xv2Mesh : Entity
+    public class Xv2Mesh : RenderObject
     {
         public List<Xv2Submesh> Submeshes { get; set; } = new List<Xv2Submesh>();
 
@@ -655,7 +655,7 @@ namespace XenoKit.Engine.Model
         public BoundingBox BoundingBox { get; set; }
         public SimdVector3 BoundingBoxCenter { get; set; }
 
-        public Xv2Mesh(string name, object sourceMeshObj, Xv2Model parent, GameBase gameBase) : base(gameBase)
+        public Xv2Mesh(string name, object sourceMeshObj, Xv2Model parent)
         {
             Name = name;
             SourceMesh = sourceMeshObj;
@@ -701,9 +701,9 @@ namespace XenoKit.Engine.Model
         }
     }
 
-    public class Xv2Submesh : Entity
+    public class Xv2Submesh : RenderObject
     {
-        public override EntityType EntityType => EntityType.Model;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Model;
 
         public int MaterialIndex { get; private set; }
         public ModelType Type { get; private set; }
@@ -753,7 +753,7 @@ namespace XenoKit.Engine.Model
                 DefaultSkinningMatrices[i] = Matrix4x4.Identity;
         }
 
-        public Xv2Submesh(GameBase gameBase, string name, ModelType type, object sourceSubmesh, Xv2Mesh parent) : base(gameBase)
+        public Xv2Submesh(string name, ModelType type, object sourceSubmesh, Xv2Mesh parent)
         {
             Name = name;
             Type = type;
@@ -761,7 +761,7 @@ namespace XenoKit.Engine.Model
             Parent = parent;
 
 #if DEBUG
-            VisibleAABB = new DrawableBoundingBox(GameBase);
+            VisibleAABB = new DrawableBoundingBox();
 #endif
         }
 
@@ -874,10 +874,9 @@ namespace XenoKit.Engine.Model
 #if DEBUG
             if (!SceneManager.FrustumCullEnabled) return true;
 #endif
-            if (Vector3.Distance(world.Translation, GameBase.ActiveCameraBase.CameraState.Position) < 1f) return true;
+            if (Vector3.Distance(world.Translation, ViewportInstance.Camera.CameraState.Position) < 1f) return true;
 
-            BoundingFrustum frustum = RenderSystem.IsShadowPass ? GameBase.SunLight.LightFrustum : GameBase.ActiveCameraBase.Frustum;
-            //BoundingFrustum frustum = GameBase.ActiveCameraBase.Frustum;
+            BoundingFrustum frustum = RenderSystem.IsShadowPass ? ViewportInstance.SunLight.LightFrustum : ViewportInstance.Camera.Frustum;
 
             return frustum.Intersects(BoundingBox.Transform(world));
         }

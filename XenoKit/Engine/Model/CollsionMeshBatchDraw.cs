@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace XenoKit.Engine.Model
 {
-    public class CollisionMeshBatchDraw : Entity
+    public class CollisionMeshBatchDraw : EngineObject
     {
         struct MeshDrawData
         {
@@ -26,7 +26,7 @@ namespace XenoKit.Engine.Model
         private static BasicEffect Material;
         private static RasterizerState RasterState;
 
-        public CollisionMeshBatchDraw(GameBase game, List<CollisionMesh> collisionMeshes) : base(game)
+        public CollisionMeshBatchDraw(List<CollisionMesh> collisionMeshes)
         {
             SetMeshData(collisionMeshes);
             CreateBuffers();
@@ -116,8 +116,8 @@ namespace XenoKit.Engine.Model
                 GraphicsDevice.SetVertexBuffer(VertexBuffer);
                 GraphicsDevice.Indices = IndexBuffer;
 
-                Material.Projection = CameraBase.ProjectionMatrix;
-                Material.View = CameraBase.ViewMatrix;
+                Material.Projection = Camera.ProjectionMatrix;
+                Material.View = Camera.ViewMatrix;
                 Material.World = Matrix.Identity;
 
                 pass.Apply();

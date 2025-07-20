@@ -13,7 +13,7 @@ using Xv2CoreLib.Resource.App;
 
 namespace XenoKit.Engine.Rendering
 {
-    public class YBSPostProcess : Entity
+    public class YBSPostProcess : EngineObject
     {
         private RenderSystem renderSystem;
         private RenderTargetWrapper SceneRT;
@@ -81,7 +81,7 @@ namespace XenoKit.Engine.Rendering
 
         private YBSPostFilterStep AxisCorrectionFilter;
 
-        public YBSPostProcess(GameBase game, RenderSystem renderSystem, RenderTargetWrapper sceneRT, RenderTargetWrapper glareRT) : base(game)
+        public YBSPostProcess(RenderSystem renderSystem, RenderTargetWrapper sceneRT, RenderTargetWrapper glareRT)
         {
             this.renderSystem = renderSystem;
             SceneRT = sceneRT;
@@ -678,7 +678,7 @@ namespace XenoKit.Engine.Rendering
 
         private PostShaderEffect GetShader(string name)
         {
-            return CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetExtShaderProgram(name), GameBase, ShaderType.PostFilter);
+            return CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetExtShaderProgram(name), ShaderType.PostFilter);
         }
 
         private YBSPostFilterStep AddGlare(YBSPostFilterStep filter)

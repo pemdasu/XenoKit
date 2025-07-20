@@ -66,13 +66,13 @@ namespace XenoKit.Views
                 NotifyPropertyChanged(nameof(SelectedBoneScaleViewModel));
                 NotifyPropertyChanged(nameof(EditorVisibility));
 
-                if(SelectedBody != null && _selectedBoneScale != null && SceneManager.MainGameInstance != null)
+                if(SelectedBody != null && _selectedBoneScale != null && Viewport.Instance != null)
                 {
-                    SceneManager.MainGameInstance.GetBoneScaleGizmo().SetContext(SelectedBoneScale, SelectedBody, SceneManager.Actors[0], SelectedBoneScale.BoneName);
+                    Viewport.Instance.GetBoneScaleGizmo().SetContext(SelectedBoneScale, SelectedBody, SceneManager.Actors[0], SelectedBoneScale.BoneName);
                 }
-                else if(SceneManager.MainGameInstance != null)
+                else if(Viewport.Instance != null)
                 {
-                    SceneManager.MainGameInstance.BoneScaleGizmo.RemoveContext();
+                    Viewport.Instance.BoneScaleGizmo.RemoveContext();
                 }
 
             }

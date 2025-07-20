@@ -7,6 +7,8 @@ namespace XenoKit.Engine.Gizmo
 {
     public class AnimatorGizmo : GizmoBase
     {
+        public static string CurrentSelectedBoneName = "";
+
         //Bone and skinned entity info
         private ISkinned skinnedEntity = null;
         private string boneName = string.Empty;
@@ -34,9 +36,6 @@ namespace XenoKit.Engine.Gizmo
         //Settings
         protected override bool AutoPause => true;
 
-        public AnimatorGizmo(GameBase gameBase) : base(gameBase)
-        {
-        }
 
         public void RemoveContext()
         {
@@ -57,7 +56,7 @@ namespace XenoKit.Engine.Gizmo
             }
 
             this.boneName = boneName;
-            SceneManager.CurrentSelectedBoneName = boneName;
+            CurrentSelectedBoneName = boneName;
 
             base.SetContext();
         }

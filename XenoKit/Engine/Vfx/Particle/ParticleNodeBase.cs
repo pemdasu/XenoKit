@@ -16,7 +16,7 @@ namespace XenoKit.Engine.Vfx.Particle
     {
         public WeakReference Effect;
         public override bool IsAlive => Effect.IsAlive;
-        public override EntityType EntityType => EntityType.VFX;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.VFX;
 
         public ParticleSystem ParticleSystem { get; private set; }
         public ParticleNode Node;
@@ -75,9 +75,8 @@ namespace XenoKit.Engine.Vfx.Particle
             Effect = new WeakReference(null);
         }
 
-        public ParticleNodeBase(Matrix4x4 emitPoint, ParticleSystem system, EffectPart effectPart, GameBase game)
+        public ParticleNodeBase(Matrix4x4 emitPoint, ParticleSystem system, EffectPart effectPart)
         {
-            SetGameBaseInstance(game);
             EmitPointTransform = emitPoint;
             ParticleSystem = system;
             EffectPart = effectPart;
@@ -410,12 +409,11 @@ namespace XenoKit.Engine.Vfx.Particle
                         if (Node.ChildParticleNodes[i].EmissionNode.EmissionType == ParticleEmission.ParticleEmissionType.Plane)
                         {
                             newNode = ObjectPoolManager.GetParticlePlane(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
-                            //GameBase.RenderSystem.AddRenderEntity(newNode);
                         }
                         else if (Node.ChildParticleNodes[i].EmissionNode.EmissionType == ParticleEmission.ParticleEmissionType.Mesh)
                         {
                             newNode = ObjectPoolManager.GetParticleMesh(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
-                            GameBase.RenderSystem.AddRenderEntity(newNode);
+                            ViewportInstance.RenderSystem.AddRenderEntity(newNode);
                         }
                         else
                         {

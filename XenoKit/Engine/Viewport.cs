@@ -1,6 +1,10 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Framework.WpfInterop;
+using MonoGame.Framework.WpfInterop.Input;
+using Xv2CoreLib.SPM;
+using Xv2CoreLib.Resource.App;
 using XenoKit.Engine.View;
 using XenoKit.Engine.Objects;
 using XenoKit.Engine.Gizmo;
@@ -8,71 +12,159 @@ using XenoKit.Engine.Audio;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Vfx;
 using XenoKit.Engine.Text;
+using XenoKit.Windows;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Rendering;
 using XenoKit.Inspector;
-using XenoKit.Windows;
-using Xv2CoreLib.Resource.App;
-using Xv2CoreLib.SPM;
 using XenoKit.Engine.Stage;
+using XenoKit.Engine.Lighting;
+using XenoKit.Engine.Pool;
+using XenoKit.Engine.Scripting;
+using XenoKit.Engine.Textures;
 
 namespace XenoKit.Engine
 {
-    public class Game : GameBase
+    public class Viewport : WpfGame
     {
-        public override ICameraBase ActiveCameraBase { get => camera; }
+		private static Viewport _instance = null;
+        public static Viewport Instance => _instance;
 
-        //Engine Features:
-        public Camera camera;
-        public AudioEngine AudioEngine;
-        public VfxPreview VfxPreview;
+        #region Events
+        /// <summary>
+        /// Invoked every frame.
+        /// </summary>
+        public static event EventHandler UpdateEvent;
+        /// <summary>
+        /// Invoked periodically after a set amount of frames has passed (user configurable between 10 - 60). This is intended for updating UI at a reduced, but still reasonably fast rate.
+        /// </summary>
+        public static event EventHandler DelayedEventUpdateEvent;
+        /// <summary>
+        /// Invoked every minute. This is intended for periodic background update events that don't need to run often. 
+        /// </summary>
+        public static event EventHandler SlowUpdateEvent;
 
-        public FrameRateCounter FrameRate { get; private set; } = new FrameRateCounter();
+        private static int DelayedUpdateTimer = 0;
+        private static int SlowUpdateTimer = 0;
+        private const int SlowUpdateTimerAmount = 60 * 60; //Every minute
+        #endregion
 
-        //Engine Values:
-        public override bool IsMainInstance => true;
-        public override int SuperSamplingFactor => IsFullScreen ? 1 : SettingsManager.settings.XenoKit_SuperSamplingFactor;
+        #region Fields
+        private WpfGraphicsDeviceService _graphicsDeviceManager;
+		private WpfKeyboard _keyboard;
+		private WpfMouse _mouse;
+		private SpriteBatch spriteBatch;
 
-        //Gizmos
-        public GizmoBase CurrentGizmo = null;
-        public AnimatorGizmo AnimatorGizmo;
-        public BoneScaleGizmo BoneScaleGizmo;
-        public BacMatrixGizmo BacMatrixGizmo;
-        public HitboxGizmo BacHitboxGizmo;
-        public ModelGizmo ModelGizmo;
-        public EntityTransformGizmo EntityTransformGizmo;
+        //Scene
+        public bool IsPlaying = false;
+        public bool RenderCharacters = true;
+        public bool WireframeMode = false;
+        public bool IsBlackVoid = false;
+
+        //Rendering
         private InfiniteWorldGrid WorldGrid;
-
         private RenderTargetWrapper MainRenderTarget;
         private RenderTargetWrapper AxisCorrectionRenderTarget;
+        private FullscreenWindow FullscreenWindow = null;
 
-        //Fullscreen
-        private FullscreenWindow fullscreenWindow = null;
+        //Stage
+        protected bool _isDefaultStageActive = true;
+        protected Xv2Stage _defaultStage;
+        protected Xv2Stage _setStage;
+        public Xv2Stage CurrentStage { get; private set; }
+
+        //Other
+        public static Vector4 SystemTime; //Seconds elsapsed while "IsPlaying". For use in DBXV2 Shaders.
+
+        public static Color ViewportBackgroundColor = new Color(20, 20, 20, 255);
+        public static Color ScreenshotBackgroundColor = new Color(20, 20, 20, 255);
+
+        private int DelayedTimer = 0;
+        protected int HotkeyCooldown = 0;
+        private bool isCameraUpdateForced = false;
+        #endregion
+
+        #region Properties
+        public GameTime GameTime { get; protected set; }
+        /// <summary>
+        /// The number of frames that has passed since the start of the application.
+        /// </summary>
+        public ulong Tick { get; private set; }
+        public Camera Camera { get; protected set; }
+        public AudioEngine AudioEngine { get; protected set; }
+		public VfxPreview VfxPreview { get; protected set; }
+		public ShaderManager ShaderManager { get; private set; }
+        public DirLight LightSource { get; private set; }
+        public SunLight SunLight { get; private set; }
+        public Input Input { get; private set; }
+        public TextRenderer TextRenderer { get; private set; }
+        public VfxManager VfxManager { get; private set; }
+        public RenderSystem RenderSystem { get; private set; }
+        public CompiledObjectManager CompiledObjectManager { get; private set; } = new CompiledObjectManager();
+        public ObjectPoolManager ObjectPoolManager { get; private set; }
+        public Simulation Simulation { get; private set; }
+        public FrameRateCounter FrameRate { get; private set; } = new FrameRateCounter();
+
+        //Gizmos
+        public GizmoBase CurrentGizmo { get; private set; }
+        public AnimatorGizmo AnimatorGizmo { get; private set; }
+        public BoneScaleGizmo BoneScaleGizmo { get; private set; }
+        public BacMatrixGizmo BacMatrixGizmo { get; private set; }
+        public HitboxGizmo BacHitboxGizmo { get; private set; }
+        public ModelGizmo ModelGizmo { get; private set; }
+        public EntityTransformGizmo EntityTransformGizmo { get; private set; }
+
+        #endregion
 
         protected override void Initialize()
         {
-            //Initalize all base elements first
+            _instance = this;
+            // must be initialized. required by Content loading and rendering (will add itself to the Services)
+            // note that MonoGame requires this to be initialized in the constructor, while WpfInterop requires it to
+            // be called inside Initialize (before base.Initialize())
+            _graphicsDeviceManager = new WpfGraphicsDeviceService(this);
+            _graphicsDeviceManager.GraphicsDevice.PresentationParameters.RenderTargetUsage = RenderTargetUsage.PreserveContents;
+            spriteBatch = new SpriteBatch(_graphicsDeviceManager.GraphicsDevice);
+
+            // wpf and keyboard need reference to the host control in order to receive input
+            // this means every WpfGame control will have it's own keyboard & mouse manager which will only react if the mouse is in the control
+            _keyboard = new WpfKeyboard(this);
+            _mouse = new WpfMouse(this);
+
+            //Load font
+            TextRenderer = new TextRenderer(GraphicsDevice, spriteBatch);
+
+            _defaultStage = Xv2Stage.CreateDefaultStage();
+            CurrentStage = _defaultStage;
+            Input = new Input();
+            LightSource = new DirLight();
+            SunLight = new SunLight();
+            ObjectPoolManager = new ObjectPoolManager();
+            ShaderManager = new ShaderManager();
+            Simulation = new Simulation();
+
+            // must be called after the WpfGraphicsDeviceService instance was created
             base.Initialize();
 
-            //Set game instace in SceneManager - this is required for most objects to function correctly
-            SceneManager.MainGameInstance = this;
+            Xv2Texture.InitDefaultTexture();
+            DefaultShaders.InitDefaultShaders();
+
             CollisionMesh.CreateResources(GraphicsDevice);
 
             //Now initialize objects
-            AnimatorGizmo = new AnimatorGizmo(this);
-            BoneScaleGizmo = new  BoneScaleGizmo(this);
-            BacMatrixGizmo = new BacMatrixGizmo(this);
-            BacHitboxGizmo = new HitboxGizmo(this);
-            EntityTransformGizmo = new EntityTransformGizmo(this);
-            ModelGizmo = new ModelGizmo(this);
+            AnimatorGizmo = new AnimatorGizmo();
+            BoneScaleGizmo = new  BoneScaleGizmo();
+            BacMatrixGizmo = new BacMatrixGizmo();
+            BacHitboxGizmo = new HitboxGizmo();
+            EntityTransformGizmo = new EntityTransformGizmo();
+            ModelGizmo = new ModelGizmo();
             CurrentGizmo = AnimatorGizmo;
 
-            camera = new Camera(this);
+            Camera = new Camera();
             AudioEngine = new AudioEngine();
-            VfxManager = new VfxManager(this);
-            RenderSystem = new RenderSystem(this, true);
-            VfxPreview = new VfxPreview(this);
+            VfxManager = new VfxManager();
+            RenderSystem = new RenderSystem(spriteBatch, true);
+            VfxPreview = new VfxPreview();
 
             MainRenderTarget = new RenderTargetWrapper(RenderSystem, 1, SurfaceFormat.Color, true, "MainRenderTarget");
             AxisCorrectionRenderTarget = new RenderTargetWrapper(RenderSystem, 1, SurfaceFormat.Color, true, "AxisCorrectionRenderTarget");
@@ -82,29 +174,30 @@ namespace XenoKit.Engine
             //Set viewport background color
             if (LocalSettings.Instance.SerializedBackgroundColor != null)
             {
-                SceneManager.ViewportBackgroundColor = LocalSettings.Instance.SerializedBackgroundColor.ToColor();
+                Viewport.ViewportBackgroundColor = LocalSettings.Instance.SerializedBackgroundColor.ToColor();
             }
 
             if (LocalSettings.Instance.CustomScreenshotBackgroundColor != null)
             {
-                SceneManager.ScreenshotBackgroundColor = LocalSettings.Instance.CustomScreenshotBackgroundColor.ToColor();
+                Viewport.ScreenshotBackgroundColor = LocalSettings.Instance.CustomScreenshotBackgroundColor.ToColor();
             }
+
+            WorldGrid = new InfiniteWorldGrid();
         }
 
-        protected override void LoadContent()
-        {
-            //AddEntity(new WorldAxis(this), false);
-            //AddEntity(new ObjectAxis(true, this), false);
-            //AddEntity(new WorldGrid(this), false);
-            WorldGrid = new InfiniteWorldGrid(this);
-
-            base.LoadContent();
-        }
-
+        #region Main Loop
         protected override void Update(GameTime time)
         {
+            IsBlackVoid = false;
+            GameTime = time;
+            Input.Update(_mouse, _keyboard);
+            CheckHotkeys();
+
+            SunLight.Update();
+            LightSource.Update();
+            CurrentStage?.Update();
+
             FrameRate.Update((float)time.ElapsedGameTime.TotalSeconds);
-            base.Update(time);
             ShaderManager.Update();
             CurrentGizmo.Update();
             BacHitboxGizmo.Update();
@@ -146,17 +239,68 @@ namespace XenoKit.Engine
             RenderSystem.Update();
 
             //Update camera last - this way it has the lowest priority for mouse click events
-            camera.Update(time);
+            Camera.Update(time);
 
-            if (GameUpdate != null)
-                GameUpdate.Invoke(this, null);
+            UpdateEvent?.Invoke(this, null);
 
-            SceneManager.Update(time);
+            //Force update camera this frame
+            if (isCameraUpdateForced && Camera.cameraInstance != null && !IsPlaying)
+            {
+                Camera.UpdateCameraAnimation(false);
+                isCameraUpdateForced = false;
+            }
+
+            if (IsPlaying)
+                SystemTime.X += 0.0166f; //Hardcoded timestep (1 second / 60 frames)
+
+            if (Files.Instance.SelectedItem != null)
+            {
+                Files.Instance.SelectedItem.Update();
+            }
+
+            //Handle delayed/slow updates:
+            //DelayedUpdate (every 60 frames)
+            if (DelayedTimer >= 60)
+            {
+                DelayedTimer = 0;
+                DelayedUpdate();
+            }
+            else
+            {
+                DelayedTimer++;
+            }
+
+            //SlowUpdate (every 5 minutes)
+            if (SlowUpdateTimer >= SlowUpdateTimerAmount)
+            {
+                SlowUpdateTimer = 0;
+                SlowUpdateEvent?.Invoke(this, EventArgs.Empty);
+                SlowUpdate();
+            }
+            else
+            {
+                SlowUpdateTimer++;
+            }
+
+            //DelayedEventUpdate (user configurable between 10 - 60 frames)
+            //Similar name, but different from DelayedUpdate. This is mainly used for updating UI elements after a short delay, and is event-only
+            if (DelayedUpdateTimer >= SettingsManager.Instance.Settings.XenoKit_DelayedUpdateFrameInterval)
+            {
+                DelayedUpdateTimer = 0;
+                DelayedEventUpdateEvent?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                DelayedUpdateTimer++;
+            }
+
+            Tick++;
         }
 
-        protected override void DelayedUpdate()
+        protected void DelayedUpdate()
         {
-            base.DelayedUpdate();
+            ObjectPoolManager.DelayedUpdate();
+
             ShaderManager.DelayedUpdate();
             RenderSystem.DelayedUpdate();
             CurrentGizmo.DelayedUpdate();
@@ -169,16 +313,19 @@ namespace XenoKit.Engine
                     SceneManager.Actors[i].DelayedUpdate();
             }
 
-            camera.DelayedUpdate();
+            Camera.DelayedUpdate();
 
             //Exit fullscreen state if the window is closed by some other means
-            if(fullscreenWindow != null)
+            if(FullscreenWindow != null && IsFullScreen && !FullscreenWindow.IsActive)
             {
-                if (IsFullScreen && !fullscreenWindow.IsActive)
-                {
-                    DisableFullscreen();
-                }
+                DisableFullscreen();
             }
+        }
+
+        protected void SlowUpdate()
+        {
+            CompiledObjectManager.SlowUpdate();
+            RenderSystem.SlowUpdate();
         }
 
         protected override void Draw(GameTime time)
@@ -194,7 +341,6 @@ namespace XenoKit.Engine
             GraphicsDevice.SetDepthBuffer(RenderSystem.DepthBuffer.RenderTarget);
 
             //ShaderManager.Instance.SetAllGlobalSamplers();
-            base.Draw(time);
 
             if (SceneManager.IsOnEffectTab)
             {
@@ -207,7 +353,7 @@ namespace XenoKit.Engine
 
             //Draw MainRenderTarget onto screen
             GraphicsDevice.SetRenderTarget(AxisCorrectionRenderTarget.RenderTarget);
-            GraphicsDevice.Clear(IsBlackVoid || !_isDefaultStageActive ? Color.Black : SceneManager.ViewportBackgroundColor);
+            GraphicsDevice.Clear(IsBlackVoid || !_isDefaultStageActive ? Color.Black : Viewport.ViewportBackgroundColor);
             GraphicsDevice.SetDepthBuffer(RenderSystem.DepthBuffer.RenderTarget);
 
             //Merge RTs
@@ -238,13 +384,17 @@ namespace XenoKit.Engine
 
         }
 
+        #endregion
+
+        #region Helpers
+
         public void ResetState(bool resetAnims = true, bool resetCamPos = false)
         {
             if (resetAnims)
-                camera.ClearCameraAnimation();
-            
+                Camera.ClearCameraAnimation();
+
             if (resetCamPos)
-                camera.ResetCamera();
+                Camera.ResetCamera();
 
             for (int i = 0; i < SceneManager.Actors.Length; i++)
             {
@@ -280,10 +430,10 @@ namespace XenoKit.Engine
 
             try
             {
-                fullscreenWindow = new FullscreenWindow();
-                fullscreenWindow.Show();
-                alternateInputElement = fullscreenWindow;
-                _mouse.SetAlternateFocusElement(fullscreenWindow);
+                FullscreenWindow = new FullscreenWindow();
+                FullscreenWindow.Show();
+                alternateInputElement = FullscreenWindow;
+                _mouse.SetAlternateFocusElement(FullscreenWindow);
                 RenderSystem.RecreateRenderTargetsNextFrames = 2;
             }
             catch
@@ -294,10 +444,10 @@ namespace XenoKit.Engine
 
         public void DisableFullscreen()
         {
-            if(fullscreenWindow != null)
+            if (FullscreenWindow != null)
             {
-                fullscreenWindow.Close();
-                fullscreenWindow = null;
+                FullscreenWindow.Close();
+                FullscreenWindow = null;
                 alternateInputElement = null;
             }
 
@@ -307,11 +457,22 @@ namespace XenoKit.Engine
             RenderSystem.RecreateRenderTargetsNextFrames = 2;
         }
 
-        protected override void CheckHotkeys()
+        protected void CheckHotkeys()
         {
-            if(HotkeyCooldown == 0)
+            if (HotkeyCooldown == 0)
             {
-                if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space))
+                if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) && Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.L))
+                {
+                    WireframeMode = !WireframeMode;
+                    CompiledObjectManager.ForceShaderUpdate();
+                    SetHotkeyCooldown();
+                }
+                else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) && Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.G))
+                {
+                    SceneManager.ShowWorldAxis = !SceneManager.ShowWorldAxis;
+                    SetHotkeyCooldown();
+                }
+                else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space))
                 {
                     IsPlaying = !IsPlaying;
                     HotkeyCooldown = 10;
@@ -381,8 +542,15 @@ namespace XenoKit.Engine
 
 #endif
             }
+            else
+            {
+                HotkeyCooldown -= 1;
+            }
+        }
 
-            base.CheckHotkeys();
+        protected void SetHotkeyCooldown()
+        {
+            HotkeyCooldown = 20;
         }
 
         public void SetDefaultSpm(SPM_File spmFile)
@@ -408,25 +576,13 @@ namespace XenoKit.Engine
             CurrentStage.SetActiveStage();
         }
 
-        #region UiButtons
-        public void StartPlayback()
+        public void ForceCameraUpdate()
         {
-            IsPlaying = true;
-
+            isCameraUpdateForced = true;
         }
+        #endregion
 
-        public void StopPlayback()
-        {
-            IsPlaying = false;
-        }
-
-        public void PauseAnimation()
-        {
-            IsPlaying = false;
-
-        }
-
-        public void PrevFrame()
+        public void SeekPrevFrame()
         {
             if (SceneManager.IsOnEffectTab)
             {
@@ -445,7 +601,7 @@ namespace XenoKit.Engine
                         SceneManager.Actors[0].AnimationPlayer.PrevFrame();
                     break;
                 case EditorTabs.Camera:
-                    camera.PrevFrame();
+                    Camera.PrevFrame();
                     break;
                 case EditorTabs.Action:
                     if (SceneManager.Actors[0] != null)
@@ -454,7 +610,7 @@ namespace XenoKit.Engine
             }
         }
 
-        public void NextFrame()
+        public void SeekNextFrame()
         {
             if (SceneManager.IsOnEffectTab)
             {
@@ -473,7 +629,7 @@ namespace XenoKit.Engine
                         SceneManager.Actors[0].AnimationPlayer.NextFrame();
                     break;
                 case EditorTabs.Camera:
-                    camera.NextFrame();
+                    Camera.NextFrame();
                     break;
                 case EditorTabs.Action:
                     if (SceneManager.Actors[0] != null)
@@ -484,13 +640,5 @@ namespace XenoKit.Engine
             }
         }
 
-        #endregion
-
-        #region Events
-        public static EventHandler GameUpdate;
-
-        #endregion
-
     }
-
 }

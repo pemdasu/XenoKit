@@ -5,7 +5,7 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Shapes
 {
-    public class Cube : Entity
+    public class Cube : RenderObject
     {
         //Vertex:
         private VertexBuffer VertexBuffer;
@@ -32,9 +32,8 @@ namespace XenoKit.Engine.Shapes
         /// <summary>
         /// Initialize a default cube.
         /// </summary>
-        public Cube(Vector3 position, Vector3 size, GameBase gameBase, Color _color, bool startAt_0 = true, bool _alwaysVisible = false) : base (gameBase)
+        public Cube(Vector3 position, Vector3 size, Color _color, bool startAt_0 = true, bool _alwaysVisible = false)
         {
-            GameBase = gameBase;
             AlwaysVisible = _alwaysVisible;
             Color = _color;
             Scale = size;
@@ -51,7 +50,7 @@ namespace XenoKit.Engine.Shapes
         /// <summary>
         /// Initialize a cube as a bounding box. The parameters of the bounding box can be updated by calling the <see cref="SetBounds(Vector3, Vector3, float)"/> and <see cref="SetPosition(Vector3)"/> methods.
         /// </summary>
-        public Cube(Vector3 position, Vector3 minBounds, Vector3 maxBounds, float size, Color color, bool wireframe, GameBase gameBase) : base(gameBase)
+        public Cube(Vector3 position, Vector3 minBounds, Vector3 maxBounds, float size, Color color, bool wireframe)
         {
             Wireframe = wireframe;
             Color = color;
@@ -260,8 +259,8 @@ namespace XenoKit.Engine.Shapes
 
         public override void Draw()
         {
-            Material.Projection = CameraBase.ProjectionMatrix;
-            Material.View = CameraBase.ViewMatrix;
+            Material.Projection = Camera.ProjectionMatrix;
+            Material.View = Camera.ViewMatrix;
             Material.World = Transform;
 
             DrawInternal();
@@ -269,8 +268,8 @@ namespace XenoKit.Engine.Shapes
 
         public void Draw(Matrix world)
         {
-            Material.Projection = CameraBase.ProjectionMatrix;
-            Material.View = CameraBase.ViewMatrix;
+            Material.Projection = Camera.ProjectionMatrix;
+            Material.View = Camera.ViewMatrix;
             Material.World = Transform * world;
 
             DrawInternal();

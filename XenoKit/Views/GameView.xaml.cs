@@ -22,13 +22,13 @@ namespace XenoKit.Controls
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public Game MonoGame;
+        public Viewport MonoGame;
         private int DelayedSeekFrame = -1;
         public PackIconMaterialLightKind PlayPauseButtonBinding
         {
             get
             {
-                return SceneManager.IsPlaying == true ? PackIconMaterialLightKind.Pause : PackIconMaterialLightKind.Play;
+                return Viewport.Instance?.IsPlaying == true ? PackIconMaterialLightKind.Pause : PackIconMaterialLightKind.Play;
             }
         }
 
@@ -45,7 +45,7 @@ namespace XenoKit.Controls
                     case EditorTabs.Animation:
                         return (SceneManager.Actors[0] != null) ? $"{SceneManager.Actors[0].AnimationPlayer.PrimaryCurrentFrame}/{SceneManager.Actors[0].AnimationPlayer.PrimaryDuration}" : "--/--";
                     case EditorTabs.Camera:
-                        return (monoGame.camera.cameraInstance != null) ? $"{(int)MonoGame.camera.cameraInstance.CurrentFrame}/{MonoGame.camera.cameraInstance.CurrentAnimDuration}" : "--/--";
+                        return (monoGame.Camera.cameraInstance != null) ? $"{(int)MonoGame.Camera.cameraInstance.CurrentFrame}/{MonoGame.Camera.cameraInstance.CurrentAnimDuration}" : "--/--";
                     case EditorTabs.Action:
                         return (SceneManager.Actors[0] != null) ? $"{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame}/{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration}" : "--/--";
                 }
@@ -108,7 +108,7 @@ namespace XenoKit.Controls
                     case EditorTabs.Animation:
                         return (SceneManager.Actors[0] != null) ? (int)SceneManager.Actors[0].AnimationPlayer.PrimaryDuration : 0;
                     case EditorTabs.Camera:
-                        return (monoGame.camera.cameraInstance != null) ? MonoGame.camera.cameraInstance.CurrentAnimDuration - 1 : 0;
+                        return (monoGame.Camera.cameraInstance != null) ? MonoGame.Camera.cameraInstance.CurrentAnimDuration - 1 : 0;
                     case EditorTabs.Action:
                         return (SceneManager.Actors[0] != null) ? SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration : 0;
                     default:
@@ -128,7 +128,7 @@ namespace XenoKit.Controls
                     case EditorTabs.Animation:
                         return (SceneManager.Actors[0] != null) ? (int)SceneManager.Actors[0].AnimationPlayer.PrimaryCurrentFrame : 0;
                     case EditorTabs.Camera:
-                        return (monoGame.camera.cameraInstance != null) ? (int)MonoGame.camera.cameraInstance.CurrentFrame : 0;
+                        return (monoGame.Camera.cameraInstance != null) ? (int)MonoGame.Camera.cameraInstance.CurrentFrame : 0;
                     case EditorTabs.Action:
                             if(SceneManager.Actors[0] != null)
                             {
@@ -154,14 +154,14 @@ namespace XenoKit.Controls
                             SceneManager.Actors[0].AnimationPlayer.PrimaryAnimation.CurrentFrame_Int = value;
                         break;
                     case EditorTabs.Camera:
-                        if (monoGame.camera.cameraInstance != null)
+                        if (monoGame.Camera.cameraInstance != null)
                         {
-                            monoGame.camera.cameraInstance.CurrentFrame = value;
-                            SceneManager.UpdateCameraAnimation();
+                            monoGame.Camera.cameraInstance.CurrentFrame = value;
+                            Viewport.Instance.ForceCameraUpdate();
                         }
                         break;
                     case EditorTabs.Action:
-                        DelayedSeekFrame = SceneManager.IsPlaying ? -1 : value;
+                        DelayedSeekFrame = Viewport.Instance?.IsPlaying == true ? -1 : value;
                         break;
                 }
 
@@ -178,12 +178,12 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (MonoGame?.camera == null) return null;
+                if (MonoGame?.Camera == null) return null;
                 return string.Format("CAMERA:\nFoV: {0}\nRoll: {1}\nPos: {2}\nTarget Pos: {3}\n\nCHARACTER:\nPosition: {4}\nBone: {5}\n\nPERFORMANCE:\nFPS (current/avg): {6} / {7}\nResolution (Viewport): {8}\nRender Resolution: {9}",
-                    MonoGame.camera.CameraState.FieldOfView,
-                    MonoGame.camera.CameraState.Roll,
-                    MonoGame.camera.CameraState.Position,
-                    MonoGame.camera.CameraState.TargetPosition,
+                    MonoGame.Camera.CameraState.FieldOfView,
+                    MonoGame.Camera.CameraState.Roll,
+                    MonoGame.Camera.CameraState.Position,
+                    MonoGame.Camera.CameraState.TargetPosition,
                     (SceneManager.Actors[0] != null) ? SceneManager.Actors[0].Transform.Translation.ToString() : "No character loaded",
                     GetSelectedBoneName(),
                     MonoGame.FrameRate.CurrentFramesPerSecond.ToString("0.00"),
@@ -196,7 +196,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (MonoGame?.camera == null || (!SceneManager.IsOnTab(EditorTabs.Action) && !SceneManager.IsOnEffectTab)) return null;
+                if (MonoGame?.Camera == null || (!SceneManager.IsOnTab(EditorTabs.Action) && !SceneManager.IsOnEffectTab)) return null;
                 return string.Format("\nVFX:\nParticles: {0}\nEmitters: {1}", MonoGame.RenderSystem.ActiveParticleCount, MonoGame.ObjectPoolManager.ParticleEmitterPool.UsedObjectCount);
             }
         }
@@ -204,7 +204,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (MonoGame?.camera == null) return null;
+                if (MonoGame?.Camera == null) return null;
 #if DEBUG
                 return string.Format("\nDEBUG:\nCompiled Objects: {0}\nPooled Objects (Active): {1}\nPooled Objects (Free): {2}\nRender Objects: {3}\nDraw Calls: {4}\nParticle Batcher: {5} (batches) / {6} (total batched)",
                     MonoGame.CompiledObjectManager.ObjectCount,
@@ -356,13 +356,13 @@ namespace XenoKit.Controls
         {
             get
             {
-                return (SceneManager.MainGameInstance != null) ? SceneManager.MainGameInstance.RenderCharacters : true;
+                return (Viewport.Instance != null) ? Viewport.Instance.RenderCharacters : true;
             }
             set
             {
-                if (SceneManager.MainGameInstance != null)
+                if (Viewport.Instance != null)
                 {
-                    SceneManager.MainGameInstance.RenderCharacters = value;
+                    Viewport.Instance.RenderCharacters = value;
                 }
             }
         }
@@ -374,9 +374,9 @@ namespace XenoKit.Controls
             InitializeComponent();
             MonoGame = monoGame;
             DataContext = this;
-            Game.GameUpdate += new EventHandler(UpdateUI);
+            Viewport.UpdateEvent += UpdateUI;
             SettingsManager.SettingsReloaded += SettingsManager_SettingsReloaded;
-            SceneManager.DelayedUpdate += DelayedUpdate;
+            Viewport.DelayedEventUpdateEvent += DelayedUpdate;
             SceneManager.EditorTabChanged += SceneManager_EditorTabChanged;
         }
 
@@ -467,27 +467,27 @@ namespace XenoKit.Controls
         private void SeekNextFrame()
         {
             SceneManager.InvokeSeekOccurredEvent();
-            MonoGame.NextFrame();
+            MonoGame.SeekNextFrame();
         }
 
         public RelayCommand SeekPrevCommand => new RelayCommand(SeekPrevFrame, CanSeek);
         private void SeekPrevFrame()
         {
             SceneManager.InvokeSeekOccurredEvent();
-            MonoGame.PrevFrame();
+            MonoGame.SeekPrevFrame();
         }
 
         private bool CanSeek()
         {
             //Can only seek in pause mode
-            return SceneManager.MainGameBase?.IsPlaying == false;
+            return Viewport.Instance?.IsPlaying == false;
         }
 #endregion
 
 
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-            if (SceneManager.IsPlaying)
+            if (Viewport.Instance?.IsPlaying == true)
             {
                 SceneManager.Pause();
             }
@@ -504,7 +504,7 @@ namespace XenoKit.Controls
 
         private void ResetCamera_Click(object sender, RoutedEventArgs e)
         {
-            MonoGame.camera.ResetCamera();
+            MonoGame.Camera.ResetCamera();
         }
 
         private void ToggleGrid_Click(object sender, RoutedEventArgs e)
@@ -528,7 +528,7 @@ namespace XenoKit.Controls
 
             if(SceneManager.CurrentSceneState == EditorTabs.Animation)
             {
-                boneName = SceneManager.CurrentSelectedBoneName;
+                boneName = XenoKit.Engine.Gizmo.AnimatorGizmo.CurrentSelectedBoneName;
             }
             if(SceneManager.CurrentSceneState == EditorTabs.Action)
             {

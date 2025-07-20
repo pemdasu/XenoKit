@@ -7,7 +7,7 @@ namespace XenoKit.Engine.Gizmo
     {
         protected override Matrix WorldMatrix => Entity.Transform;
 
-        public Entity Entity;
+        public EngineObject Entity;
         public EditorTabs ContextTab;
 
         private EntityTransformOperation transformOperation = null;
@@ -32,12 +32,7 @@ namespace XenoKit.Engine.Gizmo
         protected override bool AllowTranslate => true;
 
 
-        public EntityTransformGizmo(GameBase game) : base(game)
-        {
-
-        }
-
-        public void SetContext(Entity entity, EditorTabs contextTab)
+        public void SetContext(EngineObject entity, EditorTabs contextTab)
         {
             Entity = entity;
             ContextTab = contextTab;

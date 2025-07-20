@@ -4,21 +4,21 @@ using XenoKit.Engine.Shapes;
 
 namespace XenoKit.Engine.Objects
 {
-    public class ObjectAxis : Entity
+    public class ObjectAxis : EngineObject
     {
         public Cube yCube;
         public Cube xCube;
         public Cube zCube;
         public Cube leftBoneCube;
-        private bool IsWorldAxis;
+        private readonly bool IsWorldAxis;
 
-        public ObjectAxis(bool isWorldAxis, GameBase gameBase) : base(gameBase)
+        public ObjectAxis(bool isWorldAxis)
         {
             IsWorldAxis = isWorldAxis;
-            xCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), gameBase, Color.Red, true, true);
-            yCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), gameBase, Color.Green, true, true);
-            zCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), gameBase, Color.Blue, true, true);
-            leftBoneCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.01f, 0.01f, 0.01f), gameBase, Color.Yellow, false, true);
+            xCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), Color.Red, true, true);
+            yCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), Color.Green, true, true);
+            zCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.005f, 0.2f, 0.005f), Color.Blue, true, true);
+            leftBoneCube = new Cube(new Vector3(0, 0, 0), new Vector3(0.01f, 0.01f, 0.01f), Color.Yellow, false, true);
         }
 
         public override void Draw()

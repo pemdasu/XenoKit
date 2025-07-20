@@ -2,12 +2,12 @@
 
 namespace XenoKit.Engine.Scripting.BAC.Simulation
 {
-    public class BacVisualCueObject : Entity
+    public class BacVisualCueObject : EngineObject
     {
         public readonly IBacType BacType;
         protected readonly BacEntryInstance ParentBacInstance;
 
-        public BacVisualCueObject(IBacType bacType, BacEntryInstance bacEntryInstance, GameBase gameBase) : base(gameBase)
+        public BacVisualCueObject(IBacType bacType, BacEntryInstance bacEntryInstance)
         {
             BacType = bacType;
             ParentBacInstance = bacEntryInstance;
@@ -38,10 +38,6 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
         protected virtual bool IsContextValid()
         {
             return true;
-        }
-
-        public override void Dispose()
-        {
         }
 
     }

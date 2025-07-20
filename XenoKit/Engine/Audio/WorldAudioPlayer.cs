@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using AudioCueEditor.Audio;
-using Microsoft.Xna.Framework;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using Xv2CoreLib.AFS2;
@@ -18,11 +17,11 @@ namespace XenoKit.Engine.Audio
         public bool IsFinished { get; private set; }
 
         //World object that the sound plays on, if 3D_Def is enabled.
-        private Entity entity = null;
+        private EngineObject entity = null;
         private bool is3D_Def = false;
 
 
-        public WorldAudioPlayer(Entity entity, bool _3d)
+        public WorldAudioPlayer(EngineObject entity, bool _3d)
         {
             wavePlayer.DesiredLatency = 800;
             wavePlayer.NumberOfBuffers = 2;
@@ -36,7 +35,7 @@ namespace XenoKit.Engine.Audio
             if (is3D_Def && entity != null)
             {
                 //Stupid approximation for now
-                float distance = System.Numerics.Vector3.Distance(SceneManager.MainCamera.CameraState.Position, entity.Transform.Translation);
+                float distance = System.Numerics.Vector3.Distance(Viewport.Instance.Camera.CameraState.Position, entity.Transform.Translation);
 
                 if (distance < 1f)
                 {

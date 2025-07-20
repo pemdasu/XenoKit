@@ -23,7 +23,7 @@ namespace XenoKit.Windows
         public FullscreenWindow()
         {
             InitializeComponent();
-            image.Source = SceneManager.MainGameInstance.OutputFullscreenImageSource;
+            image.Source = Viewport.Instance.OutputFullscreenImageSource;
             
         }
     }

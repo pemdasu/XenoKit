@@ -6,17 +6,17 @@ using Xv2CoreLib.EMB_CLASS;
 namespace XenoKit.Engine.Textures
 {
     [Serializable]
-    public class Xv2Texture : Entity
+    public class Xv2Texture : EngineObject, IDisposable
     {
         #region DefaultTexture
         public static Xv2Texture DefaultTexture { get; private set; }
 
-        public static void InitDefaultTexture(GameBase game)
+        public static void InitDefaultTexture()
         {
             if(DefaultTexture == null)
             {
                 EMB_File defaultEmb = EMB_File.LoadEmb(Properties.Resources.DefaultEmb);
-                DefaultTexture = new Xv2Texture(defaultEmb.Entry[0], game, false);
+                DefaultTexture = new Xv2Texture(defaultEmb.Entry[0], false);
             }
         }
         #endregion
@@ -30,7 +30,7 @@ namespace XenoKit.Engine.Textures
             {
                 if ((_texture == null || IsDirty) && EmbEntry != null)
                 {
-                    _texture = TextureLoader.ConvertToTexture2D(EmbEntry, null, GameBase.GraphicsDevice);
+                    _texture = TextureLoader.ConvertToTexture2D(EmbEntry, null, ViewportInstance.GraphicsDevice);
                     IsDirty = false;
                 }
                 return _texture;
@@ -46,11 +46,10 @@ namespace XenoKit.Engine.Textures
         //TODO: logic for this
         public bool IsDirty { get; set; }
 
-        public Xv2Texture(EmbEntry embEntry, GameBase gameBase, bool autoUpdate = true) : base(gameBase)
+        public Xv2Texture(EmbEntry embEntry, bool autoUpdate = true)
         {
-            GameBase = gameBase;
             EmbEntry = embEntry;
-            Texture = TextureLoader.ConvertToTexture2D(embEntry, null, GameBase.GraphicsDevice);
+            Texture = TextureLoader.ConvertToTexture2D(embEntry, null, Viewport.Instance.GraphicsDevice);
 
             if (autoUpdate)
                 EmbEntry.PropertyChanged += EmbEntry_PropertyChanged;
@@ -64,31 +63,30 @@ namespace XenoKit.Engine.Textures
             }
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
-            base.Dispose();
             if (EmbEntry != null)
                 EmbEntry.PropertyChanged -= EmbEntry_PropertyChanged;
         }
 
         public Xv2Texture HardCopy()
         {
-            return new Xv2Texture(EmbEntry.Copy(), GameBase, false);
+            return new Xv2Texture(EmbEntry.Copy(), false);
         }
 
-        public static Xv2Texture[] LoadTextureArray(EMB_File embFile, GameBase gameBase)
+        public static Xv2Texture[] LoadTextureArray(EMB_File embFile)
         {
             Xv2Texture[] textures = new Xv2Texture[embFile.Entry.Count];
 
             for (int i = 0; i < textures.Length; i++)
             {
-                textures[i] = gameBase.CompiledObjectManager.GetCompiledObject<Xv2Texture>(embFile.Entry[i], gameBase);
+                textures[i] = Viewport.Instance.CompiledObjectManager.GetCompiledObject<Xv2Texture>(embFile.Entry[i]);
             }
 
             return textures;
         }
 
-        private static Xv2Texture[] LoadTextureArray2(EMB_File embFile, GameBase gameBase)
+        private static Xv2Texture[] LoadTextureArray2(EMB_File embFile)
         {
             //Alternative loader method that can handle arbitary indexing
             int maxId = embFile.Entry.Max(x => x.ID);
@@ -101,7 +99,7 @@ namespace XenoKit.Engine.Textures
 
                 if(entry != null)
                 {
-                    textures[i] = gameBase.CompiledObjectManager.GetCompiledObject<Xv2Texture>(entry, gameBase);
+                    textures[i] = Viewport.Instance.CompiledObjectManager.GetCompiledObject<Xv2Texture>(entry);
                 }
                 else
                 {

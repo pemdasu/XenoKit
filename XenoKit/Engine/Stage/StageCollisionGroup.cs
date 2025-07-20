@@ -4,20 +4,20 @@ using Xv2CoreLib.FMP;
 
 namespace XenoKit.Engine.Stage
 {
-    public class StageCollisionGroup : Entity
+    public class StageCollisionGroup : EngineObject
     {
         public FMP_CollisionGroup CollisionGroup { get; private set; }
         public List<StageCollider> Colliders = new List<StageCollider>();
 
         public int CollisionGroupIndex => CollisionGroup.Index;
 
-        public StageCollisionGroup(FMP_CollisionGroup collisionGroup, GameBase game) : base(game)
+        public StageCollisionGroup(FMP_CollisionGroup collisionGroup)
         {
             CollisionGroup = collisionGroup;
 
             foreach(var collidor in CollisionGroup.Colliders)
             {
-                Colliders.Add(new StageCollider(collidor, game));
+                Colliders.Add(new StageCollider(collidor));
             }
         }
 

@@ -359,8 +359,8 @@ namespace XenoKit.Views
                 {
                     GetFilesFromEmd(SelectedFile.Name, out string embPath, out string emmPath, out string dytPath);
                     
-                    Xv2ModelFile compiledModel = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(emdFile, SceneManager.MainGameBase);
-                    ModelScene modelScene = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<ModelScene>(compiledModel, SceneManager.MainGameBase);
+                    Xv2ModelFile compiledModel = Viewport.Instance.CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(emdFile);
+                    ModelScene modelScene = Viewport.Instance.CompiledObjectManager.GetCompiledObject<ModelScene>(compiledModel);
 
                     if (!TabManager.FocusTab(modelScene))
                     {

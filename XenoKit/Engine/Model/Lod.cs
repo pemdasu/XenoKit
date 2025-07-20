@@ -26,7 +26,7 @@ namespace XenoKit.Engine.Model
 
             if(model != null)
             {
-                _materials = Xv2ShaderEffect.LoadMaterials(emmFile, ShaderType.Stage, Model.GameBase);
+                _materials = Xv2ShaderEffect.LoadMaterials(emmFile, ShaderType.Stage);
                 Model.InitMaterialIndex(_materials);
             }
         }

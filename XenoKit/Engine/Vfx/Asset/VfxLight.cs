@@ -43,7 +43,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private readonly int[] ColorKeyframeIndex = new int[4];
         private readonly int[] LightKeyframeIndex = new int[2];
 
-        public VfxLight(EMA_File emaFile, EffectPart effectPart, Actor actor, GameBase gameBase) : base(System.Numerics.Matrix4x4.Identity, effectPart, actor, gameBase)
+        public VfxLight(EMA_File emaFile, EffectPart effectPart, Actor actor) : base(System.Numerics.Matrix4x4.Identity, effectPart, actor)
         {
             EmaFile = emaFile;
             SetDefaultValues();
@@ -141,7 +141,7 @@ namespace XenoKit.Engine.Vfx.Asset
             {
                 Time += 1f;
             }
-            else if(GameBase.IsPlaying)
+            else if(ViewportInstance.IsPlaying)
             {
                 Time += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
             }

@@ -12,7 +12,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
         private List<VfxColorFadeEntry> Values;
 
-        public VfxColorFade(ECF_File ecfFile, EffectPart effectPart, Actor actor, GameBase gameBase) : base(System.Numerics.Matrix4x4.Identity, effectPart, actor, gameBase)
+        public VfxColorFade(ECF_File ecfFile, EffectPart effectPart, Actor actor) : base(System.Numerics.Matrix4x4.Identity, effectPart, actor)
         {
             EcfFile = ecfFile;
             Values = new List<VfxColorFadeEntry>(ecfFile.Nodes.Count);
@@ -112,7 +112,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 {
                     Values[i].Time += 1f;
                 }
-                else if (GameBase.IsPlaying)
+                else if (ViewportInstance.IsPlaying)
                 {
                     Values[i].Time += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
                 }

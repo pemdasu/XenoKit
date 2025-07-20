@@ -9,9 +9,9 @@ namespace XenoKit.Engine.Objects
 		private readonly Cube cube;
         public BoundingBox Bounds { get; private set; }
 
-		public DrawableBoundingBox(GameBase game)
+		public DrawableBoundingBox()
 		{
-			cube = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Pink, true, game);
+			cube = new Cube(new Vector3(0.5f), new Vector3(-0.5f), new Vector3(0.5f), 0.5f, Color.Pink, true);
         }
 
         public void SetBounds(BoundingBox boundingBox)

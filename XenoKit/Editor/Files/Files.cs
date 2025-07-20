@@ -206,9 +206,9 @@ namespace XenoKit.Editor
 
                 foreach (OutlinerItem item in items.Where(x => x.CanDelete))
                 {
-                    if (item.Type == OutlinerItem.OutlinerItemType.Stage && SceneManager.MainGameInstance.CurrentStage == item.Stage)
+                    if (item.Type == OutlinerItem.OutlinerItemType.Stage && Viewport.Instance.CurrentStage == item.Stage)
                     {
-                        SceneManager.MainGameInstance.SetActiveStage(null);
+                        Viewport.Instance.SetActiveStage(null);
                     }
 
                     SceneManager.UnsetActor(item.character);
@@ -446,7 +446,7 @@ namespace XenoKit.Editor
                 {
                     Xv2Character xv2Character = xv2.Instance.GetCharacter(id);
 
-                    chara = new Actor(SceneManager.MainGameBase, xv2Character, partSetId);
+                    chara = new Actor(xv2Character, partSetId);
 
                     VerifyValues(chara.Moveset.Files);
 
@@ -470,7 +470,7 @@ namespace XenoKit.Editor
         {
             Xv2Character xv2Character = xv2.Instance.GetCharacter(id);
 
-            Actor chara = new Actor(SceneManager.MainGameBase, xv2Character, _partSet != null ? _partSet.ID : 0);
+            Actor chara = new Actor(xv2Character, _partSet != null ? _partSet.ID : 0);
 
             VerifyValues(chara.Moveset.Files);
 
@@ -609,7 +609,7 @@ namespace XenoKit.Editor
             {
 
                 //string code = xv2.Instance.StageDefFile.Stages[stageSel.SelectedItem.ID].CODE;
-                //Xv2Stage stage = new Xv2Stage(SceneManager.MainGameBase, code);
+                //Xv2Stage stage = new Xv2Stage(Game.Instance, code);
                 //AddOutlinerItem(new OutlinerItem(stage));
                 await AsyncLoadStage(stageSel.SelectedItem.ID);
             }
@@ -632,7 +632,7 @@ namespace XenoKit.Editor
             {
                 await Task.Run(() =>
                 {
-                    stage = new Xv2Stage(SceneManager.MainGameBase, code);
+                    stage = new Xv2Stage(code);
 
                     if(stage.FmpFile != null && stage.SpmFile != null)
                         AddOutlinerItem(new OutlinerItem(stage));

@@ -22,7 +22,7 @@ namespace XenoKit.Engine.Textures
         public static Texture2D ConvertToTexture2D(EmbEntry embEntry, string name = null, GraphicsDevice graphicsDevice = null)
         {
             if (graphicsDevice == null)
-                graphicsDevice = SceneManager.MainGameBase.GraphicsDevice;
+                graphicsDevice = Viewport.Instance.GraphicsDevice;
 
             Texture2D texture = ConvertToTexture2D_Native(embEntry, name, graphicsDevice);
 
@@ -93,7 +93,7 @@ namespace XenoKit.Engine.Textures
         private static Texture2D ConvertToTexture2D_Native(EmbEntry embEntry, string name = null, GraphicsDevice graphicsDevice = null)
         {
             if (graphicsDevice == null)
-                graphicsDevice = SceneManager.MainGameBase.GraphicsDevice;
+                graphicsDevice = Viewport.Instance.GraphicsDevice;
 
 #if !DEBUG
             try
@@ -146,7 +146,7 @@ namespace XenoKit.Engine.Textures
         private static Texture2D ConvertToTexture2D_fallback(EmbEntry embEntry, string name = null, GraphicsDevice graphicsDevice = null)
         {
             if (graphicsDevice == null)
-                graphicsDevice = SceneManager.MainGameBase.GraphicsDevice;
+                graphicsDevice = Viewport.Instance.GraphicsDevice;
 
             Texture2D texture = new Texture2D(graphicsDevice, embEntry.Texture.PixelWidth, embEntry.Texture.PixelHeight);
             byte[] data = embEntry.Texture.ToByteArray();
@@ -175,7 +175,7 @@ namespace XenoKit.Engine.Textures
         public static TextureCube ConvertToTextureCube(EmbEntry embEntry, string name = null, GraphicsDevice graphicsDevice = null)
         {
             if (graphicsDevice == null)
-                graphicsDevice = SceneManager.MainGameBase.GraphicsDevice;
+                graphicsDevice = Viewport.Instance.GraphicsDevice;
 
             DDS_File dds = new DDS_File(embEntry.Data);
 

@@ -17,7 +17,7 @@ using XenoKit.Engine.Vertex;
 
 namespace XenoKit.Engine.Shapes
 {
-    public abstract class GeometricPrimitive : Entity, IDisposable
+    public abstract class GeometricPrimitive : EngineObject, IDisposable
     {
         #region Fields
 
@@ -34,9 +34,8 @@ namespace XenoKit.Engine.Shapes
         #endregion
 
         #region Initialization
-        public GeometricPrimitive(GameBase gameBase) : base(gameBase)
+        public GeometricPrimitive()
         {
-            GameBase = gameBase;
         }
 
         protected void AddVertex(Vector3 position, Vector3 normal)

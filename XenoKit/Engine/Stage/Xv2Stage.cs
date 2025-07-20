@@ -2,7 +2,6 @@
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Textures;
@@ -11,17 +10,15 @@ using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.SPM;
-using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Stage
 {
-    public class Xv2Stage : Entity
+    public class Xv2Stage : RenderObject
     {
         public static event EventHandler CurrentStageChanged;
         public static event EventHandler CurrentSpmChanged;
 
-        public override EntityType EntityType => EntityType.Stage;
+        public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
         public const string REF_NAME = "REF00";
         public const string REF_NAME_ALT = "REF";
@@ -55,11 +52,9 @@ namespace XenoKit.Engine.Stage
         //Collision mesh
         //private CollisionMeshBatchDraw batchedCollisionMesh;
 
-        public Xv2Stage(GameBase game) : base (game)
-        {
-        }
+        public Xv2Stage() { }
 
-        public Xv2Stage(GameBase game, string stageCode) : base(game)
+        public Xv2Stage(string stageCode)
         {
             StageDefEntry = Xenoverse2.Instance.StageDefFile.GetStage(stageCode);
             StageName = Xenoverse2.Instance.GetStageName(stageCode);
@@ -95,7 +90,7 @@ namespace XenoKit.Engine.Stage
             //Load collision
             foreach(var collisionGroup in FmpFile.CollisionGroups)
             {
-                CollisionGroups.Add(new StageCollisionGroup(collisionGroup, GameBase));
+                CollisionGroups.Add(new StageCollisionGroup(collisionGroup));
             }
 
             //Load assets
@@ -124,7 +119,7 @@ namespace XenoKit.Engine.Stage
                         else
                         {
                             stageEntity.Visual = new StageVisual();
-                            stageEntity.Visual.LodGroup = new Model.LodGroup(entity.Visual, GameBase);
+                            stageEntity.Visual.LodGroup = new LodGroup(entity.Visual);
 
                             if (_object.Name == REF_NAME || _object.Name == REF_NAME_ALT)
                             {
@@ -167,7 +162,7 @@ namespace XenoKit.Engine.Stage
             }
 
             var collisionMeshes = GetAllCollisionMeshes();
-            batchedCollisionMesh = new CollisionMeshBatchDraw(GameBase, collisionMeshes);
+            batchedCollisionMesh = new CollisionMeshBatchDraw(collisionMeshes);
             */
         }
 
@@ -236,9 +231,9 @@ namespace XenoKit.Engine.Stage
                 RenderSystem.RemoveReflectionRenderEntity(ReflectionModel);
         }
 
-        public static Xv2Stage CreateDefaultStage(GameBase game)
+        public static Xv2Stage CreateDefaultStage()
         {
-            var stage = new Xv2Stage(game)
+            var stage = new Xv2Stage()
             {
                 IsDefaultStage = true,
                 SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame("stage/BFten/BFten.spm")

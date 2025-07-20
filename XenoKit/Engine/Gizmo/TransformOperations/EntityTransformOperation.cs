@@ -7,10 +7,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 {
     public class EntityTransformOperation : TransformOperation
     {
-        private Entity entity;
+        private EngineObject entity;
         private Matrix4x4 originalMatrix;
 
-        public EntityTransformOperation(Entity entity)
+        public EntityTransformOperation(EngineObject entity)
         {
             this.entity = entity;
             originalMatrix = entity.Transform;

@@ -37,8 +37,6 @@ namespace XenoKit.Engine.Shader
         public const int PS_USER_CB = 5;
         public const int CB_PS_BOOL = 8;
 
-        protected GameBase GameBase;
-
         public ShaderType ShaderType { get; protected set; }
         private Xv2Shader[] _shaders;
 
@@ -137,11 +135,10 @@ namespace XenoKit.Engine.Shader
         private RasterizerState _rasterizerState;
         private RasterizerState _reflectionRasterizerState;
 
-        public Xv2ShaderEffect(EmmMaterial material, ShaderType type, GameBase gameBase) : base(gameBase.GraphicsDevice)
+        public Xv2ShaderEffect(EmmMaterial material, ShaderType type) : base(Viewport.Instance.GraphicsDevice)
         {
-            GraphicsDevice = gameBase.GraphicsDevice;
+            GraphicsDevice = Viewport.Instance.GraphicsDevice;
             Material = material;
-            GameBase = gameBase;
             ShaderType = type;
 
             InitTechnique();
@@ -152,11 +149,10 @@ namespace XenoKit.Engine.Shader
             SettingsManager.SettingsSaved += SettingsManager_SettingsChanged;
         }
 
-        protected Xv2ShaderEffect(EmmMaterial material, bool delayInit, GameBase gameBase) : base(gameBase.GraphicsDevice)
+        protected Xv2ShaderEffect(EmmMaterial material, bool delayInit) : base(Viewport.Instance.GraphicsDevice)
         {
-            GraphicsDevice = gameBase.GraphicsDevice;
+            GraphicsDevice = Viewport.Instance.GraphicsDevice;
             Material = material;
-            GameBase = gameBase;
 
             if(!delayInit)
                 InitTechnique();
@@ -167,7 +163,7 @@ namespace XenoKit.Engine.Shader
             SettingsManager.SettingsSaved += SettingsManager_SettingsChanged;
         }
 
-        protected Xv2ShaderEffect(GameBase gameBase) : base(gameBase.GraphicsDevice)
+        protected Xv2ShaderEffect() : base(Viewport.Instance.GraphicsDevice)
         {
         }
 
@@ -184,7 +180,7 @@ namespace XenoKit.Engine.Shader
         {
             //Only grab the shader program if this shader effect is for a material, and not a ShaderProgram itself
             if(ShaderType != ShaderType.PostFilter)
-                shaderProgram = GameBase.ShaderManager.GetShaderProgram(Material.ShaderProgram);
+                shaderProgram = Viewport.Instance.ShaderManager.GetShaderProgram(Material.ShaderProgram);
 
             UseWVP = UseWV = false;
 
@@ -724,20 +720,20 @@ namespace XenoKit.Engine.Shader
                     g_mWVP_VS?.SetValue(WVP);
                     break;
                 case ShaderParameter.VP:
-                    g_mVP_VS?.SetValue(GameBase.ActiveCameraBase.ViewProjectionMatrix);
+                    g_mVP_VS?.SetValue(Viewport.Instance.Camera.ViewProjectionMatrix);
                     break;
                 case ShaderParameter.WLP_SM: //World Light Projection (Shadow Map)
-                    g_mWLP_SM_VS?.SetValue(World * GameBase.SunLight.LightViewProjectionMatrix);
+                    g_mWLP_SM_VS?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionMatrix);
                     break;
                 case ShaderParameter.WLPB_SM: //World Light Projection Bias (Shadow Map)
-                    Parameters["g_mWLPB_SM_VS"]?.SetValue(World * GameBase.SunLight.LightViewProjectionBiasMatrix);
-                    //Parameters["g_mWLPB_SM_VS"]?.SetValue(GameBase.LightSource.LightMatrix);
+                    Parameters["g_mWLPB_SM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
+                    //Parameters["g_mWLPB_SM_VS"]?.SetValue(Viewport.Instance.LightSource.LightMatrix);
                     break;
                 case ShaderParameter.WLP_PM: //Same as _SM variant
-                    Parameters["g_mWLP_PM_VS"]?.SetValue(World * GameBase.SunLight.LightViewProjectionMatrix);
+                    Parameters["g_mWLP_PM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionMatrix);
                     break;
                 case ShaderParameter.WLPB_PM: //Same as _SM variant
-                    Parameters["g_mWLPB_PM_VS"]?.SetValue(World * GameBase.SunLight.LightViewProjectionBiasMatrix);
+                    Parameters["g_mWLPB_PM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
                     break;
                 case ShaderParameter.WIT:
                     break;
@@ -786,31 +782,31 @@ namespace XenoKit.Engine.Shader
                 case ShaderParameter.LightVec0_VS:
                     if(ShaderType == ShaderType.Stage)
                     {
-                        g_vLightVec0_VS?.SetValue(GameBase.SunLight.Direction);
+                        g_vLightVec0_VS?.SetValue(Viewport.Instance.SunLight.Direction);
                     }
                     else
                     {
-                        g_vLightVec0_VS?.SetValue(GameBase.LightSource.GetLightDirection(WVP));
+                        g_vLightVec0_VS?.SetValue(Viewport.Instance.LightSource.GetLightDirection(WVP));
                     }
                     break;
                 case ShaderParameter.LightVec0_PS:
                     if (ShaderType == ShaderType.Stage)
                     {
-                        g_vLightVec0_PS?.SetValue(GameBase.SunLight.Direction);
+                        g_vLightVec0_PS?.SetValue(Viewport.Instance.SunLight.Direction);
                     }
                     else
                     {
-                        g_vLightVec0_PS?.SetValue(GameBase.LightSource.GetLightDirection(WVP));
+                        g_vLightVec0_PS?.SetValue(Viewport.Instance.LightSource.GetLightDirection(WVP));
                     }
                     break;
                 case ShaderParameter.UserFlag0_VS:
-                    g_vUserFlag0_VS?.SetValue(GameBase.LightSource.Position);
+                    g_vUserFlag0_VS?.SetValue(Viewport.Instance.LightSource.Position);
                     break;
                 case ShaderParameter.EyePos_VS: //Camera position in object space
-                    g_vEyePos_VS?.SetValue(new Vector4(Vector3.Transform(GameBase.ActiveCameraBase.CameraState.Position, Matrix.Invert(World)), 1f));
+                    g_vEyePos_VS?.SetValue(new Vector4(Vector3.Transform(Viewport.Instance.Camera.CameraState.Position, Matrix.Invert(World)), 1f));
                     break;
                 case ShaderParameter.EyePos_PS:
-                    g_vEyePos_PS?.SetValue(new Vector4(Vector3.Transform(GameBase.ActiveCameraBase.CameraState.Position, Matrix.Invert(World)), 1f));
+                    g_vEyePos_PS?.SetValue(new Vector4(Vector3.Transform(Viewport.Instance.Camera.CameraState.Position, Matrix.Invert(World)), 1f));
                     break;
 
                 case ShaderParameter.FadeColor:
@@ -857,17 +853,17 @@ namespace XenoKit.Engine.Shader
             //Apply billboarding rotation if material requires it
             if (MatParam.Billboard == 1)
             {
-                Matrix4x4 billboardWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * MathHelpers.Invert(GameBase.ActiveCameraBase.ViewMatrix);
+                Matrix4x4 billboardWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * MathHelpers.Invert(Viewport.Instance.Camera.ViewMatrix);
                 billboardWorld.Translation = World.Translation;
                 World = billboardWorld;
             }
 
             //Calculate matrices
             if (UseWV)
-                WV = World * GameBase.ActiveCameraBase.ViewMatrix;
+                WV = World * Viewport.Instance.Camera.ViewMatrix;
 
             if (UseWVP)
-                WVP = World * GameBase.ActiveCameraBase.ViewProjectionMatrix;
+                WVP = World * Viewport.Instance.Camera.ViewProjectionMatrix;
 
             foreach (ShaderParameter parameter in SdsParameters)
             {
@@ -976,8 +972,8 @@ namespace XenoKit.Engine.Shader
             //Update global parameters
             if (shaderProgram.UseVertexShaderBuffer[VS_STAGE_CB])
             {
-                g_vScreen_VS?.SetVector4(GameBase.RenderSystem.RenderResolution);
-                g_SystemTime_VS?.SetValue(SceneManager.SystemTime);
+                g_vScreen_VS?.SetVector4(Viewport.Instance.RenderSystem.RenderResolution);
+                g_SystemTime_VS?.SetValue(Viewport.SystemTime);
             }
 
             //Remove references to animated parameters from this pass
@@ -990,7 +986,7 @@ namespace XenoKit.Engine.Shader
 
             //Set global samplers/textures
             foreach (Xv2Shader shader in _shaders)
-                shader.SetGlobalSamplers(GameBase.ShaderManager);
+                shader.SetGlobalSamplers(Viewport.Instance.ShaderManager);
         }
 
         protected void ApplyStates()
@@ -998,7 +994,7 @@ namespace XenoKit.Engine.Shader
             GraphicsDevice.BlendState = _blendState;
             GraphicsDevice.DepthStencilState = _depthStencilState;
 
-            if (GameBase.RenderSystem.IsReflectionPass)
+            if (Viewport.Instance.RenderSystem.IsReflectionPass)
             {
                 //Reflection state is only created on demand, since it is only used for reflections
                 if (_reflectionRasterizerState == null)
@@ -1262,7 +1258,7 @@ namespace XenoKit.Engine.Shader
         {
             RasterizerState state = new RasterizerState();
 
-            state.FillMode = GameBase.WireframeMode || MatParam.ForceWireframeMode ? FillMode.WireFrame : FillMode.Solid;
+            state.FillMode = Viewport.Instance.WireframeMode || MatParam.ForceWireframeMode ? FillMode.WireFrame : FillMode.Solid;
             state.CullMode = MatParam.BackFace > 0 || MatParam.TwoSidedRender > 0 ? CullMode.None : CullMode.CullClockwiseFace;
 
             switch (ShaderType)
@@ -1305,12 +1301,12 @@ namespace XenoKit.Engine.Shader
         {
             if (shaderProgram.UsePixelShaderBuffer[PS_STAGE_CB] || ShaderType == ShaderType.Stage)
             {
-                if (GameBase.CurrentStage.FogEnabled)
+                if (Viewport.Instance.CurrentStage.FogEnabled)
                 {
-                    Parameters["g_vFogMultiColor_PS"]?.SetValue(GameBase.CurrentStage.FogMultiColor);
-                    Parameters["g_vFogAddColor_PS"]?.SetValue(GameBase.CurrentStage.FogAddColor);
-                    Parameters["g_vFog_VS"]?.SetValue(GameBase.CurrentStage.Fog);
-                    Parameters["g_bFog_PS"]?.SetValue(GameBase.CurrentStage.FogEnabled);
+                    Parameters["g_vFogMultiColor_PS"]?.SetValue(Viewport.Instance.CurrentStage.FogMultiColor);
+                    Parameters["g_vFogAddColor_PS"]?.SetValue(Viewport.Instance.CurrentStage.FogAddColor);
+                    Parameters["g_vFog_VS"]?.SetValue(Viewport.Instance.CurrentStage.Fog);
+                    Parameters["g_bFog_PS"]?.SetValue(Viewport.Instance.CurrentStage.FogEnabled);
                 }
                 else
                 {
@@ -1368,7 +1364,7 @@ namespace XenoKit.Engine.Shader
 
         public void SetVfxLight()
         {
-            VfxLight light = GameBase.VfxManager.GetActiveLight(World);
+            VfxLight light = Viewport.Instance.VfxManager.GetActiveLight(World);
 
             if (light != null)
             {
@@ -1447,7 +1443,7 @@ namespace XenoKit.Engine.Shader
             }
         }
     
-        public static Xv2ShaderEffect[] LoadMaterials(EMM_File emmFile, ShaderType shaderType, GameBase game)
+        public static Xv2ShaderEffect[] LoadMaterials(EMM_File emmFile, ShaderType shaderType)
         {
             if (emmFile == null)
                 return new Xv2ShaderEffect[0];
@@ -1456,7 +1452,7 @@ namespace XenoKit.Engine.Shader
 
             for(int i = 0; i < emmFile.Materials.Count; i++)
             {
-                materials[i] = game.CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(emmFile.Materials[i], game, shaderType);
+                materials[i] = Viewport.Instance.CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(emmFile.Materials[i], shaderType);
             }
 
             return materials;

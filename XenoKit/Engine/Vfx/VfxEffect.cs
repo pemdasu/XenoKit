@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using XenoKit.Engine.Vfx.Asset;
 using XenoKit.Engine.Vfx.Particle;
@@ -7,7 +8,7 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Vfx
 {
-    public class VfxEffect : Entity
+    public class VfxEffect : RenderObject, IDisposable
     {
         public Effect Effect { get; private set; }
         public Actor Actor { get; private set; }
@@ -18,7 +19,7 @@ namespace XenoKit.Engine.Vfx
         private readonly bool IsAssetPreview = false;
         private readonly EffectPart EffectPart = null;
 
-        public VfxEffect(Actor actor, Effect effect, Matrix4x4 world, GameBase gameBase) : base(gameBase)
+        public VfxEffect(Actor actor, Effect effect, Matrix4x4 world)
         {
             Effect = effect;
             Actor = actor;
@@ -28,7 +29,7 @@ namespace XenoKit.Engine.Vfx
             effect.EffectParts.CollectionChanged += EffectParts_CollectionChanged;
         }
 
-        public VfxEffect(Actor actor, EffectPart effectPart, GameBase gameBase) : base(gameBase)
+        public VfxEffect(Actor actor, EffectPart effectPart)
         {
             IsAssetPreview = true;
             EffectPart = effectPart;
@@ -56,21 +57,21 @@ namespace XenoKit.Engine.Vfx
             if (EffectPart.AssetType == AssetType.CBIND)
             {
                 if (EffectPart.AssetRef.Files[0].EcfFile == null) return;
-                Assets.Add(new VfxColorFade(EffectPart.AssetRef.Files[0].EcfFile, EffectPart, Actor, GameBase));
+                Assets.Add(new VfxColorFade(EffectPart.AssetRef.Files[0].EcfFile, EffectPart, Actor));
             }
             else if (EffectPart.AssetType == AssetType.EMO)
             {
-                Assets.Add(new VfxEmo(SpawnTransform, EffectPart.AssetRef, EffectPart, Actor, GameBase));
+                Assets.Add(new VfxEmo(SpawnTransform, EffectPart.AssetRef, EffectPart, Actor));
             }
             else if (EffectPart.AssetType == AssetType.LIGHT)
             {
                 if (EffectPart.AssetRef.Files[0].EmaFile == null) return;
-                Assets.Add(new VfxLight(EffectPart.AssetRef.Files[0].EmaFile, EffectPart, Actor, GameBase));
+                Assets.Add(new VfxLight(EffectPart.AssetRef.Files[0].EmaFile, EffectPart, Actor));
             }
             else if (EffectPart.AssetType == AssetType.PBIND)
             {
                 if (EffectPart.AssetRef.Files[0].EmpFile == null) return;
-                Assets.Add(new ParticleSystem(SpawnTransform, Actor, EffectPart, EffectPart.AssetRef.Files[0].EmpFile, this, GameBase));
+                Assets.Add(new ParticleSystem(SpawnTransform, Actor, EffectPart, EffectPart.AssetRef.Files[0].EmpFile, this));
             }
         }
 
@@ -97,21 +98,21 @@ namespace XenoKit.Engine.Vfx
                 if (effectPart.AssetType == AssetType.CBIND)
                 {
                     if (effectPart.AssetRef.Files[0].EcfFile == null) continue;
-                    Assets.Add(new VfxColorFade(effectPart.AssetRef.Files[0].EcfFile, effectPart, Actor, GameBase));
+                    Assets.Add(new VfxColorFade(effectPart.AssetRef.Files[0].EcfFile, effectPart, Actor));
                 }
                 else if (effectPart.AssetType == AssetType.EMO)
                 {
-                    Assets.Add(new VfxEmo(SpawnTransform, effectPart.AssetRef, effectPart, Actor, GameBase));
+                    Assets.Add(new VfxEmo(SpawnTransform, effectPart.AssetRef, effectPart, Actor));
                 }
                 else if (effectPart.AssetType == AssetType.LIGHT)
                 {
                     if (effectPart.AssetRef.Files[0].EmaFile == null) continue;
-                    Assets.Add(new VfxLight(effectPart.AssetRef.Files[0].EmaFile, effectPart, Actor, GameBase));
+                    Assets.Add(new VfxLight(effectPart.AssetRef.Files[0].EmaFile, effectPart, Actor));
                 }
                 else if (effectPart.AssetType == AssetType.PBIND)
                 {
                     if (effectPart.AssetRef.Files[0].EmpFile == null) continue;
-                    Assets.Add(new ParticleSystem(SpawnTransform, Actor, effectPart, effectPart.AssetRef.Files[0].EmpFile, this, GameBase));
+                    Assets.Add(new ParticleSystem(SpawnTransform, Actor, effectPart, effectPart.AssetRef.Files[0].EmpFile, this));
                 }
             }
         }
@@ -135,7 +136,7 @@ namespace XenoKit.Engine.Vfx
             }
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             if (Effect != null)
                 Effect.EffectParts.CollectionChanged -= EffectParts_CollectionChanged;
@@ -194,7 +195,7 @@ namespace XenoKit.Engine.Vfx
                         Initialize();
 
                         if (!SceneManager.Loop)
-                            GameBase.IsPlaying = false;
+                            ViewportInstance.IsPlaying = false;
                     }
                     else
                     {

@@ -119,9 +119,9 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SyncCurrentFrameWithView && SceneManager.MainCamera != null)
+                if (SyncCurrentFrameWithView && Viewport.Instance?.Camera != null)
                 {
-                    _currentFrame = (int)SceneManager.MainCamera.CurrentFrame;
+                    _currentFrame = (int)Viewport.Instance.Camera.CurrentFrame;
                 }
 
                 return _currentFrame;
@@ -216,7 +216,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Position))
                     return AccentBrush;
@@ -229,7 +229,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Rotation))
                     return AccentBrush;
@@ -242,7 +242,7 @@ namespace XenoKit.Controls
         {
             get
             {
-                if (SceneManager.IsPlaying) return BackgroundBrush;
+                if (Viewport.Instance?.IsPlaying == true) return BackgroundBrush;
 
                 if (HasKeyframe(EAN_AnimationComponent.ComponentType.Scale))
                     return AccentBrush;
@@ -271,7 +271,7 @@ namespace XenoKit.Controls
             var undos = SelectedAnimation.GetNode(EAN_Node.CAM_NODE).SetKeyframe(CurrentFrame, type, axis, false, value);
 
             UndoManager.Instance.AddCompositeUndo(undos, EAN_AnimationComponent.GetCameraTypeString(type, axis), UndoGroup.Camera);
-            SceneManager.UpdateCameraAnimation();
+            Viewport.Instance.ForceCameraUpdate();
 
             //Update color of keyframes
             NotifyPropertyChanged(nameof(CurrentKeyframes));
@@ -726,14 +726,14 @@ namespace XenoKit.Controls
         public RelayCommand AddKeyframeCommand => new RelayCommand(AddKeyframeAsync, CanAddKeyframe);
         private void AddKeyframeAsync()
         {
-            float posX = SceneManager.MainGameInstance.camera.CameraState.Position.X;
-            float posY = SceneManager.MainGameInstance.camera.CameraState.Position.Y;
-            float posZ = SceneManager.MainGameInstance.camera.CameraState.Position.Z;
-            float rotX = SceneManager.MainGameInstance.camera.CameraState.TargetPosition.X;
-            float rotY = SceneManager.MainGameInstance.camera.CameraState.TargetPosition.Y;
-            float rotZ = SceneManager.MainGameInstance.camera.CameraState.TargetPosition.Z;
-            float scaleX = -MathHelper.ToRadians(SceneManager.MainGameInstance.camera.CameraState.Roll);
-            float scaleY = MathHelper.ToRadians(SceneManager.MainGameInstance.camera.CameraState.FieldOfView);
+            float posX = Viewport.Instance.Camera.CameraState.Position.X;
+            float posY = Viewport.Instance.Camera.CameraState.Position.Y;
+            float posZ = Viewport.Instance.Camera.CameraState.Position.Z;
+            float rotX = Viewport.Instance.Camera.CameraState.TargetPosition.X;
+            float rotY = Viewport.Instance.Camera.CameraState.TargetPosition.Y;
+            float rotZ = Viewport.Instance.Camera.CameraState.TargetPosition.Z;
+            float scaleX = -MathHelper.ToRadians(Viewport.Instance.Camera.CameraState.Roll);
+            float scaleY = MathHelper.ToRadians(Viewport.Instance.Camera.CameraState.FieldOfView);
 
             //"Unscale" the camera if the current EAN file is not chara unique
             if (!SelectedEanFile.IsCharaUnique && SceneManager.Actors[0] != null)
@@ -976,7 +976,7 @@ namespace XenoKit.Controls
         {
             if (SceneManager.CurrentSceneState == EditorTabs.Camera && SyncCurrentFrameWithView)
             {
-                _currentFrame = (int)SceneManager.MainGameInstance.camera.CurrentFrame;
+                _currentFrame = (int)Viewport.Instance.Camera.CurrentFrame;
                 NotifyPropertyChanged(nameof(CurrentFrame));
                 UpdateKeyframeValues();
             }
@@ -990,7 +990,7 @@ namespace XenoKit.Controls
                 UpdateKeyframeValues();
             }
 
-            SceneManager.UpdateCameraAnimation();
+            Viewport.Instance?.ForceCameraUpdate();
         }
 
         private void AnimListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1039,7 +1039,7 @@ namespace XenoKit.Controls
             animDataGrid.Items.Refresh();
 
             //Ensure that the camera animation gets updated to reflect any changes, even if it is paused.
-            SceneManager.UpdateCameraAnimation();
+            Viewport.Instance?.ForceCameraUpdate();
         }
         #endregion
 

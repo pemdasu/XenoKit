@@ -5,7 +5,6 @@ using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
-using Xv2CoreLib.EMA;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
@@ -17,25 +16,15 @@ using Xv2CoreLib.NSK;
 
 namespace XenoKit.Engine
 {
-    public class CompiledObjectManager : IDisposable
+    public class CompiledObjectManager
     {
         private readonly Dictionary<object, CompiledObjectCacheEntry> CachedObjects = new Dictionary<object, CompiledObjectCacheEntry>();
 
         public int ObjectCount => CachedObjects.Count;
 
-        public CompiledObjectManager()
-        {
-            SceneManager.SlowUpdate += SceneManager_SlowUpdate;
-        }
-
-        private void SceneManager_SlowUpdate(object sender, EventArgs e)
+        public void SlowUpdate()
         {
             RemoveDeadObjects();
-        }
-
-        public void Dispose()
-        {
-            SceneManager.SlowUpdate -= SceneManager_SlowUpdate;
         }
 
         #region AddGet
@@ -45,7 +34,7 @@ namespace XenoKit.Engine
         /// <typeparam name="T">The compiled object type</typeparam>
         /// <param name="key">The source object</param>
         /// <returns></returns>
-        public T GetCompiledObject<T>(object key, GameBase gameInstance, ShaderType shaderType = ShaderType.Default, bool firstAttempt = true) where T : class
+        public T GetCompiledObject<T>(object key, ShaderType shaderType = ShaderType.Default, bool firstAttempt = true) where T : class
         {
             if (key == null) return null;
 
@@ -62,31 +51,31 @@ namespace XenoKit.Engine
                 {
                     if (typeof(T) == typeof(PostShaderEffect) && key is ShaderProgram shaderProgram)
                     {
-                        result = new PostShaderEffect(shaderProgram, gameInstance);
+                        result = new PostShaderEffect(shaderProgram);
                     }
                     else if (typeof(T) == typeof(Xv2ShaderEffect) && key is EmmMaterial material)
                     {
-                        result = new Xv2ShaderEffect(material, shaderType, gameInstance);
+                        result = new Xv2ShaderEffect(material, shaderType);
                     }
                     else if (typeof(T) == typeof(Xv2Texture) && key is EmbEntry embEntry)
                     {
-                        result = new Xv2Texture(embEntry, gameInstance);
+                        result = new Xv2Texture(embEntry);
                     }
                     else if (typeof(T) == typeof(Xv2ModelFile) && key is EMD_File emdFile)
                     {
-                        result = Xv2ModelFile.LoadEmd(gameInstance, emdFile);
+                        result = Xv2ModelFile.LoadEmd(emdFile);
                     }
                     else if (typeof(T) == typeof(Xv2ModelFile) && key is NSK_File nskFile)
                     {
-                        result = Xv2ModelFile.LoadNsk(gameInstance, nskFile);
+                        result = Xv2ModelFile.LoadNsk(nskFile);
                     }
                     else if (typeof(T) == typeof(Xv2ModelFile) && key is EMO_File emoFile)
                     {
-                        result = Xv2ModelFile.LoadEmo(gameInstance, emoFile);
+                        result = Xv2ModelFile.LoadEmo(emoFile);
                     }
                     else if (typeof(T) == typeof(Xv2Submesh) && key is EMG_File emgFile)
                     {
-                        result = Xv2ModelFile.LoadEmg(gameInstance, emgFile);
+                        result = Xv2ModelFile.LoadEmg(emgFile);
                     }
                     else if (typeof(T) == typeof(Animation.Xv2Skeleton) && key is ESK_File eskFile)
                     {
@@ -94,11 +83,11 @@ namespace XenoKit.Engine
                     }
                     else if (typeof(T) == typeof(Vfx.Particle.ParticleEmissionData) && key is ParticleNode particleNode)
                     {
-                        result = new Vfx.Particle.ParticleEmissionData(particleNode, gameInstance);
+                        result = new Vfx.Particle.ParticleEmissionData(particleNode);
                     }
                     else if (typeof(T) == typeof(ModelScene) && key is Xv2ModelFile model)
                     {
-                        result = new ModelScene(gameInstance, model);
+                        result = new ModelScene(model);
                     }
                     else
                     {
@@ -112,16 +101,16 @@ namespace XenoKit.Engine
                     {
                         try
                         {
-                            CachedObjects.Add(key, new CompiledObjectCacheEntry(key, result, gameInstance));
+                            CachedObjects.Add(key, new CompiledObjectCacheEntry(key, result));
                         }
                         catch
                         {
-                            return GetCompiledObject<T>(key, gameInstance, shaderType, firstAttempt: false);
+                            return GetCompiledObject<T>(key, shaderType, firstAttempt: false);
                         }
                     }
                     else
                     {
-                        CachedObjects.Add(key, new CompiledObjectCacheEntry(key, result, gameInstance));
+                        CachedObjects.Add(key, new CompiledObjectCacheEntry(key, result));
                     }
                 }
 
@@ -201,15 +190,13 @@ namespace XenoKit.Engine
 
     public class CompiledObjectCacheEntry
     {
-        public GameBase GameInstance { get; private set; }
         public object Key;
         public WeakReference CachedObject;
 
-        public CompiledObjectCacheEntry (object key, object obj, GameBase gameInstance)
+        public CompiledObjectCacheEntry (object key, object obj)
         {
             Key = key;
             CachedObject = new WeakReference(obj);
-            GameInstance = gameInstance;
         }
 
         public bool IsAlive()

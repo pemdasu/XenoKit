@@ -160,7 +160,7 @@ namespace XenoKit.Views
                     return;
                 }
 
-                ModelScene modelScene = SceneManager.MainGameBase.CompiledObjectManager.GetCompiledObject<ModelScene>(mesh.Model, SceneManager.MainGameBase);
+                ModelScene modelScene = Engine.Viewport.Instance.CompiledObjectManager.GetCompiledObject<ModelScene>(mesh.Model);
                 modelScene.SetFiles(Engine.Shader.ShaderType.Chara, mesh.TextureFile?.EmbFile, mesh.MaterialFile?.EmmFile, mesh.DytFile?.EmbFile);
                 modelScene.SetPaths(false, mesh.Path, mesh.TextureFile?.Path, mesh.MaterialFile?.Path, mesh.DytFile?.Path);
 
@@ -192,7 +192,7 @@ namespace XenoKit.Views
                 }
 
                 TextureCube cubemap = TextureLoader.ConvertToTextureCube(emb.EmbFile.Entry[0], "ENV");
-                SceneManager.MainGameInstance?.ShaderManager.SetSceneCubeMap(cubemap);
+                Engine.Viewport.Instance?.ShaderManager.SetSceneCubeMap(cubemap);
 
                 Log.Add($"Scene cubemap changed to \"{Path.GetFileName(emb.Path)}\"");
             }
@@ -209,13 +209,13 @@ namespace XenoKit.Views
                     return;
                 }
 
-                SceneManager.MainGameInstance?.RenderSystem.RemoveAllReflectionRenderEntity();
+                Engine.Viewport.Instance?.RenderSystem.RemoveAllReflectionRenderEntity();
 
                 foreach (var child in nsk.ChildEntities)
                 {
                     if(child is MeshInspectorEntity mesh)
                     {
-                        SceneManager.MainGameInstance?.RenderSystem.AddReflectionRenderEntity(mesh);
+                        Engine.Viewport.Instance?.RenderSystem.AddReflectionRenderEntity(mesh);
                     }
                 }
 
@@ -232,7 +232,7 @@ namespace XenoKit.Views
         {
             if(SelectedItem is MeshInspectorEntity mesh)
             {
-                SceneManager.MainGameBase.RenderSystem.MoveRenderEntityToFront(mesh);
+                Game.Instance.RenderSystem.MoveRenderEntityToFront(mesh);
             }
         }
         */
@@ -419,17 +419,17 @@ namespace XenoKit.Views
             }
 
             //Set context for transform gizmo (move skeletons around)
-            if(SceneManager.MainGameInstance != null)
+            if(Engine.Viewport.Instance != null)
             {
-                SceneManager.MainGameInstance.EntityTransformGizmo.SetContext(null, 0);
+                Engine.Viewport.Instance.EntityTransformGizmo.SetContext(null, 0);
 
                 if (e.NewValue is SkinnedInspectorEntity skinned)
                 {
                     //Only root level skeletons can be moved (SCDs will get set to parents transform)
                     if (Inspector.Entities.Contains(skinned))
                     {
-                        SceneManager.MainGameInstance.EntityTransformGizmo.SetContext(skinned, EditorTabs.Inspector);
-                        SceneManager.MainGameInstance.EntityTransformGizmo.Enable();
+                        Engine.Viewport.Instance.EntityTransformGizmo.SetContext(skinned, EditorTabs.Inspector);
+                        Engine.Viewport.Instance.EntityTransformGizmo.Enable();
                     }
                 }
             }

@@ -34,7 +34,6 @@ namespace XenoKit.Engine.Vfx.Particle
         public override void Release()
         {
             ObjectPoolManager.ParticlePlanePool.ReleaseObject(this);
-            //GameBase.RenderSystem.RemoveRenderEntity(this);
         }
 
         private void UpdateVertices()
@@ -167,13 +166,13 @@ namespace XenoKit.Engine.Vfx.Particle
                         //This is not entirely correct.
                         //Matrix.CreateBillboard does not create the same result as in game. This method makes the particle always look at the current camera position, while in game it only cares about camera direction
                         //newWorld = Matrix.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi) * Matrix.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.Up, -Vector3.Up, null) * Matrix.CreateScale(ParticleSystem.Scale);
-                        newWorld = Matrix4x4.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.GetUp(), -MathHelpers.Up, SimdVector3.Zero) * Matrix4x4.CreateScale(ParticleSystem.Scale);
+                        newWorld = Matrix4x4.CreateConstrainedBillboard(world.Translation, Camera.CameraState.Position, world.GetUp(), -MathHelpers.Up, SimdVector3.Zero) * Matrix4x4.CreateScale(ParticleSystem.Scale);
                         
                         newWorld.Translation = worldTranslation.Translation;
                     }
                     else
                     {
-                        newWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) * MathHelpers.Invert(CameraBase.ViewMatrix) * Matrix4x4.CreateScale(ParticleSystem.Scale);
+                        newWorld = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) * Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) * MathHelpers.Invert(Camera.ViewMatrix) * Matrix4x4.CreateScale(ParticleSystem.Scale);
                         newWorld.Translation = worldTranslation.Translation;
                     }
                 }
@@ -194,7 +193,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
                 //Apply RenderDepth offset to world position. This translates the camera toward or away from the camera by the amount specified in RenderDepth.
                 //This isn't exactly how the game handles this (it moves the vertex positions), but it produces the same result and is quicker to implement
-                newWorld *= Matrix4x4.CreateTranslation(CameraBase.TransformRelativeToCamera(newWorld.Translation, Node.EmissionNode.Texture.RenderDepth));
+                newWorld *= Matrix4x4.CreateTranslation(Camera.TransformRelativeToCamera(newWorld.Translation, Node.EmissionNode.Texture.RenderDepth));
                 AbsoluteTransform = newWorld;
             }
 
@@ -216,6 +215,11 @@ namespace XenoKit.Engine.Vfx.Particle
 
             if (State == NodeState.Active && (Node.NodeFlags & NodeFlags1.Hide) != NodeFlags1.Hide)
             {
+                if (Batch.IsDestroyed)
+                {
+                    Batch = RenderSystem.ParticleBatcher.GetBatch(Node);
+                }
+
                 Batch.AddToBatch(CreateBatchItem());
                 /*
                 //Set samplers/textures

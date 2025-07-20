@@ -538,7 +538,7 @@ namespace XenoKit.Controls
 
         private bool CanFocus()
         {
-            return SelectedBacType != null && SceneManager.Actors[0] != null && !SceneManager.MainGameBase.IsPlaying;
+            return SelectedBacType != null && SceneManager.Actors[0] != null && !Viewport.Instance.IsPlaying;
         }
 
         private bool CanPasteBacEntries()
@@ -815,15 +815,15 @@ namespace XenoKit.Controls
 
         public void TryEnableGizmos()
         {
-            if (SceneManager.MainGameInstance == null) return;
+            if (Viewport.Instance == null) return;
 
             if (SelectedBacType is BAC_Type1 hitbox)
             {
-                SceneManager.MainGameInstance.BacHitboxGizmo.SetContext(hitbox);
+                Viewport.Instance.BacHitboxGizmo.SetContext(hitbox);
             }
             else
             {
-                SceneManager.MainGameInstance.BacHitboxGizmo.RemoveContext();
+                Viewport.Instance.BacHitboxGizmo.RemoveContext();
             }
 
             if (SelectedBacType is IBacTypeMatrix bacMatrix)
@@ -839,11 +839,11 @@ namespace XenoKit.Controls
                 if (SelectedBacType is BAC_Type2)
                     boneName = Xv2CoreLib.ESK.ESK_File.BaseBone;
 
-                SceneManager.MainGameInstance.GetBacMatrixGizmo().SetContext(bacMatrix, true, rotationEnabled, false, boneName, ignoreRotationOnBaseBone, EditorTabs.Action);
+                Viewport.Instance.GetBacMatrixGizmo().SetContext(bacMatrix, true, rotationEnabled, false, boneName, ignoreRotationOnBaseBone, EditorTabs.Action);
             }
             else
             {
-                SceneManager.MainGameInstance.GetBacMatrixGizmo().RemoveContext();
+                Viewport.Instance.GetBacMatrixGizmo().RemoveContext();
             }
         }
 

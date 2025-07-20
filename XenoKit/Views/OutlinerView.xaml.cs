@@ -152,13 +152,13 @@ namespace XenoKit.Controls
             if (CanSetStage())
             {
 
-                if (SceneManager.MainGameInstance.CurrentStage == files.SelectedItem.Stage)
+                if (Viewport.Instance.CurrentStage == files.SelectedItem.Stage)
                 {
-                    SceneManager.MainGameInstance.SetActiveStage(null);
+                    Viewport.Instance.SetActiveStage(null);
                 }
                 else
                 {
-                    SceneManager.MainGameInstance.SetActiveStage(files.SelectedItem.Stage);
+                    Viewport.Instance.SetActiveStage(files.SelectedItem.Stage);
                 }
             }
         }

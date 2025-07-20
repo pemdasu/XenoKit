@@ -16,7 +16,7 @@ using Xv2CoreLib;
 
 namespace XenoKit.Engine.Animation
 {
-    public class AnimationPlayer : AnimationPlayerBase
+    public class AnimationPlayer : AnimationPlayerBase, IDisposable
     {
         private readonly Actor Character;
         private readonly SkinnedInspectorEntity Inspector;
@@ -55,7 +55,7 @@ namespace XenoKit.Engine.Animation
         }
 
 
-        public AnimationPlayer(Xv2Skeleton skeleton, Actor chara) : base(chara.GameBase)
+        public AnimationPlayer(Xv2Skeleton skeleton, Actor chara)
         {
             Skeleton = skeleton ?? throw new ArgumentNullException("skeleton", "AnimationPlayer: skeleton was null. Cannot construct an AnimationPlayer.");
             Character = chara;
@@ -66,7 +66,7 @@ namespace XenoKit.Engine.Animation
             SceneManager.SeekOccurred += SceneManager_SeekOccurred;
         }
 
-        public AnimationPlayer(Xv2Skeleton skeleton, SkinnedInspectorEntity skinnedEntity) : base(skinnedEntity.GameBase)
+        public AnimationPlayer(Xv2Skeleton skeleton, SkinnedInspectorEntity skinnedEntity)
         {
             Skeleton = skeleton ?? throw new ArgumentNullException("skeleton", "AnimationPlayer: skeleton was null. Cannot construct an AnimationPlayer.");
             Inspector = skinnedEntity;
@@ -77,7 +77,7 @@ namespace XenoKit.Engine.Animation
             SceneManager.SeekOccurred += SceneManager_SeekOccurred;
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             SceneManager.AnimationDataChanged -= SceneManager_AnimationDataChanged;
             UndoManager.Instance.UndoOrRedoCalled -= Instance_UndoOrRedoCalled;
@@ -141,7 +141,7 @@ namespace XenoKit.Engine.Animation
             HandleFinishedAnimations();
 
             //Advance frame
-            if (GameBase.IsPlaying && IsUsingAnimation && PrimaryAnimation?.CurrentFrame < PrimaryAnimation?.EndFrame &&
+            if (ViewportInstance.IsPlaying && IsUsingAnimation && PrimaryAnimation?.CurrentFrame < PrimaryAnimation?.EndFrame &&
                 SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Action, EditorTabs.Inspector, EditorTabs.InspectorAnimation))
             {
                 AdvanceFrame();
@@ -179,7 +179,7 @@ namespace XenoKit.Engine.Animation
             {
                 if (PrimaryAnimation.CurrentFrame >= PrimaryAnimation.EndFrame)
                 {
-                    if (SceneManager.Loop && PrimaryAnimation.AutoTerminate && (GameBase.IsPlaying && SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Inspector, EditorTabs.InspectorAnimation, EditorTabs.CAC) || !SceneManager.IsOnTab(EditorTabs.Animation)))
+                    if (SceneManager.Loop && PrimaryAnimation.AutoTerminate && (ViewportInstance.IsPlaying && SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Inspector, EditorTabs.InspectorAnimation, EditorTabs.CAC) || !SceneManager.IsOnTab(EditorTabs.Animation)))
                     {
                         PrimaryAnimation.CurrentFrame_Int = PrimaryAnimation.StartFrame;
                     }
@@ -341,7 +341,7 @@ namespace XenoKit.Engine.Animation
                 PrimaryAnimation = new AnimationInstance(_eanFile, eanIndex, startFrame, endFrame, blendWeight, blendWeightIncrease, prevMatrices, _animFlags, useTransform, timeScale, autoTerminate);
 
                 //Render first frame if not auto playing
-                if (!GameBase.IsPlaying)
+                if (!ViewportInstance.IsPlaying)
                     UpdateAnimation(PrimaryAnimation);
 
                 //IF a primary bac animation is playing, set face bones to disabled (they are not used by default)

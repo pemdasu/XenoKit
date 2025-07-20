@@ -6,11 +6,11 @@ using XenoKit.Engine.Objects;
 
 namespace XenoKit.Engine.Animation
 {
-    public class DebugSkeleton : Entity
+    public class DebugSkeleton : EngineObject
     {
         public List<ObjectAxis> listAxis = new List<ObjectAxis>();
 
-        public DebugSkeleton(GameBase gameBase) : base(gameBase)
+        public DebugSkeleton()
         {
             
         }
@@ -18,7 +18,7 @@ namespace XenoKit.Engine.Animation
         public void Draw(Xv2Bone[] bones, Xv2Bone[] Bones, Matrix transform)
         {
             for(int i = listAxis.Count, nb = bones.Length; i < nb; i++)
-                listAxis.Add(new ObjectAxis(false, GameBase));
+                listAxis.Add(new ObjectAxis(false));
             
             for (int i = 0, nb = bones.Length; i < nb; i++)
             {
