@@ -191,6 +191,14 @@ namespace XenoKit.Windows
                 }
             }
         }
+        public int RenderFrameRate
+        {
+            get => SettingsManager.settings.XenoKit_HalfRenderRate ? 0 : 1;
+            set
+            {
+                SettingsManager.settings.XenoKit_HalfRenderRate = value == 0;
+            }
+        }
 
         private string OriginalGameDir;
 

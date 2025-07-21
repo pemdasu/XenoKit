@@ -1,8 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Engine.Rendering;
-using XenoKit.Engine.Vertex;
-using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
 using Xv2CoreLib.Resource;
@@ -13,14 +10,6 @@ namespace XenoKit.Engine.Vfx.Particle
 {
     public class ParticlePlane : ParticleEmissionBase
     {
-        private const int VERTEX_TOP_LEFT = 0;
-        private const int VERTEX_TOP_RIGHT = 1;
-        private const int VERTEX_BOTTOM_LEFT_ALT = 2;
-        private const int VERTEX_BOTTOM_LEFT = 3;
-        private const int VERTEX_TOP_RIGHT_ALT = 4;
-        private const int VERTEX_BOTTOM_RIGHT = 5;
-
-        protected readonly VertexPositionTextureColor[] Vertices = new VertexPositionTextureColor[6];
         protected BoundingBox AABB = new BoundingBox();
 
         private ParticleBatch Batch;
@@ -34,76 +23,6 @@ namespace XenoKit.Engine.Vfx.Particle
         public override void Release()
         {
             ObjectPoolManager.ParticlePlanePool.ReleaseObject(this);
-        }
-
-        private void UpdateVertices()
-        {
-            if (EmissionData.TextureIndex == -1 || ParticleSystem.IsSimulating) return;
-
-            UpdateScale();
-            UpdateColor();
-            //UpdateTextureScroll();
-
-            float scaleU_FirstVertex = ScaleU;
-
-            //Special case for when Scale XY is used. The first vertex still uses Scale Base for U, but not V (game bug? seems weird...)
-            if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
-                scaleU_FirstVertex = ScaleBase;
-
-            //Set positions
-            Vertices[VERTEX_TOP_LEFT].Position.X = -scaleU_FirstVertex;
-            Vertices[VERTEX_TOP_LEFT].Position.Y = ScaleV;
-            Vertices[VERTEX_TOP_LEFT].Position.Z = 0f;
-            Vertices[VERTEX_TOP_RIGHT].Position.X = scaleU_FirstVertex;
-            Vertices[VERTEX_TOP_RIGHT].Position.Y = ScaleV;
-            Vertices[VERTEX_TOP_RIGHT].Position.Z = 0f;
-            Vertices[VERTEX_BOTTOM_LEFT].Position.X = -ScaleU;
-            Vertices[VERTEX_BOTTOM_LEFT].Position.Y = -ScaleV;
-            Vertices[VERTEX_BOTTOM_LEFT].Position.Z = 0f;
-            Vertices[VERTEX_BOTTOM_RIGHT].Position.X = ScaleU;
-            Vertices[VERTEX_BOTTOM_RIGHT].Position.Y = -ScaleV;
-            Vertices[VERTEX_BOTTOM_RIGHT].Position.Z = 0f;
-
-            //Translate vertices relatice to camera, according to RenderDepth
-            //Vector3 cameraTranslation = CameraBase.TransformRelativeToCamera(Node.EmissionNode.Texture.RenderDepth);
-            //Vertices[VERTEX_TOP_LEFT].Position += cameraTranslation;
-            //Vertices[VERTEX_TOP_RIGHT].Position += cameraTranslation;
-            //Vertices[VERTEX_BOTTOM_LEFT].Position += cameraTranslation;
-            //Vertices[VERTEX_BOTTOM_RIGHT].Position += cameraTranslation;
-
-            //UV
-            Vertices[VERTEX_TOP_LEFT].TextureUV.X = ParticleUV.ScrollU;
-            Vertices[VERTEX_TOP_LEFT].TextureUV.Y = ParticleUV.ScrollV;
-            Vertices[VERTEX_TOP_RIGHT].TextureUV.X = ParticleUV.ScrollU + ParticleUV.StepU;
-            Vertices[VERTEX_TOP_RIGHT].TextureUV.Y = ParticleUV.ScrollV;
-            Vertices[VERTEX_BOTTOM_LEFT].TextureUV.X = ParticleUV.ScrollU;
-            Vertices[VERTEX_BOTTOM_LEFT].TextureUV.Y = ParticleUV.ScrollV + ParticleUV.StepV;
-            Vertices[VERTEX_BOTTOM_RIGHT].TextureUV.X = ParticleUV.ScrollU + ParticleUV.StepU;
-            Vertices[VERTEX_BOTTOM_RIGHT].TextureUV.Y = ParticleUV.ScrollV + ParticleUV.StepV;
-
-            //Color
-            if ((Node.NodeFlags & NodeFlags1.EnableSecondaryColor) == NodeFlags1.EnableSecondaryColor &&
-                (Node.NodeFlags & NodeFlags1.FlashOnGen) != NodeFlags1.FlashOnGen)
-            {
-                Vertices[VERTEX_TOP_LEFT].SetColor(PrimaryColor);
-                Vertices[VERTEX_TOP_RIGHT].SetColor(PrimaryColor);
-                Vertices[VERTEX_BOTTOM_LEFT].SetColor(SecondaryColor);
-                Vertices[VERTEX_BOTTOM_RIGHT].SetColor(SecondaryColor);
-            }
-            else
-            {
-                Vertices[VERTEX_TOP_LEFT].SetColor(PrimaryColor);
-                Vertices[VERTEX_TOP_RIGHT].SetColor(PrimaryColor);
-                Vertices[VERTEX_BOTTOM_LEFT].SetColor(PrimaryColor);
-                Vertices[VERTEX_BOTTOM_RIGHT].SetColor(PrimaryColor);
-            }
-
-            //Duplicate vertices
-            Vertices[VERTEX_BOTTOM_LEFT_ALT] = Vertices[VERTEX_BOTTOM_LEFT];
-            Vertices[VERTEX_TOP_RIGHT_ALT] = Vertices[VERTEX_TOP_RIGHT];
-
-            //Update AABB
-            UpdateAABB();
         }
 
         private void UpdateAABB()
@@ -140,7 +59,6 @@ namespace XenoKit.Engine.Vfx.Particle
                 UpdateScale();
                 UpdateColor();
                 UpdateAABB();
-                //UpdateVertices();
 
                 //Update world matrix
                 Matrix4x4 newWorld;
@@ -204,6 +122,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         public void DrawBatch()
         {
+            if (!Viewport.Instance.DrawThisFrame) return;
             if (EmissionData == null || ParticleSystem == null) return;
             //if (!ParticleSystem.DrawThisFrame) return;
             //if (!RenderSystem.CheckDrawPass(EmissionData.Material) || !ParticleSystem.DrawThisFrame) return;

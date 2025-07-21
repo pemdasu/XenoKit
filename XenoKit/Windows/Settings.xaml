@@ -49,6 +49,17 @@
             <Controls:MetroTabItem Header="Performance" Controls:HeaderedControlHelper.HeaderFontSize="14">
                 <Grid Background="{DynamicResource MahApps.Brushes.SystemControlBackgroundAltMediumLow}">
                     <StackPanel HorizontalAlignment="Left" >
+                        <Grid Margin="3,5,0,0" Width="250">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Render FPS" ToolTip="The rate at which the viewport will render at. If you experience frequent slowdown, lowering this to 30 may help.&#x0a;&#x0a;NOTE: The internal update loop will still run at 60 FPS regardless of what you pick, so the displayed FPS in the viewport overlay will not change."/>
+                            <ComboBox Grid.Column="1" SelectedIndex="{Binding RenderFrameRate, UpdateSourceTrigger=PropertyChanged}">
+                                <ComboBoxItem Content="30"/>
+                                <ComboBoxItem Content="60"/>
+                            </ComboBox>
+                        </Grid>
                         <Grid Margin="3,5,0,0" Width="250" ToolTip="The interval at which the internal Delayed Update function runs at. Lower values will result in some UI operations being more responsive (such as dragging the slider on BAC entries to change the current frame), but could cause performance issues on some PCs.">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="150"/>

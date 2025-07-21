@@ -22,6 +22,7 @@ using XenoKit.Engine.Lighting;
 using XenoKit.Engine.Pool;
 using XenoKit.Engine.Scripting;
 using XenoKit.Engine.Textures;
+using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine
 {
@@ -82,6 +83,8 @@ namespace XenoKit.Engine
         private int DelayedTimer = 0;
         protected int HotkeyCooldown = 0;
         private bool isCameraUpdateForced = false;
+
+        public bool DrawThisFrame {  get; private set; }
         #endregion
 
         #region Properties
@@ -188,6 +191,7 @@ namespace XenoKit.Engine
         #region Main Loop
         protected override void Update(GameTime time)
         {
+            DrawThisFrame = !(SettingsManager.settings.XenoKit_HalfRenderRate && !MathHelpers.IsEven(Tick));
             IsBlackVoid = false;
             GameTime = time;
             Input.Update(_mouse, _keyboard);
@@ -330,6 +334,8 @@ namespace XenoKit.Engine
 
         protected override void Draw(GameTime time)
         {
+            if (!DrawThisFrame) return;
+
             ShaderManager.SetAllGlobalSamplers();
 
             //RenderSystem goes first

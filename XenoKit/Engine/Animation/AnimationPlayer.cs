@@ -1,18 +1,20 @@
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using Xv2CoreLib.EAN;
-using Xv2CoreLib.ESK;
-using Xv2CoreLib.Resource.UndoRedo;
-using static Xv2CoreLib.BAC.BAC_Type0;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Helper;
 using XenoKit.Inspector.InspectorEntities;
-using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector3 = System.Numerics.Vector3;
-using SimdQuaternion = System.Numerics.Quaternion;
 using Xv2CoreLib;
+using Xv2CoreLib.EAN;
+using Xv2CoreLib.ESK;
+using Xv2CoreLib.Resource;
+using Xv2CoreLib.Resource.App;
+using Xv2CoreLib.Resource.UndoRedo;
+using static Xv2CoreLib.BAC.BAC_Type0;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdQuaternion = System.Numerics.Quaternion;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Animation
 {
@@ -53,7 +55,6 @@ namespace XenoKit.Engine.Animation
                 return 0;
             }
         }
-
 
         public AnimationPlayer(Xv2Skeleton skeleton, Actor chara)
         {
