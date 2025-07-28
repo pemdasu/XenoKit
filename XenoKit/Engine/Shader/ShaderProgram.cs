@@ -32,6 +32,7 @@ namespace XenoKit.Engine.Shader
         public readonly bool[] UseVertexShaderBuffer = new bool[9];
 
         public bool ShaderValidationPassed { get; private set; }
+        public bool IsHardwareInstanceShader { get; private set; } 
 
         public ShaderProgram(SDSShaderProgram shaderProgram, byte[] vsByteCode, byte[] psByteCode, bool allowHardwareSkinning, GraphicsDevice graphicsDevice)
         {
@@ -65,7 +66,7 @@ namespace XenoKit.Engine.Shader
         {
             VsParser = new DxbcParser(VS_Bytecode);
             PsParser = new DxbcParser(PS_Bytecode);
-            ShaderValidationPassed = ValidateShader();
+            ValidateShader();
 
             if (!ShaderValidationPassed) return;
 
@@ -100,18 +101,17 @@ namespace XenoKit.Engine.Shader
             }
         }
 
-        private bool ValidateShader()
+        private void ValidateShader()
         {
             foreach(var input in VsParser.InputSignature)
             {
                 if (input.Name == "INSTDATA")
                 {
-                    return false;
+                    IsHardwareInstanceShader = true;
                 }
-
             }
 
-            return true;
+            ShaderValidationPassed = true;
         }
     }
 }

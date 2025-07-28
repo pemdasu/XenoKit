@@ -18,19 +18,22 @@ namespace XenoKit.Engine.Gizmo
         XY,
         ZY,
         ZX,
-        YZ
+        YZ,
+        XYZ
     }
 
     public enum GizmoMode
     {
-        Translate,
-        Rotate,
-        Scale
+        Translate = 0,
+        Rotate = 1,
+        Scale = 2,
+        None = 3
     }
 
     public abstract class GizmoBase : EngineObject
     {
-        public bool IsVisible { get; protected set; }
+        public event EventHandler ModeChanged;
+        public bool IsVisible => ActiveMode != GizmoMode.None;
         private bool WasAutoHidden { get; set; }
         protected virtual Matrix WorldMatrix { get; } = Matrix.Identity;
 
@@ -42,9 +45,11 @@ namespace XenoKit.Engine.Gizmo
         }
         //State
         protected GizmoAxis ActiveAxis = GizmoAxis.None;
-        protected GizmoMode ActiveMode = GizmoMode.Translate;
+        public GizmoMode ActiveMode { get; protected set; } = GizmoMode.Translate;
 
         #region Stuff
+        private readonly Sphere GeometryXYZ;
+
         // -- Lines (Vertices) -- //
         protected VertexPositionColor[] _translationLineVertices;
         protected const float LINE_LENGTH = 3f;
@@ -61,6 +66,7 @@ namespace XenoKit.Engine.Gizmo
         //Effects
         protected BasicEffect _lineEffect;
         protected BasicEffect _meshEffect;
+        protected BasicEffect _geometryXyzEffect;
 
         // -- Screen Scale -- //
         protected Matrix _screenScaleMatrix;
@@ -153,6 +159,7 @@ namespace XenoKit.Engine.Gizmo
         #region BoundingSpheres
 
         protected const float RADIUS = 1f;
+        protected const float XYZ_RADIUS = 0.5f;
 
         protected BoundingSphere XSphere
         {
@@ -179,6 +186,10 @@ namespace XenoKit.Engine.Gizmo
             }
         }
 
+        protected BoundingSphere XYZSphere
+        {
+            get => new BoundingSphere(Vector3.Transform(Vector3.Zero, _gizmoWorld), XYZ_RADIUS * _screenScale);
+        }
         #endregion
 
         protected virtual ITransformOperation TransformOperation { get; set; }
@@ -187,12 +198,17 @@ namespace XenoKit.Engine.Gizmo
 
         //Settings
         protected virtual bool AutoPause => false;
-        protected virtual bool AllowTranslate => true;
-        protected virtual bool AllowRotation => true;
-        protected virtual bool AllowScale => true;
+        public virtual bool AllowTranslate => true;
+        public virtual bool AllowRotation => true;
+        public virtual bool AllowScale => true;
+
+        public bool IsMouseOver { get; private set; }
 
         public GizmoBase()
         {
+            GeometryXYZ = new Sphere(XYZ_RADIUS * 2f, true);
+
+            _geometryXyzEffect = new BasicEffect(GraphicsDevice) { VertexColorEnabled = true };
             _lineEffect = new BasicEffect(GraphicsDevice) { VertexColorEnabled = true, AmbientLightColor = Vector3.One, EmissiveColor = Vector3.One };
             _meshEffect = new BasicEffect(GraphicsDevice);
             _quadEffect = new BasicEffect(GraphicsDevice) { World = Matrix.Identity, DiffuseColor = _highlightColor.ToVector3(), Alpha = 0.5f };
@@ -283,11 +299,33 @@ namespace XenoKit.Engine.Gizmo
 
         public void Enable()
         {
-            IsVisible = IsContextValid();
+            CurrentGizmo.SetCurrentGizmo(this);
+
+            if (!IsVisible && IsContextValid())
+            {
+                if (AllowTranslate)
+                    ActiveMode = GizmoMode.Translate;
+                else if (AllowRotation)
+                    ActiveMode = GizmoMode.Rotate;
+                else if (AllowScale)
+                    ActiveMode = GizmoMode.Scale;
+                else
+                    throw new ArgumentException("GizmoBase.Enable: no GizmoMode is possible");
+            }
+
             WasAutoHidden = false;
         }
 
         public void Disable()
+        {
+            CancelOperation();
+
+            WasAutoHidden = false;
+            ActiveMode = GizmoMode.None;
+            ModeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void CancelOperation()
         {
             if (TransformOperation != null)
             {
@@ -299,9 +337,16 @@ namespace XenoKit.Engine.Gizmo
 
             if (Input.LeftClickHeldDownContext == this)
                 Input.LeftClickHeldDownContext = null;
+        }
 
-            IsVisible = false;
-            WasAutoHidden = false;
+        public void SetGizmoMode(GizmoMode mode)
+        {
+            if (mode == ActiveMode) return;
+
+            CancelOperation();
+            ActiveMode = mode;
+            WasAutoHidden = IsVisible ? false : WasAutoHidden;
+            ModeChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void SetContext()
@@ -316,7 +361,7 @@ namespace XenoKit.Engine.Gizmo
 
         public override void Draw()
         {
-            if (!IsVisible) return;
+            if (!IsVisible || ActiveMode == GizmoMode.None || ViewportInstance.IsFullScreen) return;
 
             //Meshes
             for (int i = 0; i < 3; i++) //(order: x, y, z)
@@ -422,11 +467,20 @@ namespace XenoKit.Engine.Gizmo
                     }
                     break;
             }
+        
+            //XYZ Sphere (Scale)
+            if(ActiveMode == GizmoMode.Scale && AllowScale)
+            {
+                GeometryXYZ.Draw(_gizmoWorld, Viewport.Instance.Camera.ViewMatrix, Viewport.Instance.Camera.ProjectionMatrix, ActiveAxis == GizmoAxis.XYZ ? Color.Yellow : Color.White);
+            }
         }
         
         public override void Update()
         {
-            if (IsVisible && Input.IsKeyDown(Keys.Escape))
+            IsMouseOver = false;
+            if (ViewportInstance.IsFullScreen) return;
+
+            if (IsVisible && (Input.IsKeyDown(Keys.U) || Input.IsKeyDown(Keys.Escape)))
             {
                 Disable();
             }
@@ -439,16 +493,18 @@ namespace XenoKit.Engine.Gizmo
 
             if (!IsVisible)
             {
+                GizmoMode tryGizmoMode = GetGizmoMode();
+
                 //Attempt to enable control if valid input
-                if (Input.IsKeyDown(Keys.T) || 
-                    ((Input.IsKeyDown(Keys.R) || Input.IsKeyDown(Keys.S)) && SceneManager.CurrentSceneState != EditorTabs.Inspector) || 
-                    (WasAutoHidden && IsContextValid()))
+                if (tryGizmoMode != GizmoMode.None || (WasAutoHidden && IsContextValid()))
                 {
+                    ActiveMode = tryGizmoMode;
+                    ModeChanged?.Invoke(this, EventArgs.Empty);
                     Enable();
                 }
             }
 
-            if (!IsVisible) return;
+            if (!IsVisible || ActiveMode == GizmoMode.None) return;
 
             UpdateElements();
             UpdateMouse();
@@ -535,6 +591,24 @@ namespace XenoKit.Engine.Gizmo
                                             }
                                         }
                                         delta = new Vector3(_tDelta.X, 0, _tDelta.Z);
+                                    }
+                                    break;
+                                case GizmoAxis.XYZ:
+                                    {
+                                        //Uniform scale mode
+                                        Plane plane = new Plane(Vector3.Forward,
+                                                                Vector3.Transform(_position, Matrix.Invert(_rotationMatrix)).Z);
+
+                                        float? intersection = ray.Intersects(plane);
+                                        if (intersection.HasValue)
+                                        {
+                                            _intersectPosition = (ray.Position + (ray.Direction * intersection.Value));
+                                            if (_lastIntersectionPosition != Vector3.Zero)
+                                            {
+                                                _tDelta = _intersectPosition - _lastIntersectionPosition;
+                                            }
+                                            delta = new Vector3(-_tDelta.X, _tDelta.X, _tDelta.X);
+                                        }
                                     }
                                     break;
                             }
@@ -629,7 +703,13 @@ namespace XenoKit.Engine.Gizmo
             }
             else
             {
-                UpdateGizmoMode();
+                var tryGizmoMode = GetGizmoMode();
+
+                if (tryGizmoMode != GizmoMode.None)
+                {
+                    ActiveMode = tryGizmoMode;
+                    ModeChanged?.Invoke(this, EventArgs.Empty);
+                }
 
                 if (Input.MouseState.LeftButton == ButtonState.Released && Input.MouseState.RightButton == ButtonState.Released)
                     SelectAxis(Input.MousePosition);
@@ -666,10 +746,12 @@ namespace XenoKit.Engine.Gizmo
                 if (TransformOperation?.Modified == true)
                 {
                     TransformOperation.Confirm();
+                    OnConfirm();
                 }
                 else if (TransformOperation != null)
                 {
                     TransformOperation.Cancel();
+                    OnCancel();
                 }
 
                 CallbackOnComplete?.Invoke();
@@ -725,20 +807,21 @@ namespace XenoKit.Engine.Gizmo
             _rotationMatrix.Right = _localRight;
         }
 
-        protected void UpdateGizmoMode()
+        protected GizmoMode GetGizmoMode()
         {
-            if (Input.KeyboardState.IsKeyDown(Keys.R) && AllowRotation)
+            if (Input.IsKeyDown(Keys.R) && AllowTranslate)
             {
-                ActiveMode = GizmoMode.Rotate;
+                return GizmoMode.Translate;
             }
-            else if (Input.KeyboardState.IsKeyDown(Keys.T) && AllowTranslate)
+            else if (Input.IsKeyDown(Keys.T) && AllowRotation)
             {
-                ActiveMode = GizmoMode.Translate;
+                return GizmoMode.Rotate;
             }
-            else if (Input.KeyboardState.IsKeyDown(Keys.S) && AllowScale)
+            else if (Input.IsKeyDown(Keys.Y) && AllowScale)
             {
-                ActiveMode = GizmoMode.Scale;
+                return GizmoMode.Scale;
             }
+            return GizmoMode.None;
         }
 
         /// <summary>
@@ -816,7 +899,28 @@ namespace XenoKit.Engine.Gizmo
             float closestintersection = float.MaxValue;
             Ray ray = EngineUtils.CalculateRay(mousePosition);
 
-            if (ActiveMode == GizmoMode.Translate)
+            float? intersection;
+
+            //Check for uniform scale hit before the ray is transformed into local space
+            if (ActiveMode == GizmoMode.Scale)
+            {
+                intersection = XYZSphere.Intersects(ray);
+
+                if (intersection.HasValue)
+                {
+                    if (intersection.Value < closestintersection)
+                    {
+                        ActiveAxis = GizmoAxis.XYZ;
+                        IsMouseOver = true;
+                        closestintersection = intersection.Value;
+
+                        //If there is any hit at all, simply return. This takes priority over the other axis modes
+                        return;
+                    }
+                }
+            }
+
+            if (ActiveMode == GizmoMode.Translate || ActiveMode == GizmoMode.Scale)
             {
                 // transform ray into local-space of the boundingboxes.
                 ray.Direction = Vector3.TransformNormal(ray.Direction, Matrix.Invert(_gizmoWorld));
@@ -824,7 +928,7 @@ namespace XenoKit.Engine.Gizmo
             }
 
             #region X,Y,Z Boxes
-            float? intersection = XAxisBox.Intersects(ray);
+            intersection = XAxisBox.Intersects(ray);
             if (intersection.HasValue)
                 if (intersection.Value < closestintersection)
                 {
@@ -851,7 +955,7 @@ namespace XenoKit.Engine.Gizmo
             }
             #endregion
 
-            if (ActiveMode == GizmoMode.Rotate || ActiveMode == GizmoMode.Scale)
+            if (ActiveMode == GizmoMode.Rotate)
             {
                 #region BoundingSpheres
 
@@ -911,13 +1015,30 @@ namespace XenoKit.Engine.Gizmo
                 #endregion
             }
             if (closestintersection >= float.MaxValue || closestintersection <= float.MinValue)
+            {
                 ActiveAxis = GizmoAxis.None;
+                IsMouseOver = false;
+            }
+            else
+            {
+                IsMouseOver = true;
+            }
 
         }
 
         public virtual bool IsEnabledOnBone(int bone)
         {
             return false;
+        }
+    
+        public virtual void OnConfirm()
+        {
+
+        }
+
+        public virtual void OnCancel()
+        {
+
         }
     }
 }

@@ -9,6 +9,8 @@ namespace XenoKit.Engine
 
     public class Input
     {
+        private static readonly bool[] ExclusiveKeys = new bool[255];
+
         public MouseState MouseState { get; private set; }
         public MouseState PreviousMouseState { get; private set; }
         public KeyboardState KeyboardState { get; private set; }
@@ -45,6 +47,10 @@ namespace XenoKit.Engine
 
         public void Update(WpfMouse mouse, WpfKeyboard keyboard)
         {
+            //Clear previous state
+            for (int i = 0; i < ExclusiveKeys.Length; i++)
+                ExclusiveKeys[i] = false;
+
             PreviousMouseState = MouseState;
             _prevMousePos = _mousePos;
             MouseState = mouse.GetState();
@@ -100,8 +106,7 @@ namespace XenoKit.Engine
             if (_currentLeftDoubleClickPeriod > 0)
                 _currentLeftDoubleClickPeriod--;
         }
-
-        #region Mouse
+#region Mouse
 
         public bool WasButtonHeld(MouseButtons button)
         {
@@ -125,11 +130,78 @@ namespace XenoKit.Engine
             return ButtonState.Released;
         }
 
+        public void RegisterDragEvent(MouseButtons button, object context)
+        {
+            if (button == MouseButtons.Left)
+            {
+                LeftClickHeldDownContext = context;
+            }
+            else if (button == MouseButtons.Right)
+            {
+                RightClickHeldDownContext = context;
+            }
+            else
+            {
+                throw new ArgumentException("Input.RegisterDragEvent: invalid mouse button, this method only accepts the Left and Right mouse buttons");
+            }
+        }
+
+        public bool HasDragEvent(MouseButtons button)
+        {
+            if (button == MouseButtons.Left)
+            {
+                return LeftClickHeldDownContext != null;
+            }
+            else if (button == MouseButtons.Right)
+            {
+                return RightClickHeldDownContext != null;
+            }
+            else
+            {
+                throw new ArgumentException("Input.HasDragEvent: invalid mouse button, this method only accepts the Left and Right mouse buttons");
+            }
+        }
+
+        public bool HasDragEventFor(MouseButtons button, object context)
+        {
+            if (button == MouseButtons.Left)
+            {
+                return LeftClickHeldDownContext == context;
+            }
+            else if (button == MouseButtons.Right)
+            {
+                return RightClickHeldDownContext == context;
+            }
+            else
+            {
+                throw new ArgumentException("Input.HasDragEventFor: invalid mouse button, this method only accepts the Left and Right mouse buttons");
+            }
+        }
+
+        public void ClearDragEvent(MouseButtons button)
+        {
+            if (button == MouseButtons.Left)
+            {
+                LeftClickHeldDownContext = null;
+            }
+            else if (button == MouseButtons.Right)
+            {
+                RightClickHeldDownContext = null;
+            }
+            else
+            {
+                throw new ArgumentException("Input.ClearDragEvent: invalid mouse button, this method only accepts the Left and Right mouse buttons");
+            }
+        }
+
         #endregion
 
         #region Keyboard
         public bool IsKeyDown(Keys key)
         {
+            if (ExclusiveKeys[(int)key])
+               return false;
+
             return KeyboardState.IsKeyDown(key);
         }
 
@@ -138,6 +210,14 @@ namespace XenoKit.Engine
             return KeyboardState.IsKeyUp(key);
         }
 
+        /// <summary>
+        /// Register a key for "exclusive use" during this frame. Any further calls to <see cref="IsKeyDown(Keys)"/> with this key will return false during this frame.
+        /// </summary>
+        /// <param name="key"></param>
+        public void ExclusiveKeyDown(Keys key)
+        {
+            ExclusiveKeys[(int)key] = true;
+        }
         #endregion
     }
 

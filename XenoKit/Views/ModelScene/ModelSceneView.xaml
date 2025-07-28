@@ -31,9 +31,34 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="5" Orientation="Horizontal" HorizontalAlignment="Left">
+            <StackPanel.Resources>
+                <Style TargetType="{x:Type StackPanel}">
+                    <Setter Property="Margin" Value="7,0,0,0"/>
+                </Style>
+            </StackPanel.Resources>
+            
+            <StackPanel ToolTip="Apply all transformations (translation, rotation and scale) that have been made to the source model." VerticalAlignment="Center" HorizontalAlignment="Left">
+                <Button Command="{Binding ElementName=UserControl, Path=ApplyTransformationsCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                    <iconPacks:PackIconMaterialLight Kind="Plus"/>
+                </Button>
+                <TextBlock Text="Apply..." HorizontalAlignment="Center" FontSize="8"/>
+            </StackPanel>
+            <StackPanel ToolTip="Remove any transformations (translation, rotation and scale) that have been made.&#x0a;&#x0a;NOTE: This can NOT undo any transformations that have already been applied, but you can still use the regular undo commands for that (Ctrl + Z)." VerticalAlignment="Center" HorizontalAlignment="Left">
+                <Button Command="{Binding ElementName=UserControl, Path=ClearTransformationsCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
+                    <iconPacks:PackIconMaterial Kind="NotificationClearAll"/>
+                </Button>
+                <TextBlock Text="Clear All" HorizontalAlignment="Center" FontSize="8"/>
+            </StackPanel>
+        </StackPanel>
 
         <TreeView x:Name="treeView" lbUtils:TreeViewMultipleSelectionAttached.IsMultipleSelection="True" lbUtils:TreeViewMultipleSelectionAttached.SelectedItems="{Binding ElementName=UserControl, Path=ModelScene.SelectedItems}"
-                  Margin="5" Grid.RowSpan="2" ItemsSource="{Binding ElementName=UserControl, Path=EmdFile.Models.Binding}" SelectedItemChanged="TreeView_SelectedItemChanged" TreeViewItem.Selected="treeView_Selected"
+                  Margin="5" Grid.Row="1" ItemsSource="{Binding ElementName=UserControl, Path=EmdFile.Models.Binding}" SelectedItemChanged="TreeView_SelectedItemChanged" TreeViewItem.Selected="treeView_Selected"
                   BorderBrush="{DynamicResource MahApps.Brushes.Accent3}" BorderThickness="1">
             <TreeView.Resources>
                 <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
@@ -118,7 +143,7 @@
             </TreeView.InputBindings>
         </TreeView>
 
-        <StackPanel Grid.Column="1" Margin="5">
+        <StackPanel Grid.Column="1" Grid.Row="1" Margin="5">
             <Grid Visibility="{Binding ElementName=UserControl, Path=ModelNameVisibility}">
                 <StackPanel>
                     <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
@@ -175,13 +200,13 @@
                             <ColumnDefinition Width="62"/>
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="X"/>
-                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosX, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="2" Content="Y"/>
-                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosY, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="4" Content="Z"/>
-                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=PosZ, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                     </Grid>
 
@@ -196,13 +221,13 @@
                             <ColumnDefinition Width="62"/>
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="X"/>
-                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotX, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="2" Content="Y"/>
-                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotY, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="4" Content="Z"/>
-                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=RotZ, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                     </Grid>
 
@@ -217,13 +242,13 @@
                             <ColumnDefinition Width="62"/>
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="X"/>
-                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleX, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleX, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="2" Content="Y"/>
-                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleY, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="3" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleY, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                         <Label Grid.Column="4" Content="Z"/>
-                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleZ, UpdateSourceTrigger=Default}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
+                        <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleZ, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
                     </Grid>
 

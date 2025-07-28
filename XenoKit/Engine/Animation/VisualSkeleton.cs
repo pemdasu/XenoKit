@@ -9,6 +9,7 @@ using Xv2CoreLib.BAC;
 using System.Linq;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector2 = System.Numerics.Vector2;
+using XenoKit.Engine.Gizmo;
 
 namespace XenoKit.Engine.Animation
 {
@@ -93,7 +94,7 @@ namespace XenoKit.Engine.Animation
                 for (int i = 0; i < bones.Length; i++)
                 {
                     Matrix4x4 newWorld = bones[i].AbsoluteAnimationMatrix * transform;
-                    bool selected = Viewport.Instance.CurrentGizmo.IsEnabledOnBone(i);
+                    bool selected = CurrentGizmo.Current?.IsEnabledOnBone(i) == true;
 
                     visualBones[i].Draw(newWorld, selected);
 

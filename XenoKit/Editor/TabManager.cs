@@ -1,10 +1,11 @@
-﻿using System;
+﻿using GalaSoft.MvvmLight.CommandWpf;
+using MahApps.Metro.Controls;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using GalaSoft.MvvmLight.CommandWpf;
-using MahApps.Metro.Controls;
 using XenoKit.Inspector.InspectorEntities;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace XenoKit.Editor
 {
@@ -48,6 +49,8 @@ namespace XenoKit.Editor
 
         public static void RemoveTab(IDynamicTabObject context)
         {
+            if (context == null) return;
+
             for (int i = DynamicTabs.Count - 1; i >= 0; i--)
             {
                 DynamicTab tab = DynamicTabs[i];
@@ -93,6 +96,11 @@ namespace XenoKit.Editor
             {
                 if (DynamicTabs[i].ParentItem == parentItem)
                 {
+                    if (TabControl.Items.Contains(DynamicTabs[i].Tab))
+                    {
+                        TabControl.Items.Remove(DynamicTabs[i].Tab);
+                    }
+
                     DynamicTabs.RemoveAt(i);
                 }
             }
@@ -121,6 +129,8 @@ namespace XenoKit.Editor
         public static RelayCommand TabCloseCommand => new RelayCommand(TabClose);
         private static void TabClose()
         {
+            RemoveTab(GetSelectedDynamicTab()?.Context);
+            /*
             for (int i = DynamicTabs.Count - 1; i >= 0; i--)
             {
                 if (!TabControl.Items.Contains(DynamicTabs[i].Tab))
@@ -128,6 +138,7 @@ namespace XenoKit.Editor
                     DynamicTabs.RemoveAt(i);
                 }
             }
+            */
         }
     }
 

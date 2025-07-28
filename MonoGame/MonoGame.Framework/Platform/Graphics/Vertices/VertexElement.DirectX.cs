@@ -54,6 +54,9 @@ namespace Microsoft.Xna.Framework.Graphics
                 case VertexElementUsage.PointSize:
                     element.SemanticName = "PSIZE";
                     break;
+                case VertexElementUsage.InstanceData:
+                    element.SemanticName = "INSTDATA";
+                    break;
                 default:
                     throw new NotSupportedException("Unknown vertex element usage!");
             }

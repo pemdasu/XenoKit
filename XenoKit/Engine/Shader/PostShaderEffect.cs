@@ -40,6 +40,14 @@ namespace XenoKit.Engine.Shader
         //Samplers:
         public readonly SamplerState[] ImageSampler = new SamplerState[4];
 
+        private EffectParameter g_vParam0_PS;
+        private EffectParameter g_vEdge_PS;
+        private EffectParameter afRGBA_Modulate;
+        private EffectParameter afUV_TexCoordOffsetV16;
+        private EffectParameter fParam_HDRFormatFactor_LOGRGB;
+        private EffectParameter fParam_DitherOffsetScale;
+        private EffectParameter afRGBA_Offset;
+
         public PostShaderEffect(ShaderProgram shaderProgram)
         {
             if (!Enum.TryParse(shaderProgram.Name, out PostProccessShader type))
@@ -119,6 +127,16 @@ namespace XenoKit.Engine.Shader
             g_mWV_VS = Parameters["g_mWV_VS"];
             g_mW_VS = Parameters["g_mW_VS"];
             g_mWLP_SM_VS = Parameters["g_mWLP_SM_VS"];
+
+            g_vParam0_PS = Parameters["g_vParam0_PS"];
+            g_vParam1_PS = Parameters["g_vParam1_PS"];
+            g_vEdge_PS = Parameters["g_vEdge_PS"];
+            g_vScreen_VS = Parameters["g_vScreen_VS"];
+            afRGBA_Modulate = Parameters["afRGBA_Modulate"];
+            afUV_TexCoordOffsetV16 = Parameters["afUV_TexCoordOffsetV16"];
+            fParam_HDRFormatFactor_LOGRGB = Parameters["fParam_HDRFormatFactor_LOGRGB"];
+            fParam_DitherOffsetScale = Parameters["fParam_DitherOffsetScale"];
+            afRGBA_Offset = Parameters["afRGBA_Offset"];
         }
 
         protected override void OnApply()
@@ -162,54 +180,54 @@ namespace XenoKit.Engine.Shader
             switch (Shader)
             {
                 case PostProccessShader.EDGELINE_VFX:
-                    Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.00104f, 0.00185f, 0.00026f, 0.00046f));
-                    Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0, 1f, 10f, 0));
+                    g_vParam0_PS?.SetValue(new Vector4(0.00104f, 0.00185f, 0.00026f, 0.00046f));
+                    g_vParam1_PS?.SetValue(new Vector4(0, 1f, 10f, 0));
                     break;
                 case PostProccessShader.AGE_TEST_EDGELINE_MRT:
-                    Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.0f, 9, 3f, 0.6f));
+                    g_vParam0_PS?.SetValue(new Vector4(0.0f, 9, 3f, 0.6f));
                     //Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.00039f, 0.00069f, 3f, 0.6f));
                     //float factor = Viewport.Instance.RenderSystem.SuperSampleFactor > 1 ? 0.85f : 1f;
                     //Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.00039f, 0.00055f, 3f, 0.6f) * factor);
                     //Attempt to fix a weird bug where outlines disappear
                     if (Viewport.Instance.RenderSystem.SuperSampleFactor > 1)
                     {
-                        Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.000312f, 0.000552f, 2.4f, 0.5f));
+                        g_vParam1_PS?.SetValue(new Vector4(0.000312f, 0.000552f, 2.4f, 0.5f));
                     }
                     else
                     {
-                        Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.00039f, 0.00069f, 3f, 0.6f));
+                        g_vParam1_PS?.SetValue(new Vector4(0.00039f, 0.00069f, 3f, 0.6f));
                     }
                     break;
                 case PostProccessShader.AGE_TEST_DEPTH_TO_PFXD:
-                    Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.04187f, 0.95813f, 80f, 0f));
-                    Parameters["g_vScreen_VS"]?.SetValue(new Vector4(Viewport.Instance.RenderSystem.RenderWidth, Viewport.Instance.RenderSystem.RenderHeight, 0.10f, 10106.85645f));
+                    g_vParam0_PS?.SetValue(new Vector4(0.04187f, 0.95813f, 80f, 0f));
+                    g_vScreen_VS?.SetValue(new Vector4(Viewport.Instance.RenderSystem.RenderWidth, Viewport.Instance.RenderSystem.RenderHeight, 0.10f, 10106.85645f));
                     break;
                 case PostProccessShader.BIRD_BG_EDGELINE_RGB_HF:
-                    Parameters["g_vEdge_PS"]?.SetValue(new Vector4(0.1f, 0.1f, 0.1f, 5f));
-                    Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.034f, 0.885f, 0.85f, 0.138f));
-                    Parameters["g_vParam1_PS"]?.SetValue(new Vector4(1.724f, 0.00f, 0.00f, 0.00f));
+                    g_vEdge_PS?.SetValue(new Vector4(0.1f, 0.1f, 0.1f, 5f));
+                    g_vParam0_PS?.SetValue(new Vector4(0.034f, 0.885f, 0.85f, 0.138f));
+                    g_vParam1_PS?.SetValue(new Vector4(1.724f, 0.00f, 0.00f, 0.00f));
                     break;
                 case PostProccessShader.YBS_Copy:
                 case PostProccessShader.YBS_Pixel:
                 case PostProccessShader.YBS_Glare:
                 case PostProccessShader.YBS_Smooth:
-                    Parameters["afRGBA_Modulate"]?.SetValue(YBSParameters.afRGBA_Modulate);
-                    Parameters["afUV_TexCoordOffsetV16"]?.SetValue(YBSParameters.afUV_TexCoordOffsetV16);
+                    afRGBA_Modulate?.SetValue(YBSParameters.afRGBA_Modulate);
+                    afUV_TexCoordOffsetV16?.SetValue(YBSParameters.afUV_TexCoordOffsetV16);
                     break;
                 case PostProccessShader.YBS_Dim:
-                    Parameters["afRGBA_Modulate"].SetValue(YBSParameters.afRGBA_Modulate);
-                    Parameters["afUV_TexCoordOffsetV16"].SetValue(YBSParameters.afUV_TexCoordOffsetV16);
-                    Parameters["fParam_HDRFormatFactor_LOGRGB"].SetValue(YBSParameters.fParam_HDRFormatFactor_LOGRGB);
+                    afRGBA_Modulate.SetValue(YBSParameters.afRGBA_Modulate);
+                    afUV_TexCoordOffsetV16.SetValue(YBSParameters.afUV_TexCoordOffsetV16);
+                    fParam_HDRFormatFactor_LOGRGB.SetValue(YBSParameters.fParam_HDRFormatFactor_LOGRGB);
                     break;
                 case PostProccessShader.YBS_Merge2:
                 case PostProccessShader.YBS_Merge5:
                 case PostProccessShader.YBS_Merge8:
-                    Parameters["afRGBA_Modulate"].SetValue(YBSParameters.afRGBA_Modulate);
+                    afRGBA_Modulate.SetValue(YBSParameters.afRGBA_Modulate);
                     break;
                 case PostProccessShader.YBS_SceneMerge:
-                    Parameters["fParam_DitherOffsetScale"].SetValue(YBSParameters.fParam_DitherOffsetScale);
-                    Parameters["afRGBA_Modulate"].SetValue(YBSParameters.afRGBA_Modulate);
-                    Parameters["afRGBA_Offset"].SetValue(YBSParameters.afRGBA_Offset);
+                    fParam_DitherOffsetScale.SetValue(YBSParameters.fParam_DitherOffsetScale);
+                    afRGBA_Modulate.SetValue(YBSParameters.afRGBA_Modulate);
+                    afRGBA_Offset.SetValue(YBSParameters.afRGBA_Offset);
                     break;
             }
         }
@@ -217,7 +235,6 @@ namespace XenoKit.Engine.Shader
         public void SetParameters(YBSShaderParameters parameters)
         {
             YBSParameters = parameters;
-
         }
 
         public override BlendState GetBlendState()

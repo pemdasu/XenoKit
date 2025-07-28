@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using XenoKit.Engine.Animation;
 using XenoKit.Engine.Gizmo.TransformOperations;
 using XenoKit.Engine.Model;
+using Xv2CoreLib.EMD;
 
 namespace XenoKit.Engine.Gizmo
 {
@@ -14,7 +15,7 @@ namespace XenoKit.Engine.Gizmo
             get
             {
                 if (transforms == null) return Matrix.Identity;
-                Matrix pos = transforms[0].Transform * Matrix.CreateTranslation(centerPosition);
+                Matrix pos = Matrix.CreateTranslation(centerPosition) * transforms[0].Transform;
 
                 if (attachBone != null)
                     pos *= attachBone.AbsoluteAnimationMatrix;
@@ -22,7 +23,6 @@ namespace XenoKit.Engine.Gizmo
                 return pos;
             }
         }
-
 
         protected override ITransformOperation TransformOperation
         {
@@ -41,40 +41,61 @@ namespace XenoKit.Engine.Gizmo
         }
         private ModelTransformOperation transformOperation = null;
 
+        private IModelFile SourceModelFile = null;
         private IList<Xv2Submesh> transforms = null;
         private Vector3 centerPosition;
         private Xv2Bone attachBone;
 
         //Settings
-        protected override bool AllowRotation => true;
-        protected override bool AllowScale => true;
+        public override bool AllowRotation => true;
+        public override bool AllowScale => true;
 
 
-        public void SetContext(IList<Xv2Submesh> _transforms, Xv2Bone attachBone)
+        public void SetContext(IModelFile sourceModel, IList<Xv2Submesh> _transforms, Xv2Bone attachBone)
         {
+            if (SourceModelFile != null)
+                SourceModelFile.ModelModified -= SourceModel_ModelModified;
+
+            SourceModelFile = sourceModel;
+            SourceModelFile.ModelModified += SourceModel_ModelModified;
             transforms = _transforms;
-            centerPosition = Xv2Submesh.CalculateCenter(transforms);
+            CalculateCenter();
             this.attachBone = attachBone;
 
             base.SetContext();
         }
 
+        private void CalculateCenter()
+        {
+            centerPosition = Xv2Submesh.CalculateCenter(transforms);
+        }
+
+        private void SourceModel_ModelModified(object source, ModelModifiedEventArgs e)
+        {
+            CalculateCenter();
+        }
+
         public void RemoveContext()
         {
-            SetContext(null, null);
+            SetContext(null, null, null);
         }
 
         public override bool IsContextValid()
         {
-            return transforms != null && SceneManager.CurrentDynamicTab == DynamicTabs.ModelScene;
+            return SourceModelFile != null && transforms != null && SceneManager.CurrentDynamicTab == DynamicTabs.ModelScene;
         }
 
         protected override void StartTransformOperation()
         {
             if(IsContextValid())
             {
-                transformOperation = new ModelTransformOperation(transforms);
+                transformOperation = new ModelTransformOperation(transforms, SourceModelFile);
             }
+        }
+
+        public override void OnConfirm()
+        {
+            CalculateCenter();
         }
     }
 }

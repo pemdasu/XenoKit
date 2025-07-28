@@ -60,6 +60,7 @@ namespace Microsoft.Xna.Framework.Graphics
         /// <summary>
         /// Single, positive float value, specifies a tessellation factor used in the tessellation unit to control the rate of tessellation.
         /// </summary>
-        TessellateFactor
+        TessellateFactor,
+        InstanceData
     }
 }

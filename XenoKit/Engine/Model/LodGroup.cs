@@ -17,14 +17,19 @@ namespace XenoKit.Engine.Model
     {
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
+        public FMP_Object ParentObject { get; private set; }
         public List<Lod> LODs { get; private set; } = new List<Lod>();
         public Xv2Texture[] Textures { get; private set; }
         public EMA_File Ema { get; private set; }
 
+        private ModelInstanceTree ModelInstanceTree;
+
         private int lodIndex = -1;
 
-        public LodGroup (FMP_Visual visual)
+        public LodGroup (FMP_Visual visual, FMP_Object parentObject)
         {
+            ParentObject = parentObject;
+
             string embPath = $"stage/{visual.EmbFile}";
             string emaPath = $"stage/{visual.EmaFile}";
 
@@ -50,6 +55,11 @@ namespace XenoKit.Engine.Model
                     LODs.Add(new Lod(lod.Distance, null, null));
                 }
             }
+        
+            if(ParentObject.InstanceData != null)
+            {
+                ModelInstanceTree = new ModelInstanceTree(ParentObject.InstanceData);
+            }
         }
 
         public override void Draw()
@@ -60,14 +70,39 @@ namespace XenoKit.Engine.Model
         public void Draw(Matrix4x4 world)
         {
             Lod lod = GetCurrentLod();
-            lod.Draw(world, Textures);
+
+            if(ModelInstanceTree != null)
+            {
+                for(int i = 0; i < ModelInstanceTree.InstanceGroups.Length; i++)
+                {
+                    if (ModelInstanceTree.InstanceGroups[i].FrustumIntersects())
+                        lod.Draw(world, Textures, ModelInstanceTree.InstanceGroups[i]);
+                }
+            }
+            else
+            {
+                lod.Draw(world, Textures, null);
+            }
             DrawThisFrame = false;
         }
 
         public void DrawSimple(Matrix4x4 world)
         {
             Lod lod = GetCurrentLod();
-            lod.DrawSimple(world, RenderSystem.ShadowModel);
+            //bool isInstanced = (ParentObject.Flags & ObjectFlags.Instancing) != 0;
+
+            if (ModelInstanceTree != null)
+            {
+                for (int i = 0; i < ModelInstanceTree.InstanceGroups.Length; i++)
+                {
+                    if (ModelInstanceTree.InstanceGroups[i].FrustumIntersects())
+                        lod.DrawSimple(world, RenderSystem.GI_ShadowModel, ModelInstanceTree.InstanceGroups[i]);
+                }
+            }
+            else
+            {
+                lod.DrawSimple(world, RenderSystem.ShadowModel, null);
+            }
         }
 
         private Lod GetCurrentLod()

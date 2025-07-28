@@ -35,6 +35,9 @@ namespace XenoKit.Engine.Stage
 
         public void DrawSimple()
         {
+            //if ((Object.Flags & ObjectFlags.CastShadow) == 0) 
+            //    return; //No shadows
+
             foreach (var entity in Entities)
             {
                 entity.DrawSimple(Transform);

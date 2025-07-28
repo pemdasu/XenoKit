@@ -24,6 +24,8 @@ namespace XenoKit.Engine.Model
 {
     public class ModelScene : RenderObject, IDynamicTabObject
     {
+        public event EventHandler SelectedSubmeshesChanged;
+
         private bool PathsRelativeToGame = false;
         public string EmdPath { get; private set; }
         public string EmbPath { get; private set; }
@@ -39,10 +41,10 @@ namespace XenoKit.Engine.Model
         private Xv2Texture[] Textures { get; set; }
         private Xv2Texture[] DytTexture { get; set; }
         private Xv2ShaderEffect[] Materials { get; set; }
-        public Xv2Skeleton Skeleton { get; private set; }
+        public Xv2Skeleton Skeleton => Model.Skeleton;
 
         private DrawableBoundingBox DrawableAABB { get; set; }
-        public BoundingBox BoundingBox { get; private set; }
+        public BoundingBox SelectedBoundingBox { get; private set; }
         public bool IsBoundingBoxDirty = false;
         public bool AlwaysUpdateBoundingBox = false;
 
@@ -56,20 +58,14 @@ namespace XenoKit.Engine.Model
 
         public ObservableCollection<object> SelectedItems { get; private set; } = new ObservableCollection<object>();
         private readonly List<Xv2Submesh> _selectedSubmeshes = new List<Xv2Submesh>();
+        private readonly ReadOnlyCollection<Xv2Submesh> _readonlySelectedSubmeshes;
 
         public ModelScene(Xv2ModelFile model)
         {
+            _readonlySelectedSubmeshes = new ReadOnlyCollection<Xv2Submesh>(_selectedSubmeshes);
             Model = model;
             Model.MaterialsChanged += Model_MaterialsChanged;
-
-            if(Model.Type == ModelType.Nsk)
-            {
-                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceNskFile.EskFile);
-            }
-            else if(Model.Type == ModelType.Emo)
-            {
-                Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(model.SourceEmoFile.Skeleton);
-            }
+            Model.ModelModified += Model_ModelModified;
 
             DytSampler = new SamplerInfo()
             {
@@ -104,6 +100,8 @@ namespace XenoKit.Engine.Model
 
             if(!IsTextureSelected())
                 Model.GetAllSubmeshesFromSourceObjects(SelectedItems, _selectedSubmeshes);
+
+            SelectedSubmeshesChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void SetFiles(ShaderType type, EMB_File emb, EMM_File emm, EMB_File dyt = null)
@@ -219,7 +217,6 @@ namespace XenoKit.Engine.Model
 
         private void InitMaterials()
         {
-
             Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType);
             Model.InitMaterialIndex(Materials);
             IsMaterialsDirty = false;
@@ -249,7 +246,7 @@ namespace XenoKit.Engine.Model
 
             if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && IsAnyModelObjectSelected())
             {
-                Viewport.Instance.Camera.LookAt(BoundingBox);
+                Viewport.Instance.Camera.LookAt(SelectedBoundingBox);
                 Log.Add("LookAt from Update");
             }
         }
@@ -264,15 +261,18 @@ namespace XenoKit.Engine.Model
 
             Model.Draw(Matrix4x4.Identity, 0, Materials, Textures, DytTexture, DytIndex, Skeleton);
 
-            if(IsAnyModelObjectSelected())
-                DrawableAABB.Draw(Matrix4x4.Identity, BoundingBox);
-
-            //Draw highlighted (selected) meshes
-            Matrix4x4 world = Matrix4x4.Identity;
-
-            foreach (var selectedMesh in _selectedSubmeshes)
+            if (SceneManager.ShowModelEditorHighlights)
             {
-                selectedMesh.Draw(ref world, 0, DefaultShaders.RedWireframe, Skeleton);
+                if (IsAnyModelObjectSelected())
+                    DrawableAABB.Draw(Matrix4x4.Identity, SelectedBoundingBox);
+
+                //Draw highlighted (selected) meshes
+                Matrix4x4 world = Matrix4x4.Identity;
+
+                foreach (var selectedMesh in _selectedSubmeshes)
+                {
+                    selectedMesh.Draw(ref world, 0, DefaultShaders.RedWireframe);
+                }
             }
         }
 
@@ -291,19 +291,30 @@ namespace XenoKit.Engine.Model
                 shader = RenderSystem.ShadowModel_W;
             }
 
-            Model.Draw(Matrix4x4.Identity, 0, shader, Skeleton);
+            Model.Draw(Matrix4x4.Identity, 0, shader);
         }
 
         private void CalculateBoundingBox()
         {
-            BoundingBox = Xv2Submesh.CalculateBoundingBox(_selectedSubmeshes);
+            SelectedBoundingBox = Xv2Submesh.CalculateBoundingBox(_selectedSubmeshes);
             IsBoundingBoxDirty = false;
         }
 
         #region Edit Methods
+        public void ApplyTransformations()
+        {
+
+        }
+
+        public void RemoveTransformations()
+        {
+
+        }
+
         public void DeleteSelectedModels()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
+            List<Tuple<object, object>> deletedList = new List<Tuple<object, object>>();
 
             foreach (var item in SelectedItems)
             {
@@ -312,10 +323,13 @@ namespace XenoKit.Engine.Model
                     undos.Add(new UndoableListRemove<EMD_Model>(EmdFile.Models, emdModel));
                     EmdFile.Models.Remove(emdModel);
 
-                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdModel)));
-                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdModel, null);
+                    deletedList.Add(new Tuple<object, object>(emdModel, null));
                 }
             }
+
+            Tuple<object, object>[] deletedArray = deletedList.ToArray();
+            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Model");
             SelectedItems.Clear();
@@ -324,6 +338,7 @@ namespace XenoKit.Engine.Model
         public void DeleteSelectedMeshes()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
+            List<Tuple<object, object>> deletedList = new List<Tuple<object, object>>();
 
             foreach (var item in SelectedItems)
             {
@@ -334,10 +349,13 @@ namespace XenoKit.Engine.Model
                     undos.Add(new UndoableListRemove<EMD_Mesh>(parentModel.Meshes, emdMesh));
                     parentModel.Meshes.Remove(emdMesh);
 
-                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdMesh, parentModel)));
-                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdMesh, parentModel);
+                    deletedList.Add(new Tuple<object, object>(emdMesh, parentModel));
                 }
             }
+
+            Tuple<object, object>[] deletedArray = deletedList.ToArray();
+            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Mesh");
             SelectedItems.Clear();
@@ -346,6 +364,7 @@ namespace XenoKit.Engine.Model
         public void DeleteSelectedSubmeshes()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
+            List<Tuple<object, object>> deletedList = new List<Tuple<object, object>>();
 
             foreach (var item in SelectedItems)
             {
@@ -356,10 +375,13 @@ namespace XenoKit.Engine.Model
                     undos.Add(new UndoableListRemove<EMD_Submesh>(parentMesh.Submeshes, emdSubmesh));
                     parentMesh.Submeshes.Remove(emdSubmesh);
 
-                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, emdSubmesh, parentMesh)));
-                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, emdSubmesh, parentMesh);
+                    deletedList.Add(new Tuple<object, object>(emdSubmesh, parentMesh));
                 }
             }
+
+            Tuple<object, object>[] deletedArray = deletedList.ToArray();
+            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Submesh");
             SelectedItems.Clear();
@@ -487,6 +509,7 @@ namespace XenoKit.Engine.Model
                     parentMesh.Submeshes.Add(submesh);
                 }
 
+                parentMesh.RecalculateAABB(undos);
                 undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdSubmesh, parentMesh)));
                 EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdSubmesh, parentMesh);
 
@@ -572,6 +595,10 @@ namespace XenoKit.Engine.Model
         #endregion
 
         #region SourceUpdateEvents
+        private void Model_ModelModified(object source, ModelModifiedEventArgs e)
+        {
+            IsBoundingBoxDirty = true;
+        }
 
         private void Model_MaterialsChanged(object sender, EventArgs e)
         {
@@ -589,5 +616,28 @@ namespace XenoKit.Engine.Model
         }
 
         #endregion
+    
+        public ReadOnlyCollection<Xv2Submesh> GetSelectedSubmeshes()
+        {
+            return _readonlySelectedSubmeshes;
+        }
+
+        public IModelFile GetSourceModel()
+        {
+            switch (Model.Type)
+            {
+                case ModelType.Emd:
+                case ModelType.Nsk:
+                    return EmdFile;
+            }
+
+            return null;
+        }
+    }
+
+    public enum PivotPoint
+    {
+        Origin,
+        Center
     }
 }

@@ -27,9 +27,9 @@ namespace XenoKit.Engine.Gizmo
             }
         }
 
-        protected override bool AllowScale => false;
-        protected override bool AllowRotation => false;
-        protected override bool AllowTranslate => true;
+        public override bool AllowScale => false;
+        public override bool AllowRotation => false;
+        public override bool AllowTranslate => true;
 
 
         public void SetContext(EngineObject entity, EditorTabs contextTab)

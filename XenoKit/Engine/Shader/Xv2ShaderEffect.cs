@@ -62,7 +62,11 @@ namespace XenoKit.Engine.Shader
         protected EffectParameter g_mWVP_Prev_VS;
         protected EffectParameter g_mWV_VS;
         protected EffectParameter g_mW_VS;
+        protected EffectParameter g_mWIT_VS;
         protected EffectParameter g_mWLP_SM_VS;
+        protected EffectParameter g_mWLPB_SM_VS;
+        protected EffectParameter g_mWLP_PM_VS;
+        protected EffectParameter g_mWLPB_PM_VS;
         protected EffectParameter g_vScreen_VS;
         protected EffectParameter g_SystemTime_VS;
         protected EffectParameter g_vEyePos_VS;
@@ -660,6 +664,11 @@ namespace XenoKit.Engine.Shader
             g_mWVP_Prev_VS = Parameters["g_mWVP_Prev_VS"];
             g_mWV_VS = Parameters["g_mWV_VS"];
             g_mW_VS = Parameters["g_mW_VS"];
+            g_mWIT_VS = Parameters["g_mWIT_VS"];
+            g_mWLPB_SM_VS = Parameters["g_mWLPB_SM_VS"];
+            g_mWLP_PM_VS = Parameters["g_mWLP_PM_VS"];
+            g_mWLPB_PM_VS = Parameters["g_mWLPB_PM_VS"];
+
             g_mWLP_SM_VS = Parameters["g_mWLP_SM_VS"];
             g_vScreen_VS = Parameters["g_vScreen_VS"];
             g_SystemTime_VS = Parameters["g_SystemTime_VS"];
@@ -726,16 +735,17 @@ namespace XenoKit.Engine.Shader
                     g_mWLP_SM_VS?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionMatrix);
                     break;
                 case ShaderParameter.WLPB_SM: //World Light Projection Bias (Shadow Map)
-                    Parameters["g_mWLPB_SM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
+                    g_mWLPB_SM_VS?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
                     //Parameters["g_mWLPB_SM_VS"]?.SetValue(Viewport.Instance.LightSource.LightMatrix);
                     break;
                 case ShaderParameter.WLP_PM: //Same as _SM variant
-                    Parameters["g_mWLP_PM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionMatrix);
+                    g_mWLP_PM_VS?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionMatrix);
                     break;
                 case ShaderParameter.WLPB_PM: //Same as _SM variant
-                    Parameters["g_mWLPB_PM_VS"]?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
+                    g_mWLPB_PM_VS?.SetValue(World * Viewport.Instance.SunLight.LightViewProjectionBiasMatrix);
                     break;
-                case ShaderParameter.WIT:
+                case ShaderParameter.WIT: //World Instance Transform
+                    g_mWIT_VS?.SetValue(World);
                     break;
                 case ShaderParameter.WVP_Prev:
                     g_mWVP_Prev_VS?.SetValue(PrevWVP);

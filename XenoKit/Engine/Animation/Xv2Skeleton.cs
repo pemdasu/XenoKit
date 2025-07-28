@@ -284,6 +284,18 @@ namespace XenoKit.Engine.Animation
             return idx != -1 ? Bones[idx] : null;
         }
 
+        public Xv2Bone GetBone(Xv2CoreLib.EMA.Bone emoBone)
+        {
+            if(EmoSkeleton != null)
+            {
+                int idx = EmoSkeleton.Bones.IndexOf(emoBone);
+
+                return idx != -1 && idx < Bones.Length ? Bones[idx] : null;
+            }
+
+            return null;
+        }
+
         public string GetParentBone(string name)
         {
             int idx = GetBoneIndex(name);

@@ -31,14 +31,14 @@ namespace XenoKit.Engine.Model
             }
         }
 
-        public void Draw(Matrix4x4 world, Xv2Texture[] textures)
+        public void Draw(Matrix4x4 world, Xv2Texture[] textures, ModelInstanceData instanceData)
         {
-            Model?.Draw(world, 0, _materials, textures, null, 0);
+            Model?.Draw(world, 0, _materials, textures, null, 0, null, instanceData);
         }
 
-        public void DrawSimple(Matrix4x4 world, Xv2ShaderEffect material)
+        public void DrawSimple(Matrix4x4 world, Xv2ShaderEffect material, ModelInstanceData instanceData)
         {
-            Model?.Draw(world, 0, material);
+            Model?.Draw(world, 0, material, null, instanceData);
         }
     }
 }

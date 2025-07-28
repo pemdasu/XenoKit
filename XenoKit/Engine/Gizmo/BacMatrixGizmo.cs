@@ -56,9 +56,9 @@ namespace XenoKit.Engine.Gizmo
         private EditorTabs contextTab = EditorTabs.Action;
 
         //Settings
-        protected override bool AllowScale => ScaleEnabled;
-        protected override bool AllowRotation => RotationEnabled;
-        protected override bool AllowTranslate => PositionEnabled;
+        public override bool AllowScale => ScaleEnabled;
+        public override bool AllowRotation => RotationEnabled;
+        public override bool AllowTranslate => PositionEnabled;
 
         public void SetContext(IBacTypeMatrix matrix, bool pos, bool rot, bool scale, string boneName, bool ignoreRotationOnBase, EditorTabs contextTab)
         {

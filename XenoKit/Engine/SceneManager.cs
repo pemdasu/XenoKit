@@ -240,7 +240,7 @@ namespace XenoKit.Engine
             }
 
             //Needed because for SOME reason the tab changed event gets fired randomly when no change actually occured...
-            if (prevTab == CurrentSceneState)
+            if (prevTab == CurrentSceneState && CurrentDynamicTab == DynamicTabs.None)
             {
                 return false;
             }
@@ -295,6 +295,7 @@ namespace XenoKit.Engine
         /// Movement that occurs in a BAC entry is reverted by default when the entry ends. With this setting, that is disabled.
         /// </summary>
         public static bool RetainActionMovement = false;
+        public static bool ShowModelEditorHighlights = true;
 
         //Frustum/Culling
         public static bool FrustumUpdateEnabled = true;
@@ -343,6 +344,8 @@ namespace XenoKit.Engine
         public static bool VictimIsGuarding { get; set; }
 
         public static bool AllowBacLoop { get; set; }
+
+        public static PivotPoint PivotPoint = PivotPoint.Center;
 
         #endregion
 

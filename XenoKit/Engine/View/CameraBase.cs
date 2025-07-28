@@ -250,29 +250,37 @@ namespace XenoKit.Engine.View
             HandleSpinning();
             HandleZooming();
 
-            if (ViewportIsFocused && Input.IsKeyDown(Keys.R) && Input.IsKeyDown(Keys.LeftControl))
-            {
-                ResetCamera();
-            }
-
             if ((ViewportIsFocused) && Input.IsKeyDown(Keys.E) && Input.IsKeyDown(Keys.LeftControl))
             {
                 CameraState.Roll -= 0.1f;
+                Input.ExclusiveKeyDown(Keys.E);
             }
             else if ((ViewportIsFocused) && Input.IsKeyDown(Keys.E))
             {
                 CameraState.Roll--;
+                Input.ExclusiveKeyDown(Keys.E);
             }
             if ((ViewportIsFocused) && Input.IsKeyDown(Keys.Q) && Input.IsKeyDown(Keys.LeftControl))
             {
                 CameraState.Roll += 0.1f;
+                Input.ExclusiveKeyDown(Keys.Q);
             }
             else if ((ViewportIsFocused) && Input.IsKeyDown(Keys.Q))
             {
                 CameraState.Roll++;
+                Input.ExclusiveKeyDown(Keys.Q);
             }
         }
         
+        public void EarlyUpdate()
+        {
+            if (ViewportIsFocused && Input.IsKeyDown(Keys.R) && Input.IsKeyDown(Keys.LeftControl))
+            {
+                ResetCamera();
+                Input.ExclusiveKeyDown(Keys.R);
+            }
+        }
+
         #region Helpers
         public float DistanceFromCamera(SimdVector3 worldPos)
         {

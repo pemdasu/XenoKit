@@ -33,8 +33,8 @@ namespace XenoKit.Engine.Gizmo
         private BoneScale boneScale = null;
 
         //Settings
-        protected override bool AllowRotation => false;
-        protected override bool AllowTranslate => false;
+        public override bool AllowRotation => false;
+        public override bool AllowTranslate => false;
 
 
         public void SetContext(BoneScale boneScale, Body body, Actor _character, string boneName)

@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
-using Microsoft.Xna.Framework;
 using XenoKit.Engine.Model;
+using Xv2CoreLib.EMD;
 using Xv2CoreLib.Resource;
+using Xv2CoreLib.Resource.UndoRedo;
 using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector3 = System.Numerics.Vector3;
 using SimdQuaternion = System.Numerics.Quaternion;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Gizmo.TransformOperations
 {
@@ -13,6 +15,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
     {
         public override RotationType RotationType => RotationType.EulerAngles;
 
+        private IModelFile SourceModel;
         private IList<Xv2Submesh> transforms;
         private Matrix4x4[] originalTransforms;
 
@@ -21,8 +24,11 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
         private SimdVector3 rotation = SimdVector3.Zero;
         private Matrix4x4 originalMatrix = Matrix4x4.Identity;
 
-        public ModelTransformOperation(IList<Xv2Submesh> _transforms)
+        private SimdVector3 center;
+
+        public ModelTransformOperation(IList<Xv2Submesh> _transforms, IModelFile sourceModelFile)
         {
+            SourceModel = sourceModelFile;
             transforms = _transforms;
             originalTransforms = new Matrix4x4[transforms.Count];
 
@@ -41,6 +47,8 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
                 originalMatrix *= Matrix4x4.CreateFromQuaternion(_rot);
                 originalMatrix *= Matrix4x4.CreateTranslation(position);
             }
+
+            center = Xv2Submesh.CalculateCenter(_transforms);
         }
 
         public override void Confirm()
@@ -50,8 +58,29 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
             //Call into sourceModel to update the source model file
             //Also add an undo step for the transforms
+            ApplyTransformation(transforms, SourceModel);
 
             IsFinished = true;
+        }
+
+        public static void ApplyTransformation(IList<Xv2Submesh> transforms, IModelFile SourceModel)
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+            List<object> sourceSubmeshes = new List<object>();
+
+            foreach (var submesh in transforms)
+            {
+                submesh.ApplyTransformationToSource(undos);
+
+                if (submesh.SourceEmdSubmesh != null)
+                    sourceSubmeshes.Add(submesh.SourceEmdSubmesh);
+                else if (submesh.SourceEmgSubmesh != null)
+                    sourceSubmeshes.Add(submesh.SourceEmgSubmesh);
+            }
+
+            undos.Add(new UndoActionDelegate(SourceModel, nameof(SourceModel.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Vertex, sourceSubmeshes)));
+            UndoManager.Instance.AddCompositeUndo(undos, "Model Transform", UndoGroup.EMD);
+            SourceModel.TriggerModelModifiedEvent(EditTypeEnum.Vertex, sourceSubmeshes, null);
         }
 
         public override void Cancel()
@@ -101,11 +130,16 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
         private void UpdateTransform()
         {
-            Matrix4x4 deltaMatrix = MathHelpers.Invert(originalMatrix * transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix);
+            Matrix4x4 attachMatrix = transforms[0].Parent.Parent.AttachBone != null ? transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix : Matrix4x4.Identity;
+
+            if (SceneManager.PivotPoint == PivotPoint.Center)
+                attachMatrix *= Matrix4x4.CreateTranslation(center);
+
+            Matrix4x4 deltaMatrix = MathHelpers.Invert(originalMatrix * attachMatrix);
             deltaMatrix *= Matrix4x4.CreateScale(scale);
             deltaMatrix *= Matrix4x4.CreateFromQuaternion(rotation.EulerToQuaternion());
             deltaMatrix *= Matrix4x4.CreateTranslation(position);
-            deltaMatrix *= transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
+            deltaMatrix *= attachMatrix;
 
             for (int i = 0; i < transforms.Count; i++)
             {

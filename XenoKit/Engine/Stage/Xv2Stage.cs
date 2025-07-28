@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Textures;
@@ -20,8 +21,6 @@ namespace XenoKit.Engine.Stage
 
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
-        public const string REF_NAME = "REF00";
-        public const string REF_NAME_ALT = "REF";
         public const string ENV_NAME = "ENVTEX";
 
         public bool IsDefaultStage { get; private set; }
@@ -93,9 +92,13 @@ namespace XenoKit.Engine.Stage
                 CollisionGroups.Add(new StageCollisionGroup(collisionGroup));
             }
 
+            bool hasWaterEntry = FmpFile.Objects.Any(x => x.Name == "WATER");
+
             //Load assets
             foreach (var _object in FmpFile.Objects)
             {
+                if ((_object.Flags & ObjectFlags.Enabled) == 0) continue; //Object not enabled by default, so dont create it
+
                 StageObject stageObj = new StageObject();
                 stageObj.Object = _object;
                 stageObj.Transform = _object.Matrix.ToNumerics();
@@ -119,10 +122,13 @@ namespace XenoKit.Engine.Stage
                         else
                         {
                             stageEntity.Visual = new StageVisual();
-                            stageEntity.Visual.LodGroup = new LodGroup(entity.Visual);
+                            stageEntity.Visual.LodGroup = new LodGroup(entity.Visual, _object);
 
-                            if (_object.Name == REF_NAME || _object.Name == REF_NAME_ALT)
+                            if ((hasWaterEntry && _object.Name.StartsWith("REF")) || _object.HasCommand("MIRROR OBJECT"))
                             {
+                                //When a map file has a WATER object entry, any object that starts with "REF" is considered a water reflection
+                                //Objects can also have a "MIRROR OBJECT" command which sets them up as a reflection (does not require a WATER entry)
+
                                 ReflectionModel = stageEntity.Visual.LodGroup;
                             }
                             else

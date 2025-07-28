@@ -73,6 +73,7 @@
                     <MenuItem Header="Force GC" Click="DebugMenu_ForceGC"/>
                     <MenuItem Header="Dump Render Targets" Click="DebugMenu_DumpRenderTargets_Click"/>
                     <MenuItem Header="Dump Shadow Map" Click="DebugMenu_DumpShadowMap_Click"/>
+                    <MenuItem Header="Test" Click="DebugMenu_TestClick"/>
                 </MenuItem>
             </Menu>
 

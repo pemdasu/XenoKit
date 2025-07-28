@@ -79,9 +79,6 @@
     <Reference Include="AForge.Imaging.Formats">
       <HintPath>..\..\XV2 Tools\DLLs\AForge.Imaging.Formats.dll</HintPath>
     </Reference>
-    <Reference Include="AForge.Math">
-      <HintPath>..\..\XV2 Tools\DLLs\AForge.Math.dll</HintPath>
-    </Reference>
     <Reference Include="AutoUpdater">
       <HintPath>..\..\XV2 Tools\DLLs\AutoUpdater.dll</HintPath>
     </Reference>
@@ -112,8 +109,11 @@
     <Reference Include="MahApps.Metro, Version=2.0.0.0, Culture=neutral, PublicKeyToken=51482d6f650b2b3f, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.2.4.10\lib\net47\MahApps.Metro.dll</HintPath>
     </Reference>
-    <Reference Include="MahApps.Metro.IconPacks.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a, processorArchitecture=MSIL">
-      <HintPath>..\packages\MahApps.Metro.IconPacks.Modern.4.11.0\lib\net47\MahApps.Metro.IconPacks.Core.dll</HintPath>
+    <Reference Include="MahApps.Metro.IconPacks.Core, Version=6.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a, processorArchitecture=MSIL">
+      <HintPath>..\packages\MahApps.Metro.IconPacks.Core.6.0.0\lib\net47\MahApps.Metro.IconPacks.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="MahApps.Metro.IconPacks.Lucide, Version=6.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a, processorArchitecture=MSIL">
+      <HintPath>..\packages\MahApps.Metro.IconPacks.Lucide.6.0.0\lib\net47\MahApps.Metro.IconPacks.Lucide.dll</HintPath>
     </Reference>
     <Reference Include="MahApps.Metro.IconPacks.Material, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.IconPacks.Material.4.11.0\lib\net47\MahApps.Metro.IconPacks.Material.dll</HintPath>
@@ -498,6 +498,7 @@
     <Compile Include="Engine\Collision\AabbTree.cs" />
     <Compile Include="Engine\Collision\BacHitbox.cs" />
     <Compile Include="Engine\FrameRateCounter.cs" />
+    <Compile Include="Engine\Gizmo\CurrentGizmo.cs" />
     <Compile Include="Engine\Gizmo\EntityTransformGizmo.cs" />
     <Compile Include="Engine\Gizmo\TransformOperations\EntityTransformOperation.cs" />
     <Compile Include="Engine\Character\DamageManager.cs" />
@@ -506,6 +507,7 @@
     <Compile Include="Engine\Model\CollsionMeshBatchDraw.cs" />
     <Compile Include="Engine\Model\Lod.cs" />
     <Compile Include="Engine\Model\LodGroup.cs" />
+    <Compile Include="Engine\Model\ModelInstanceData.cs" />
     <Compile Include="Engine\Model\ModelScene.cs" />
     <Compile Include="Engine\Objects\InfiniteWorldGrid.cs" />
     <Compile Include="Engine\Rendering\ParticleBatch.cs" />

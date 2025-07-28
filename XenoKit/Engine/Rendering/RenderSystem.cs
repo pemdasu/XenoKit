@@ -102,7 +102,8 @@ namespace XenoKit.Engine.Rendering
         //ShaderPrograms:
         public Xv2ShaderEffect ShadowModel_W { get; private set; }
         public Xv2ShaderEffect ShadowModel { get; private set; }
-        //public Xv2ShaderEffect GI_ShadowModel_Grass { get; private set; }
+        public Xv2ShaderEffect GI_ShadowModel { get; private set; }
+        public Xv2ShaderEffect GI_ShadowModel_Grass { get; private set; }
         public Xv2ShaderEffect NORMAL_FADE_WATERDEPTH_W_M { get; private set; }
         private PostShaderEffect AGE_TEST_EDGELINE_MRT;
         private PostShaderEffect BIRD_BG_EDGELINE_RGB_HF;
@@ -149,6 +150,8 @@ namespace XenoKit.Engine.Rendering
             //Load shaders used for the shadow and normal passes. These are used instead of the regular shaders defined in EMM during those passes.
             ShadowModel_W = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel_W"), ShaderType.CharaShadow);
             ShadowModel = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("ShadowModel"));
+            GI_ShadowModel = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("GI_ShadowModel"));
+            GI_ShadowModel_Grass = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("GI_ShadowModel_Grass"));
             //GI_ShadowModel_Grass = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("GI_ShadowModel_Grass"));
             NORMAL_FADE_WATERDEPTH_W_M = CompiledObjectManager.GetCompiledObject<Xv2ShaderEffect>(EmmMaterial.CreateDefaultMaterial("NORMAL_FADE_WATERDEPTH_W_M"), ShaderType.CharaNormals);
 

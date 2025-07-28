@@ -41,13 +41,13 @@ namespace XenoKit.Engine
         /// </summary>
         public static event EventHandler DelayedEventUpdateEvent;
         /// <summary>
-        /// Invoked every minute. This is intended for periodic background update events that don't need to run often. 
+        /// Invoked every few minutes. This is intended for periodic background update events that don't need to run often. 
         /// </summary>
         public static event EventHandler SlowUpdateEvent;
 
         private static int DelayedUpdateTimer = 0;
         private static int SlowUpdateTimer = 0;
-        private const int SlowUpdateTimerAmount = 60 * 60; //Every minute
+        private const int SlowUpdateTimerAmount = 60 * 60 * 3; //Every few minutes
         #endregion
 
         #region Fields
@@ -109,7 +109,6 @@ namespace XenoKit.Engine
         public FrameRateCounter FrameRate { get; private set; } = new FrameRateCounter();
 
         //Gizmos
-        public GizmoBase CurrentGizmo { get; private set; }
         public AnimatorGizmo AnimatorGizmo { get; private set; }
         public BoneScaleGizmo BoneScaleGizmo { get; private set; }
         public BacMatrixGizmo BacMatrixGizmo { get; private set; }
@@ -151,6 +150,7 @@ namespace XenoKit.Engine
 
             Xv2Texture.InitDefaultTexture();
             DefaultShaders.InitDefaultShaders();
+            ModelInstanceData.InitDefaultInstanceData();
 
             CollisionMesh.CreateResources(GraphicsDevice);
 
@@ -161,7 +161,6 @@ namespace XenoKit.Engine
             BacHitboxGizmo = new HitboxGizmo();
             EntityTransformGizmo = new EntityTransformGizmo();
             ModelGizmo = new ModelGizmo();
-            CurrentGizmo = AnimatorGizmo;
 
             Camera = new Camera();
             AudioEngine = new AudioEngine();
@@ -195,7 +194,9 @@ namespace XenoKit.Engine
             IsBlackVoid = false;
             GameTime = time;
             Input.Update(_mouse, _keyboard);
+            Camera.EarlyUpdate();
             CheckHotkeys();
+            CurrentGizmo.Update();
 
             SunLight.Update();
             LightSource.Update();
@@ -203,10 +204,7 @@ namespace XenoKit.Engine
 
             FrameRate.Update((float)time.ElapsedGameTime.TotalSeconds);
             ShaderManager.Update();
-            CurrentGizmo.Update();
             BacHitboxGizmo.Update();
-            EntityTransformGizmo.Update();
-            ModelGizmo.Update();
 
             AudioEngine.Update();
 
@@ -307,9 +305,6 @@ namespace XenoKit.Engine
 
             ShaderManager.DelayedUpdate();
             RenderSystem.DelayedUpdate();
-            CurrentGizmo.DelayedUpdate();
-            BacHitboxGizmo.DelayedUpdate();
-            ModelGizmo.DelayedUpdate();
 
             for (int i = 0; i < SceneManager.Actors.Length; i++)
             {
@@ -370,8 +365,6 @@ namespace XenoKit.Engine
             TextRenderer.Draw();
             CurrentGizmo.Draw();
             BacHitboxGizmo.Draw();
-            EntityTransformGizmo.Draw();
-            ModelGizmo.Draw();
             WorldGrid.Draw();
 
             //Now apply axis correction
@@ -413,19 +406,16 @@ namespace XenoKit.Engine
 
         public AnimatorGizmo GetAnimatorGizmo()
         {
-            CurrentGizmo = AnimatorGizmo;
             return AnimatorGizmo;
         }
 
         public BoneScaleGizmo GetBoneScaleGizmo()
         {
-            CurrentGizmo = BoneScaleGizmo;
             return BoneScaleGizmo;
         }
 
         public BacMatrixGizmo GetBacMatrixGizmo()
         {
-            CurrentGizmo = BacMatrixGizmo;
             return BacMatrixGizmo;
         }
 
@@ -471,11 +461,13 @@ namespace XenoKit.Engine
                 {
                     WireframeMode = !WireframeMode;
                     CompiledObjectManager.ForceShaderUpdate();
+                    Input.ExclusiveKeyDown(Microsoft.Xna.Framework.Input.Keys.L);
                     SetHotkeyCooldown();
                 }
                 else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) && Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.G))
                 {
                     SceneManager.ShowWorldAxis = !SceneManager.ShowWorldAxis;
+                    Input.ExclusiveKeyDown(Microsoft.Xna.Framework.Input.Keys.G);
                     SetHotkeyCooldown();
                 }
                 else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space))
@@ -486,16 +478,19 @@ namespace XenoKit.Engine
                 else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) && Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.O))
                 {
                     SettingsManager.settings.XenoKit_UseOutlinePostEffect = !SettingsManager.settings.XenoKit_UseOutlinePostEffect;
+                    Input.ExclusiveKeyDown(Microsoft.Xna.Framework.Input.Keys.O);
                     SetHotkeyCooldown();
                 }
                 else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftAlt) && Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F))
                 {
                     LocalSettings.Instance.EnableFog = !LocalSettings.Instance.EnableFog;
+                    Input.ExclusiveKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
                     SetHotkeyCooldown();
                 }
                 else if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) || (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && IsFullScreen))
                 {
                     SetHotkeyCooldown();
+                    Input.ExclusiveKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape);
                     if (IsFullScreen)
                     {
                         DisableFullscreen();

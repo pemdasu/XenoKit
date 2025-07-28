@@ -20,15 +20,20 @@ using static Xv2CoreLib.EMD.EMD_TextureSamplerDef;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector3 = System.Numerics.Vector3;
 using SimdQuaternion = System.Numerics.Quaternion;
+using XenoKit.Editor;
+using Xv2CoreLib.Resource.UndoRedo;
 
 namespace XenoKit.Engine.Model
 {
-    public class Xv2ModelFile : RenderObject
+    public class Xv2ModelFile : RenderObject, IDisposable
     {
-        public EventHandler MaterialsChanged;
+        public event EventHandler MaterialsChanged;
+        public event ModelModifiedEventHandler ModelModified;
+
         public NSK_File SourceNskFile { get; private set; }
         public EMD_File SourceEmdFile { get; private set; }
         public EMO_File SourceEmoFile { get; private set; }
+        public EMG_File SourceEmgFile { get; private set; }
         private bool IsReflectionMesh = false;
 
         public ModelType Type { get; private set; }
@@ -60,8 +65,8 @@ namespace XenoKit.Engine.Model
             modelFile.Type = ModelType.Nsk;
             modelFile.SourceNskFile = nskFile;
             modelFile.SourceEmdFile = nskFile.EmdFile;
-            modelFile.LoadEmd(true);
             modelFile.LoadInternalSkeleton();
+            modelFile.LoadEmd(true);
 
             return modelFile;
         }
@@ -71,8 +76,8 @@ namespace XenoKit.Engine.Model
             Xv2ModelFile modelFile = new Xv2ModelFile();
             modelFile.Type = ModelType.Emo;
             modelFile.SourceEmoFile = emoFile;
-            modelFile.LoadEmo(true);
             modelFile.LoadInternalSkeleton();
+            modelFile.LoadEmo(true);
 
             return modelFile;
         }
@@ -88,31 +93,8 @@ namespace XenoKit.Engine.Model
             EMG_Mesh mesh = emgFile.EmgMeshes[0];
             EMG_Submesh submesh = emgFile.EmgMeshes[0].Submeshes[0];
 
-            Xv2Submesh xv2Submesh = new Xv2Submesh(submesh.MaterialName, ModelType.Emg, submesh, null);
+            Xv2Submesh xv2Submesh = new Xv2Submesh(mesh, submesh, false, null, null);
 
-            xv2Submesh.BoundingBox = mesh.AABB.ConvertToBoundingBox();
-            xv2Submesh.BoundingBoxCenter = mesh.AABB.GetCenter();
-
-            //Triangles
-            xv2Submesh.Indices = ArrayConvert.ConvertToIntArray(submesh.Faces);
-
-            //Create vertex array
-            xv2Submesh.Vertices = new VertexPositionNormalTextureBlend[mesh.Vertices.Count];
-
-            for (int i = 0; i < mesh.Vertices.Count; i++)
-            {
-                xv2Submesh.Vertices[i].Position = new Vector3(mesh.Vertices[i].PositionX, mesh.Vertices[i].PositionY, mesh.Vertices[i].PositionZ);
-                xv2Submesh.Vertices[i].Normal = new Vector3(mesh.Vertices[i].NormalX, mesh.Vertices[i].NormalY, mesh.Vertices[i].NormalZ);
-                xv2Submesh.Vertices[i].Tangent = new Vector3(mesh.Vertices[i].TangentX, mesh.Vertices[i].TangentY, mesh.Vertices[i].TangentZ);
-                xv2Submesh.Vertices[i].TextureUV0 = new Vector2(mesh.Vertices[i].TextureU, mesh.Vertices[i].TextureV);
-                xv2Submesh.Vertices[i].TextureUV1 = new Vector2(mesh.Vertices[i].Texture2U, mesh.Vertices[i].Texture2V);
-                xv2Submesh.Vertices[i].Color_R = mesh.Vertices[i].ColorR;
-                xv2Submesh.Vertices[i].Color_G = mesh.Vertices[i].ColorG;
-                xv2Submesh.Vertices[i].Color_B = mesh.Vertices[i].ColorB;
-                xv2Submesh.Vertices[i].Color_A = mesh.Vertices[i].ColorA;
-            }
-
-            xv2Submesh.CreateBuffers();
             return xv2Submesh;
         }
 
@@ -120,92 +102,36 @@ namespace XenoKit.Engine.Model
         {
             Xv2ModelFile modelFile = new Xv2ModelFile();
             modelFile.Type = ModelType.Emg;
-
-            modelFile.Models.Add(new Xv2Model("root_model", null));
-            modelFile.Models[0].Meshes.Add(new Xv2Mesh("root_mesh", null, modelFile.Models[0]));
-            modelFile.Models[0].Meshes[0].Submeshes.Add(LoadEmg(emgFile));
+            modelFile.SourceEmgFile = emgFile;
+            modelFile.LoadEmg();
 
             return modelFile;
         }
 
-        private void LoadEmd(bool registerEvent = false)
+        private void LoadEmd(bool registerEvent = false, bool reloadAll = true)
         {
-            Models.Clear();
-
-            //Models
-            foreach (EMD_Model emdModel in SourceEmdFile.Models)
+            for (int i = Models.Count - 1; i >= 0; i--)
             {
-                Xv2Model model = new Xv2Model(emdModel.Name, emdModel);
-
-                foreach (EMD_Mesh emdMesh in emdModel.Meshes)
+                if (!SourceEmdFile.Models.Exists(Models[i].SourceEmdModel))
                 {
-                    Xv2Mesh mesh = new Xv2Mesh(emdMesh.Name, emdMesh, model);
-
-                    foreach (EMD_Submesh emdSubmesh in emdMesh.Submeshes)
-                    {
-                        //EACH triangle list needs to be its own Xv2Submesh. Merging them together cannot work with the vanilla game shaders as they cant accept more than 24 bones
-
-                        foreach (EMD_Triangle triangleList in emdSubmesh.Triangles)
-                        {
-                            Xv2Submesh submesh = new Xv2Submesh(emdSubmesh.Name, Type, emdSubmesh, mesh);
-
-                            submesh.BoundingBox = emdSubmesh.AABB.ConvertToBoundingBox();
-                            submesh.BoundingBoxCenter = emdSubmesh.AABB.GetCenter();
-
-                            //Triangles
-                            submesh.Indices = new int[triangleList.Faces.Count];
-
-                            for (int i = 0; i < triangleList.Faces.Count; i++)
-                            {
-                                submesh.Indices[i] = triangleList.Faces[i];
-                            }
-
-                            //Create vertex array
-                            submesh.Vertices = new VertexPositionNormalTextureBlend[emdSubmesh.VertexCount];
-
-                            for (int i = 0; i < emdSubmesh.VertexCount; i++)
-                            {
-                                submesh.Vertices[i].Position = new Vector3(emdSubmesh.Vertexes[i].PositionX, emdSubmesh.Vertexes[i].PositionY, emdSubmesh.Vertexes[i].PositionZ);
-                                submesh.Vertices[i].Tangent = new Vector3(emdSubmesh.Vertexes[i].TangentX, emdSubmesh.Vertexes[i].TangentY, emdSubmesh.Vertexes[i].TangentZ);
-                                submesh.Vertices[i].TextureUV0 = new Vector2(emdSubmesh.Vertexes[i].TextureU, emdSubmesh.Vertexes[i].TextureV);
-                                submesh.Vertices[i].TextureUV1 = new Vector2(emdSubmesh.Vertexes[i].Texture2U, emdSubmesh.Vertexes[i].Texture2V);
-                                submesh.Vertices[i].Color_R = emdSubmesh.Vertexes[i].ColorR;
-                                submesh.Vertices[i].Color_G = emdSubmesh.Vertexes[i].ColorG;
-                                submesh.Vertices[i].Color_B = emdSubmesh.Vertexes[i].ColorB;
-                                submesh.Vertices[i].Color_A = emdSubmesh.Vertexes[i].ColorA;
-
-                                if (emdSubmesh.VertexFlags.HasFlag(VertexFlags.Normal))
-                                {
-                                    submesh.Vertices[i].Normal = new Vector3(emdSubmesh.Vertexes[i].NormalX, emdSubmesh.Vertexes[i].NormalY, emdSubmesh.Vertexes[i].NormalZ);
-                                }
-
-                                if (emdSubmesh.VertexFlags.HasFlag(VertexFlags.BlendWeight))
-                                {
-                                    submesh.Vertices[i].BlendIndex0 = emdSubmesh.Vertexes[i].BlendIndexes[0];
-                                    submesh.Vertices[i].BlendIndex1 = emdSubmesh.Vertexes[i].BlendIndexes[1];
-                                    submesh.Vertices[i].BlendIndex2 = emdSubmesh.Vertexes[i].BlendIndexes[2];
-                                    submesh.Vertices[i].BlendIndex3 = emdSubmesh.Vertexes[i].BlendIndexes[3];
-                                    submesh.Vertices[i].BlendWeights = new Vector3(emdSubmesh.Vertexes[i].BlendWeights[0], emdSubmesh.Vertexes[i].BlendWeights[1], emdSubmesh.Vertexes[i].BlendWeights[2]);
-                                }
-                            }
-
-                            submesh.SamplerDefs = emdSubmesh.TextureSamplerDefs;
-                            submesh.InitSamplers();
-
-                            submesh.EnableSkinning = emdSubmesh.VertexFlags.HasFlag(VertexFlags.BlendWeight);
-                            submesh.BoneNames = triangleList.Bones.ToArray();
-
-                            if (submesh.Vertices.Length > 0)
-                            {
-                                mesh.Submeshes.Add(submesh);
-                            }
-                        }
-                    }
-
-                    model.Meshes.Add(mesh);
+                    Models[i].Dispose();
+                    Models.RemoveAt(i);
                 }
+            }
 
-                Models.Add(model);
+            for (int i = 0; i < SourceEmdFile.Models.Count; i++)
+            {
+                Xv2Model model = GetModel(SourceEmdFile.Models[i]);
+
+                if (model != null)
+                {
+                    model.ReloadModel(reloadAll);
+                }
+                else
+                {
+                    model = new Xv2Model(SourceEmdFile.Models[i], this);
+                    Models.Add(model);
+                }
             }
 
             if (registerEvent)
@@ -214,96 +140,57 @@ namespace XenoKit.Engine.Model
             }
 
             CalculateAABBs();
-            CreateBuffers();
         }
 
-        private void LoadEmo(bool registerEvent = false)
+        private void LoadEmo(bool registerEvent = false, bool reloadAll = true)
         {
-            int partIdx = 0;
-
-            //Models are rendered in the OPPOSITE order of which they are defined in EMO, so we have to read this backwards
-            for (int a = SourceEmoFile.Parts.Count - 1; a >= 0; a--)
+            for (int i = Models.Count - 1; i >= 0; i--)
             {
-                foreach (var model in SourceEmoFile.Parts[a].EmgFiles)
+                if (!SourceEmoFile.ModelExists(Models[i].SourceEmoPart, Models[i].SourceEmgModel))
                 {
-                    Xv2Model xv2Model = new Xv2Model(SourceEmoFile.Parts[a].Name, model);
-                    var bone = SourceEmoFile.Skeleton.Bones.FirstOrDefault(x => x.EmoPartIndex == partIdx);
-
-                    //The bone and model name SHOULD be the same (they are in all vanilla files), but just to guard against them possibilily being different, we can overwrite the model name with the bone name
-                    //Ensuring that the bone linking will work later (it is done by bone name, in the same manner as NSK)
-                    if(bone != null)
-                        xv2Model.Name = bone.Name;
-
-                    foreach (var mesh in model.EmgMeshes)
-                    {
-                        Xv2Mesh xv2Mesh = new Xv2Mesh("", mesh, xv2Model);
-
-                        foreach (var submesh in mesh.Submeshes)
-                        {
-                            Xv2Submesh xv2Submesh = new Xv2Submesh(submesh.MaterialName, Type, submesh, xv2Mesh);
-
-                            xv2Submesh.BoundingBox = mesh.AABB.ConvertToBoundingBox();
-                            xv2Submesh.BoundingBoxCenter = mesh.AABB.GetCenter();
-
-                            //Triangles
-                            xv2Submesh.Indices = ArrayConvert.ConvertToIntArray(submesh.Faces);
-
-                            //Create vertex array
-                            xv2Submesh.Vertices = new VertexPositionNormalTextureBlend[mesh.Vertices.Count];
-
-                            for (int i = 0; i < mesh.Vertices.Count; i++)
-                            {
-                                xv2Submesh.Vertices[i].Position = new Vector3(mesh.Vertices[i].PositionX, mesh.Vertices[i].PositionY, mesh.Vertices[i].PositionZ);
-                                xv2Submesh.Vertices[i].Normal = new Vector3(mesh.Vertices[i].NormalX, mesh.Vertices[i].NormalY, mesh.Vertices[i].NormalZ);
-                                xv2Submesh.Vertices[i].Tangent = new Vector3(mesh.Vertices[i].TangentX, mesh.Vertices[i].TangentY, mesh.Vertices[i].TangentZ);
-                                xv2Submesh.Vertices[i].TextureUV0 = new Vector2(mesh.Vertices[i].TextureU, mesh.Vertices[i].TextureV);
-                                xv2Submesh.Vertices[i].TextureUV1 = new Vector2(mesh.Vertices[i].Texture2U, mesh.Vertices[i].Texture2V);
-                                xv2Submesh.Vertices[i].Color_R = mesh.Vertices[i].ColorR;
-                                xv2Submesh.Vertices[i].Color_G = mesh.Vertices[i].ColorG;
-                                xv2Submesh.Vertices[i].Color_B = mesh.Vertices[i].ColorB;
-                                xv2Submesh.Vertices[i].Color_A = mesh.Vertices[i].ColorA;
-
-                                if (mesh.VertexFlags.HasFlag(VertexFlags.BlendWeight))
-                                {
-                                    xv2Submesh.Vertices[i].BlendIndex0 = mesh.Vertices[i].BlendIndexes[0];
-                                    xv2Submesh.Vertices[i].BlendIndex1 = mesh.Vertices[i].BlendIndexes[1];
-                                    xv2Submesh.Vertices[i].BlendIndex2 = mesh.Vertices[i].BlendIndexes[2];
-                                    xv2Submesh.Vertices[i].BlendIndex3 = mesh.Vertices[i].BlendIndexes[3];
-                                    xv2Submesh.Vertices[i].BlendWeights = new Vector3(mesh.Vertices[i].BlendWeights[0], mesh.Vertices[i].BlendWeights[1], mesh.Vertices[i].BlendWeights[2]);
-                                }
-                            }
-
-                            //Samplers
-                            xv2Submesh.SamplerDefs = mesh.TextureLists[submesh.TextureListIndex].TextureSamplerDefs;
-                            xv2Submesh.InitSamplers();
-
-                            xv2Submesh.EnableSkinning = mesh.VertexFlags.HasFlag(VertexFlags.BlendWeight);
-
-                            //Generate bone index list
-                            xv2Submesh.BoneNames = new string[24];
-
-                            for (short i = 0; i < submesh.Bones.Count; i++)
-                            {
-                                xv2Submesh.BoneNames[i] = SourceEmoFile.Skeleton.Bones[submesh.Bones[i]].Name;
-                            }
-
-                            if (xv2Submesh.Vertices.Length > 0)
-                            {
-                                xv2Mesh.Submeshes.Add(xv2Submesh);
-                            }
-                        }
-
-                        xv2Model.Meshes.Add(xv2Mesh);
-                    }
-
-                    Models.Add(xv2Model);
+                    Models[i].Dispose();
+                    Models.RemoveAt(i);
                 }
+            }
 
-                partIdx++;
+            for (int i = 0; i < SourceEmoFile.Parts.Count; i++)
+            {
+                for(int a = 0; a < SourceEmoFile.Parts[i].EmgFiles.Count; a++)
+                {
+                    Xv2Model model = GetModel(SourceEmoFile.Parts[i], SourceEmoFile.Parts[i].EmgFiles[a]);
+
+                    if (model != null)
+                    {
+                        model.ReloadModel(reloadAll);
+                    }
+                    else
+                    {
+                        model = new Xv2Model(SourceEmoFile.Parts[i], SourceEmoFile.Parts[i].EmgFiles[a], this);
+                        Models.Add(model);
+                    }
+                }
             }
 
             CalculateAABBs();
-            CreateBuffers();
+        }
+
+        private void LoadEmg(bool registerEvent = false)
+        {
+            if(Models.Count == 0)
+            {
+                Models.Add(new Xv2Model(SourceEmgFile, this));
+            }
+            else
+            {
+                Models[0].ReloadModel();
+            }
+
+            if(Models.Count > 1)
+            {
+                Log.Add($"Xv2ModelFile.LoadEmg: more than one model detected", LogType.Debug);
+            }
+
+            CalculateAABBs();
         }
 
         private void LoadInternalSkeleton()
@@ -320,33 +207,45 @@ namespace XenoKit.Engine.Model
                     break;
                     throw new InvalidOperationException($"Xv2ModelFile.LoadInternalSkeleton: Model type {Type} does not have a internal skeleton!");
             }
-
-            InitializeAttachBones();
-        }
-
-        private void InitializeAttachBones()
-        {
-            foreach(var model in Models)
-            {
-                model.SetAttachBone(Skeleton);
-            }
         }
 
         private void SourceEmdFile_ModelModified(object source, ModelModifiedEventArgs e)
         {
-            if (e.EditType == EditTypeEnum.Remove || e.EditType == EditTypeEnum.Add)
+            if(e.EditType == EditTypeEnum.Vertex)
             {
-                //TODO: Use context to remove/add only whats needed
+                if (e.Context is IList<object> sourceSubmeshs)
+                {
+                    foreach (var sourceSubmesh in sourceSubmeshs)
+                    {
+                        if(sourceSubmesh is EMD_Submesh emdSubmesh)
+                        {
+                            foreach (var compiledSubmesh in GetSubmeshes(emdSubmesh))
+                            {
+                                compiledSubmesh.ReloadSubmesh();
+                            }
+                        }
+                        else if (sourceSubmesh is EMG_Submesh emgSubmesh)
+                        {
+                            foreach (var compiledSubmesh in GetSubmeshes(emgSubmesh))
+                            {
+                                compiledSubmesh.ReloadSubmesh();
+                            }
+                        }
 
+                    }
+                }
+            }
+            else if (e.EditType == EditTypeEnum.Remove || e.EditType == EditTypeEnum.Add)
+            {
                 if (SourceEmdFile != null)
                 {
-                    LoadEmd(false);
-                    LoadInternalSkeleton();
+                    //LoadInternalSkeleton();
+                    LoadEmd(false, false);
                 }
                 else if (SourceEmoFile != null)
                 {
-                    LoadEmo(false);
-                    LoadInternalSkeleton();
+                    //LoadInternalSkeleton();
+                    LoadEmo(false, false);
                 }
 
                 MaterialsChanged?.Invoke(this, EventArgs.Empty);
@@ -376,6 +275,8 @@ namespace XenoKit.Engine.Model
             {
                 MaterialsChanged?.Invoke(this, EventArgs.Empty);
             }
+
+            ModelModified?.Invoke(this, e);
         }
 
         private void ReinitializeTextureSamplers()
@@ -400,7 +301,7 @@ namespace XenoKit.Engine.Model
 
         #region Rendering
 
-        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
+        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
         {
             if (skeleton == null)
                 skeleton = Skeleton;
@@ -411,7 +312,7 @@ namespace XenoKit.Engine.Model
                 {
                     foreach (Xv2Submesh submesh in mesh.Submeshes)
                     {
-                        submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton);
+                        submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton, instanceData);
                     }
                 }
             }
@@ -420,7 +321,7 @@ namespace XenoKit.Engine.Model
         /// <summary>
         /// Draw this model with just one material and no textures or dyts. Intended for earlier passes only (shadow/normals).
         /// </summary>
-        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
+        public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
         {
             if (skeleton == null)
                 skeleton = Skeleton;
@@ -431,7 +332,7 @@ namespace XenoKit.Engine.Model
                 {
                     foreach (Xv2Submesh submesh in mesh.Submeshes)
                     {
-                        submesh.Draw(ref world, actor, material, skeleton);
+                        submesh.Draw(ref world, actor, material, skeleton, instanceData);
                     }
                 }
             }
@@ -494,12 +395,29 @@ namespace XenoKit.Engine.Model
 
 
         #region Helpers
+        public Xv2Model GetModel(EMD_Model emdModel)
+        {
+            for(int i = 0;  i < Models.Count; i++)
+            {
+                if (Models[i].SourceEmdModel == emdModel) return Models[i];
+            }
+            return null;
+        }
+
+        public Xv2Model GetModel(EMO_Part emoPart, EMG_File emgModel)
+        {
+            for (int i = 0; i < Models.Count; i++)
+            {
+                if (Models[i].SourceEmgModel == emgModel && Models[i].SourceEmoPart == emoPart) return Models[i];
+            }
+            return null;
+        }
 
         public Xv2Model GetModel(object sourceModelObject)
         {
             foreach (var model in Models)
             {
-                if (model.SourceModel == sourceModelObject) return model;
+                if (model.IsSourceModel(sourceModelObject)) return model;
             }
 
             return null;
@@ -511,7 +429,7 @@ namespace XenoKit.Engine.Model
             {
                 foreach(var mesh in model.Meshes)
                 {
-                    if (mesh.SourceMesh == sourceMeshObject) return mesh;
+                    if (mesh.IsSourceMesh(sourceMeshObject)) return mesh;
                 }
             }
 
@@ -526,7 +444,7 @@ namespace XenoKit.Engine.Model
                 {
                     foreach (var submesh in mesh.Submeshes)
                     {
-                        if (submesh.SourceSubmesh == sourceSubmesh)
+                        if (submesh.IsSourceSubmesh(sourceSubmesh))
                             yield return submesh;
                     }
                 }
@@ -575,30 +493,169 @@ namespace XenoKit.Engine.Model
         }
         #endregion
 
+        public void ApplyTransformations(bool addUndoStep = true)
+        {
+
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < Models.Count; i++)
+            {
+                Models[i].Dispose();
+            }
+        }
     }
 
-    public class Xv2Model : RenderObject
+    public class Xv2Model : RenderObject, IDisposable
     {
         public Xv2Bone AttachBone { get; private set; }
 
         public List<Xv2Mesh> Meshes { get; private set; } = new List<Xv2Mesh>();
 
-        public object SourceModel { get; private set; }
+        public Xv2ModelFile Root { get; private set; }
+        public EMD_Model SourceEmdModel { get; private set; }
+        public EMG_File SourceEmgModel { get; private set; }
+        public EMO_Part SourceEmoPart { get; private set; }
 
         public BoundingBox BoundingBox { get; set; }
         public SimdVector3 BoundingBoxCenter { get; set; }
 
-
-        public Xv2Model(string name, object sourceModelObj)
+        public Xv2Model(EMD_Model emdModel, Xv2ModelFile root)
         {
-            Name = name;
-            SourceModel = sourceModelObj;
+            Name = emdModel.Name;
+            SourceEmdModel = emdModel;
+            Root = root;
+            CreateFromEmd();
         }
 
-        public void SetAttachBone(Xv2Skeleton skeleton)
+        public Xv2Model(EMO_Part emoPart, EMG_File emgModel, Xv2ModelFile root)
         {
-            int boneIdx = skeleton.GetBoneIndex(Name);
-            AttachBone = skeleton.Bones.Length > boneIdx && boneIdx != -1 ? skeleton.Bones[boneIdx] : null;
+            Name = "";
+            SourceEmgModel = emgModel;
+            SourceEmoPart = emoPart;
+            Root = root;
+            CreateFromEmg();
+        }
+
+        public Xv2Model(EMG_File emg, Xv2ModelFile root)
+        {
+            Name = "";
+            SourceEmgModel = emg;
+            Root = root;
+            CreateFromEmg();
+        }
+
+        public void ReloadModel(bool reloadAll = true)
+        {
+            if (Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
+            {
+                CreateFromEmd(reloadAll);
+            }
+            else if (Root.Type == ModelType.Emo || Root.Type == ModelType.Emg)
+            {
+                CreateFromEmg(reloadAll);
+            }
+        }
+
+        private void CreateFromEmd(bool reloadAll = true)
+        {
+            for (int i = Meshes.Count - 1; i >= 0; i--)
+            {
+                if (!SourceEmdModel.Meshes.Exists(Meshes[i].SourceEmdMesh))
+                {
+                    Meshes[i].Dispose();
+                    Meshes.RemoveAt(i);
+                }
+            }
+
+            for (int i = 0; i < SourceEmdModel.Meshes.Count; i++)
+            {
+                Xv2Mesh mesh = GetMesh(SourceEmdModel.Meshes[i]);
+
+                if (mesh != null)
+                {
+                    mesh.ReloadMesh(reloadAll);
+                }
+                else
+                {
+                    mesh = new Xv2Mesh(SourceEmdModel.Meshes[i], this, Root);
+                    Meshes.Add(mesh);
+                }
+            }
+
+            SetAttachBone();
+        }
+
+        private void CreateFromEmg(bool reloadAll = true)
+        {
+            for (int i = Meshes.Count - 1; i >= 0; i--)
+            {
+                if (!SourceEmgModel.EmgMeshes.Exists(Meshes[i].SourceEmgMesh))
+                {
+                    Meshes[i].Dispose();
+                    Meshes.RemoveAt(i);
+                }
+            }
+
+            for (int i = 0; i < SourceEmgModel.EmgMeshes.Count; i++)
+            {
+                Xv2Mesh mesh = GetMesh(SourceEmgModel.EmgMeshes[i]);
+
+                if (mesh != null)
+                {
+                    mesh.ReloadMesh(reloadAll);
+                }
+                else
+                {
+                    mesh = new Xv2Mesh(SourceEmgModel.EmgMeshes[i], this, Root);
+                    Meshes.Add(mesh);
+                }
+            }
+
+            SetAttachBone();
+        }
+
+        #region Helpers
+        private Xv2Mesh GetMesh(EMD_Mesh mesh)
+        {
+            for (int i = 0; i < Meshes.Count; i++)
+            {
+                if (Meshes[i].IsSourceMesh(mesh))
+                    return Meshes[i];
+            }
+
+            return null;
+        }
+
+        private Xv2Mesh GetMesh(EMG_Mesh mesh)
+        {
+            for (int i = 0; i < Meshes.Count; i++)
+            {
+                if (Meshes[i].IsSourceMesh(mesh))
+                    return Meshes[i];
+            }
+
+            return null;
+        }
+        
+        public bool IsSourceModel(object sourceModel)
+        {
+            return (((Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk) && SourceEmdModel == sourceModel) ||
+                ((Root.Type == ModelType.Emo || Root.Type == ModelType.Emg) && SourceEmgModel == sourceModel));
+        }
+
+        public void SetAttachBone()
+        {
+            if(Root.Type == ModelType.Nsk)
+            {
+                int boneIdx = Root.Skeleton.GetBoneIndex(Name);
+                AttachBone = Root.Skeleton.Bones.Length > boneIdx && boneIdx != -1 ? Root.Skeleton.Bones[boneIdx] : null;
+            }
+            else if(Root.Type == ModelType.Emo)
+            {
+                AttachBone = Root.Skeleton.GetBone(SourceEmoPart.LinkedBone);
+            }
         }
 
         private Matrix GetTransformedWorld(ref Matrix world, Xv2Skeleton skeleton)
@@ -643,23 +700,149 @@ namespace XenoKit.Engine.Model
             BoundingBox = new BoundingBox(min, max);
             BoundingBoxCenter = (min + max) * 0.5f;
         }
+        #endregion
+
+        public void Dispose()
+        {
+            for (int i = 0; i < Meshes.Count; i++)
+            {
+                Meshes[i].Dispose();
+            }
+        }
     }
 
-    public class Xv2Mesh : RenderObject
+    public class Xv2Mesh : RenderObject, IDisposable
     {
         public List<Xv2Submesh> Submeshes { get; set; } = new List<Xv2Submesh>();
 
+        public Xv2ModelFile Root { get; private set; }
         public Xv2Model Parent { get; private set; }
-        public object SourceMesh { get; private set; }
+        public EMD_Mesh SourceEmdMesh { get; private set; }
+        public EMG_Mesh SourceEmgMesh { get; private set; }
 
         public BoundingBox BoundingBox { get; set; }
         public SimdVector3 BoundingBoxCenter { get; set; }
 
-        public Xv2Mesh(string name, object sourceMeshObj, Xv2Model parent)
+        public Xv2Mesh(EMD_Mesh sourceEmdMesh, Xv2Model parent, Xv2ModelFile root)
         {
-            Name = name;
-            SourceMesh = sourceMeshObj;
+            Name = sourceEmdMesh.Name;
+            SourceEmdMesh = sourceEmdMesh;
             Parent = parent;
+            Root = root;
+            CreateFromEmd();
+        }
+
+        public Xv2Mesh(EMG_Mesh sourceEmgMesh, Xv2Model parent, Xv2ModelFile root)
+        {
+            Name = "";
+            SourceEmgMesh = sourceEmgMesh;
+            Parent = parent;
+            Root = root;
+            CreateFromEmg();
+        }
+
+        public void ReloadMesh(bool reloadAll = true)
+        {
+            if (Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
+            {
+                CreateFromEmd(reloadAll);
+            }
+            else if (Root.Type == ModelType.Emo || Root.Type == ModelType.Emg)
+            {
+                CreateFromEmg(reloadAll);
+            }
+        }
+
+        private void CreateFromEmd(bool reloadAll = true)
+        {
+            //Remove all submeshes that are no longer on the EMD_Mesh object
+            //This is for updating the Xv2Mesh when changes are made
+            for (int i = Submeshes.Count - 1; i >= 0; i--)
+            {
+                if (!SourceEmdMesh.Submeshes.Exists(Submeshes[i].SourceEmdSubmesh))
+                {
+                    Submeshes[i].Dispose();
+                    Submeshes.RemoveAt(i);
+                }
+            }
+
+            for(int i = 0; i < SourceEmdMesh.Submeshes.Count; i++)
+            {
+                foreach(var emdTriangle in SourceEmdMesh.Submeshes[i].Triangles)
+                {
+                    Xv2Submesh submesh = GetSubmesh(SourceEmdMesh.Submeshes[i], emdTriangle);
+
+                    if (submesh != null)
+                    {
+                        if(reloadAll)
+                           submesh.ReloadSubmesh();
+                    }
+                    else
+                    {
+                        submesh = new Xv2Submesh(SourceEmdMesh.Submeshes[i], emdTriangle, Root.Type == ModelType.Nsk, this, Root);
+                        Submeshes.Add(submesh);
+                    }
+                }
+            }
+        }
+
+        private void CreateFromEmg(bool reloadAll = true)
+        {
+            //Remove all submeshes that are no longer on the EMG_Mesh object
+            //This is for updating the Xv2Mesh when changes are made
+            for (int i = Submeshes.Count - 1; i >= 0; i--)
+            {
+                if (!SourceEmgMesh.Submeshes.Exists(Submeshes[i].SourceEmgSubmesh))
+                {
+                    Submeshes[i].Dispose();
+                    Submeshes.RemoveAt(i);
+                }
+            }
+
+            for (int i = 0; i < SourceEmgMesh.Submeshes.Count; i++)
+            {
+                Xv2Submesh submesh = GetSubmesh(SourceEmgMesh.Submeshes[i]);
+
+                if (submesh != null)
+                {
+                    if (reloadAll)
+                        submesh.ReloadSubmesh();
+                }
+                else
+                {
+                    submesh = new Xv2Submesh(SourceEmgMesh, SourceEmgMesh.Submeshes[i], Root.Type == ModelType.Emo, this, Root);
+                    Submeshes.Add(submesh);
+                }
+            }
+        }
+
+        #region Helpers
+        private Xv2Submesh GetSubmesh(EMD_Submesh submesh, EMD_Triangle emdTriangle)
+        {
+            for(int i = 0; i < Submeshes.Count; i++)
+            {
+                if (Submeshes[i].SourceEmdSubmesh == submesh && Submeshes[i].SourceEmdTriangleList == emdTriangle)
+                    return Submeshes[i];
+            }
+
+            return null;
+        }
+
+        private Xv2Submesh GetSubmesh(EMG_Submesh submesh)
+        {
+            for (int i = 0; i < Submeshes.Count; i++)
+            {
+                if (Submeshes[i].IsSourceSubmesh(submesh))
+                    return Submeshes[i];
+            }
+
+            return null;
+        }
+
+        public bool IsSourceMesh(object sourceMesh)
+        {
+            return (((Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk) && SourceEmdMesh == sourceMesh) ||
+                ((Root.Type == ModelType.Emo || Root.Type == ModelType.Emg) && SourceEmgMesh == sourceMesh));
         }
 
         public List<Xv2Submesh> GetSubmeshes(EMD_Submesh submesh)
@@ -668,7 +851,7 @@ namespace XenoKit.Engine.Model
 
             foreach(var _submesh in Submeshes)
             {
-                if(_submesh.SourceSubmesh == submesh)
+                if(_submesh.SourceEmdSubmesh == submesh)
                 {
                     submeshes.Add(_submesh);
                 }
@@ -699,9 +882,23 @@ namespace XenoKit.Engine.Model
             BoundingBox = new BoundingBox(min, max);
             BoundingBoxCenter = (min + max) * 0.5f;
         }
+    
+        public void UpdateParent(Xv2Model parent)
+        {
+            Parent = parent;
+        }
+        #endregion
+
+        public void Dispose()
+        {
+            for(int i = 0; i < Submeshes.Count; i++)
+            {
+                Submeshes[i].Dispose();
+            }
+        }
     }
 
-    public class Xv2Submesh : RenderObject
+    public class Xv2Submesh : RenderObject, IDisposable
     {
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Model;
 
@@ -709,14 +906,19 @@ namespace XenoKit.Engine.Model
         public ModelType Type { get; private set; }
 
         //Source:
+        public Xv2ModelFile Root { get; private set; }
         public Xv2Mesh Parent { get; private set; }
-        public object SourceSubmesh { get; private set; } //EMD_Submesh or EMG_Submesh
+        public EMD_Submesh SourceEmdSubmesh { get; private set; }
+        public EMD_Triangle SourceEmdTriangleList { get; private set; }
+        public EMG_Submesh SourceEmgSubmesh { get; private set; }
+        public EMG_Mesh SourceEmgMesh { get; private set; }
         public AsyncObservableCollection<EMD_TextureSamplerDef> SamplerDefs { get; set; } //From EMD_Submesh or EMG_Mesh
 
 
         //Vertices:
         public VertexBuffer VertexBuffer { get; set; }
         public IndexBuffer IndexBuffer { get; set; }
+        public VertexBufferBinding VertexBufferBinding { get; set; }
         public VertexPositionNormalTextureBlend[] Vertices { get; set; }
         public int[] Indices { get; set; }
         public int[] UsedIndices { get; set; }
@@ -742,10 +944,10 @@ namespace XenoKit.Engine.Model
         public string[] BoneNames;
         public readonly Dictionary<Xv2Skeleton, short[]> BoneIdx = new Dictionary<Xv2Skeleton, short[]>(); //Bone indices are cached per skeleton instance
         public Matrix4x4[] SkinningMatrices = new Matrix4x4[24];
-        private static Matrix4x4[] DefaultSkinningMatrices = new Matrix4x4[24];
+        private static readonly Matrix4x4[] DefaultSkinningMatrices = new Matrix4x4[24];
 
         //Actor-Specific Information:
-        private Matrix4x4[] PrevWVP = new Matrix4x4[SceneManager.NumActors];
+        private readonly Matrix4x4[] PrevWVP = new Matrix4x4[SceneManager.NumActors];
 
         static Xv2Submesh()
         {
@@ -753,19 +955,181 @@ namespace XenoKit.Engine.Model
                 DefaultSkinningMatrices[i] = Matrix4x4.Identity;
         }
 
-        public Xv2Submesh(string name, ModelType type, object sourceSubmesh, Xv2Mesh parent)
+        public Xv2Submesh(EMD_Submesh submesh, EMD_Triangle triangleList, bool isNsk, Xv2Mesh parent, Xv2ModelFile root)
         {
-            Name = name;
-            Type = type;
-            SourceSubmesh = sourceSubmesh;
+            Name = submesh.Name;
+            SourceEmdSubmesh = submesh;
+            SourceEmdTriangleList = triangleList;
+            Type = isNsk ? ModelType.Nsk : ModelType.Emd;
             Parent = parent;
+            Root = root;
+            CreateFromEmd();
 
 #if DEBUG
             VisibleAABB = new DrawableBoundingBox();
 #endif
         }
 
-        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null)
+        public Xv2Submesh(EMG_Mesh emgMesh, EMG_Submesh emgSubmesh, bool isEmo, Xv2Mesh parent, Xv2ModelFile root)
+        {
+            Name = emgSubmesh.MaterialName;
+            SourceEmgMesh = emgMesh;
+            SourceEmgSubmesh = emgSubmesh;
+            Root = root;
+            Type = isEmo ? ModelType.Emo : ModelType.Emg;
+            Parent = parent;
+            CreateFromEmg();
+
+#if DEBUG
+            VisibleAABB = new DrawableBoundingBox();
+#endif
+        }
+
+        public void ReloadSubmesh()
+        {
+            if(Type == ModelType.Emd || Type == ModelType.Nsk)
+            {
+                CreateFromEmd();
+            }
+            else if (Type == ModelType.Emo || Type == ModelType.Emg)
+            {
+                CreateFromEmg();
+            }
+        }
+
+        private void CreateFromEmd()
+        {
+            BoundingBox = SourceEmdSubmesh.AABB.ConvertToBoundingBox();
+            BoundingBoxCenter = SourceEmdSubmesh.AABB.GetCenter();
+
+            //Create vertex array
+            Vertices = new VertexPositionNormalTextureBlend[SourceEmdSubmesh.VertexCount];
+
+            bool hasTangents = (SourceEmdSubmesh.VertexFlags & VertexFlags.Tangent) != 0;
+            bool hasNormals = (SourceEmdSubmesh.VertexFlags & VertexFlags.Normal) != 0;
+            bool hasColor = (SourceEmdSubmesh.VertexFlags & VertexFlags.Color) != 0;
+            bool hasUv1 = (SourceEmdSubmesh.VertexFlags & VertexFlags.TexUV) != 0;
+            bool hasUv2 = (SourceEmdSubmesh.VertexFlags & VertexFlags.Tex2UV) != 0;
+            bool hasBlendWeights = (SourceEmdSubmesh.VertexFlags & VertexFlags.BlendWeight) != 0;
+
+            for (int i = 0; i < SourceEmdSubmesh.VertexCount; i++)
+            {
+                Vertices[i].Position = new Vector3(SourceEmdSubmesh.Vertexes[i].PositionX, SourceEmdSubmesh.Vertexes[i].PositionY, SourceEmdSubmesh.Vertexes[i].PositionZ);
+
+                if (hasTangents)
+                    Vertices[i].Tangent = new Vector3(SourceEmdSubmesh.Vertexes[i].TangentX, SourceEmdSubmesh.Vertexes[i].TangentY, SourceEmdSubmesh.Vertexes[i].TangentZ);
+
+                if (hasUv1)
+                    Vertices[i].TextureUV0 = new Vector2(SourceEmdSubmesh.Vertexes[i].TextureU, SourceEmdSubmesh.Vertexes[i].TextureV);
+
+                if (hasUv2)
+                    Vertices[i].TextureUV1 = new Vector2(SourceEmdSubmesh.Vertexes[i].Texture2U, SourceEmdSubmesh.Vertexes[i].Texture2V);
+
+                if (hasColor)
+                {
+                    Vertices[i].Color_R = SourceEmdSubmesh.Vertexes[i].ColorR;
+                    Vertices[i].Color_G = SourceEmdSubmesh.Vertexes[i].ColorG;
+                    Vertices[i].Color_B = SourceEmdSubmesh.Vertexes[i].ColorB;
+                    Vertices[i].Color_A = SourceEmdSubmesh.Vertexes[i].ColorA;
+                }
+
+                if (hasNormals)
+                    Vertices[i].Normal = new Vector3(SourceEmdSubmesh.Vertexes[i].NormalX, SourceEmdSubmesh.Vertexes[i].NormalY, SourceEmdSubmesh.Vertexes[i].NormalZ);
+
+                if (hasBlendWeights)
+                {
+                    Vertices[i].BlendIndex0 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[0];
+                    Vertices[i].BlendIndex1 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[1];
+                    Vertices[i].BlendIndex2 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[2];
+                    Vertices[i].BlendIndex3 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[3];
+                    Vertices[i].BlendWeights = new Vector3(SourceEmdSubmesh.Vertexes[i].BlendWeights[0], SourceEmdSubmesh.Vertexes[i].BlendWeights[1], SourceEmdSubmesh.Vertexes[i].BlendWeights[2]);
+                }
+            }
+
+            SamplerDefs = SourceEmdSubmesh.TextureSamplerDefs;
+            InitSamplers();
+
+            EnableSkinning = hasBlendWeights;
+            BoneNames = SourceEmdTriangleList.Bones.ToArray();
+            Indices = SourceEmdTriangleList.Faces.ToArray();
+
+            CreateBuffers();
+        }
+
+        private void CreateFromEmg()
+        {
+            BoundingBox = SourceEmgMesh.AABB.ConvertToBoundingBox();
+            BoundingBoxCenter = SourceEmgMesh.AABB.GetCenter();
+
+            //Triangles
+            Indices = ArrayConvert.ConvertToIntArray(SourceEmgSubmesh.Faces);
+
+            //Create vertex array
+            Vertices = new VertexPositionNormalTextureBlend[SourceEmgMesh.Vertices.Count];
+
+            bool hasTangents = (SourceEmgMesh.VertexFlags & VertexFlags.Tangent) != 0;
+            bool hasNormals = (SourceEmgMesh.VertexFlags & VertexFlags.Normal) != 0;
+            bool hasColor = (SourceEmgMesh.VertexFlags & VertexFlags.Color) != 0;
+            bool hasUv1 = (SourceEmgMesh.VertexFlags & VertexFlags.TexUV) != 0;
+            bool hasUv2 = (SourceEmgMesh.VertexFlags & VertexFlags.Tex2UV) != 0;
+            bool hasBlendWeights = (SourceEmgMesh.VertexFlags & VertexFlags.BlendWeight) != 0;
+
+            for (int i = 0; i < SourceEmgMesh.Vertices.Count; i++)
+            {
+                Vertices[i].Position = new Vector3(SourceEmgMesh.Vertices[i].PositionX, SourceEmgMesh.Vertices[i].PositionY, SourceEmgMesh.Vertices[i].PositionZ);
+
+                if(hasNormals)
+                    Vertices[i].Normal = new Vector3(SourceEmgMesh.Vertices[i].NormalX, SourceEmgMesh.Vertices[i].NormalY, SourceEmgMesh.Vertices[i].NormalZ);
+
+                if(hasTangents)
+                    Vertices[i].Tangent = new Vector3(SourceEmgMesh.Vertices[i].TangentX, SourceEmgMesh.Vertices[i].TangentY, SourceEmgMesh.Vertices[i].TangentZ);
+
+                if(hasUv1)
+                    Vertices[i].TextureUV0 = new Vector2(SourceEmgMesh.Vertices[i].TextureU, SourceEmgMesh.Vertices[i].TextureV);
+
+                if(hasUv2)
+                    Vertices[i].TextureUV1 = new Vector2(SourceEmgMesh.Vertices[i].Texture2U, SourceEmgMesh.Vertices[i].Texture2V);
+
+                if (hasColor)
+                {
+                    Vertices[i].Color_R = SourceEmgMesh.Vertices[i].ColorR;
+                    Vertices[i].Color_G = SourceEmgMesh.Vertices[i].ColorG;
+                    Vertices[i].Color_B = SourceEmgMesh.Vertices[i].ColorB;
+                    Vertices[i].Color_A = SourceEmgMesh.Vertices[i].ColorA;
+                }
+
+                if (hasBlendWeights)
+                {
+                    Vertices[i].BlendIndex0 = SourceEmgMesh.Vertices[i].BlendIndexes[0];
+                    Vertices[i].BlendIndex1 = SourceEmgMesh.Vertices[i].BlendIndexes[1];
+                    Vertices[i].BlendIndex2 = SourceEmgMesh.Vertices[i].BlendIndexes[2];
+                    Vertices[i].BlendIndex3 = SourceEmgMesh.Vertices[i].BlendIndexes[3];
+                    Vertices[i].BlendWeights = new Vector3(SourceEmgMesh.Vertices[i].BlendWeights[0], SourceEmgMesh.Vertices[i].BlendWeights[1], SourceEmgMesh.Vertices[i].BlendWeights[2]);
+                }
+            }
+
+            //Samplers
+            SamplerDefs = SourceEmgMesh.TextureLists[SourceEmgSubmesh.TextureListIndex].TextureSamplerDefs;
+            InitSamplers();
+
+            EnableSkinning = hasBlendWeights;
+
+            //Generate bone index list
+            BoneNames = new string[24];
+
+            if(Type == ModelType.Emo && hasBlendWeights)
+            {
+                for (short i = 0; i < SourceEmgSubmesh.Bones.Count; i++)
+                {
+                    BoneNames[i] = Root.SourceEmoFile.Skeleton.Bones[SourceEmgSubmesh.Bones[i]].Name;
+                }
+            }
+
+            CreateBuffers();
+        }
+
+        #region Draw / Update 
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
         {
             if (materials == null) return;
 
@@ -775,7 +1139,8 @@ namespace XenoKit.Engine.Model
 
             if (!RenderSystem.CheckDrawPass(material)) return;
 
-            if (!FrustumIntersects(newWorld))
+            //Only do frustum culling for non-instanced draws
+            if (!FrustumIntersects(newWorld) && instanceData == null)
                 return;
 
             //Handle BCS Colors
@@ -809,7 +1174,7 @@ namespace XenoKit.Engine.Model
 
             material.SetTextureTile(TexTile01, TexTile23);
 
-            DrawEnd(actor, material, skeleton);
+            DrawEnd(actor, material, skeleton, instanceData);
 
             //Draw AABBs
             if(SceneManager.BoundingBoxVisible && VisibleAABB != null)
@@ -818,22 +1183,22 @@ namespace XenoKit.Engine.Model
             }
         }
 
-        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null)
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
         {
             //if (!RenderSystem.CheckDrawPass(material)) return;
 
             Matrix4x4 newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
-            if (!FrustumIntersects(newWorld))
+            if (!FrustumIntersects(newWorld) && instanceData == null)
                 return;
 
             material.World = newWorld;
             material.PrevWVP = PrevWVP[actor];
 
-            DrawEnd(actor, material, skeleton);
+            DrawEnd(actor, material, skeleton, instanceData);
         }
 
-        private void DrawEnd(int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton)
+        private void DrawEnd(int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton, ModelInstanceData instanceData = null)
         {
             RenderSystem.MeshDrawCalls++;
             material.ActorSlot = actor;
@@ -858,10 +1223,30 @@ namespace XenoKit.Engine.Model
 
                 pass.Apply();
 
-                //GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, Vertices, 0, Vertices.Length, Indices, 0, Indices.Length / 3);
-                GraphicsDevice.SetVertexBuffer(VertexBuffer);
-                GraphicsDevice.Indices = IndexBuffer;
-                GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, IndexBuffer.IndexCount / 3);
+                if (!material.shaderProgram.IsHardwareInstanceShader)
+                {
+                    //GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, Vertices, 0, Vertices.Length, Indices, 0, Indices.Length / 3);
+                    GraphicsDevice.SetVertexBuffers(VertexBufferBinding);
+                    GraphicsDevice.Indices = IndexBuffer;
+                    GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, IndexBuffer.IndexCount / 3);
+                }
+                else
+                {
+                    //Instanced draw call
+                    if (instanceData == null)
+                    {
+                        GraphicsDevice.SetVertexBuffers(VertexBufferBinding, ModelInstanceData.DefaultInstanceData.InstanceBufferBinding);
+                        GraphicsDevice.Indices = IndexBuffer;
+                        GraphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, IndexBuffer.IndexCount / 3, ModelInstanceData.DefaultInstanceData.NumInstances);
+                    }
+                    else
+                    {
+                        GraphicsDevice.SetVertexBuffers(VertexBufferBinding, instanceData.InstanceBufferBinding);
+                        GraphicsDevice.Indices = IndexBuffer;
+                        GraphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0, IndexBuffer.IndexCount / 3, instanceData.NumInstances);
+                    }
+
+                }
 
             }
 
@@ -918,6 +1303,8 @@ namespace XenoKit.Engine.Model
                 }
             }
         }
+
+        #endregion
 
         #region CustomColor
         private void UpdateCustomColorDyt(int actor, int dytIdx, Xv2Texture[] Dyts, Xv2ShaderEffect material)
@@ -1007,11 +1394,17 @@ namespace XenoKit.Engine.Model
         #endregion
 
         #region Init
+        public void UpdateParent(Xv2Mesh parent)
+        {
+            Parent = parent;
+        }
+
         public void CreateBuffers()
         {
             if (VertexBuffer == null)
             {
                 VertexBuffer = new VertexBuffer(GraphicsDevice, typeof(VertexPositionNormalTextureBlend), Vertices.Length, BufferUsage.WriteOnly);
+                VertexBufferBinding = new VertexBufferBinding(VertexBuffer, 0, 0);
             }
             VertexBuffer.SetData(Vertices);
 
@@ -1020,6 +1413,15 @@ namespace XenoKit.Engine.Model
                 IndexBuffer = new IndexBuffer(GraphicsDevice, IndexElementSize.ThirtyTwoBits, Indices.Length, BufferUsage.WriteOnly);
             }
             IndexBuffer.SetData(Indices);
+        }
+
+        public void Dispose()
+        {
+            if (VertexBuffer != null && VertexBuffer.IsDisposed == false)
+                VertexBuffer.Dispose();
+
+            if (IndexBuffer != null && IndexBuffer.IsDisposed == false)
+                IndexBuffer.Dispose();
         }
 
         public void InitSamplers()
@@ -1093,13 +1495,13 @@ namespace XenoKit.Engine.Model
 
         private string GetMaterialName()
         {
-            if(SourceSubmesh is EMD_Submesh emdSubmesh)
+            if(Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
             {
-                return emdSubmesh.Name;
+                return SourceEmdSubmesh.Name;
             }
-            else if(SourceSubmesh is EMG_Submesh emgSubmesh)
+            else if (Root.Type == ModelType.Emo || Root.Type == ModelType.Emg)
             {
-                return emgSubmesh.MaterialName;
+                return SourceEmgSubmesh.MaterialName;
             }
             else
             {
@@ -1157,6 +1559,30 @@ namespace XenoKit.Engine.Model
             }
         }
         #endregion
+
+        public void ApplyTransformationToSource(List<IUndoRedo> undos = null)
+        {
+            if (Transform.IsIdentity) return;
+
+            if (Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
+            {
+                SourceEmdSubmesh.TransformVertices(Transform, undos);
+                Parent.SourceEmdMesh.RecalculateAABB(undos);
+            }
+            else if (Root.Type == ModelType.Emo || Root.Type == ModelType.Emg)
+            {
+                SourceEmgMesh.TransformVertices(Transform, undos);
+                Parent.SourceEmgMesh.RecalculateAABB(undos);
+            }
+
+            Transform = Matrix4x4.Identity;
+        }
+
+        public bool IsSourceSubmesh(object sourceSubmesh)
+        {
+            return (((Type == ModelType.Emd || Type == ModelType.Nsk) && SourceEmdSubmesh == sourceSubmesh) ||
+                ((Type == ModelType.Emo || Type == ModelType.Emg) && SourceEmgSubmesh == sourceSubmesh));
+        }
 
         public static SimdVector3 CalculateCenter(IList<Xv2Submesh> submeshes)
         {

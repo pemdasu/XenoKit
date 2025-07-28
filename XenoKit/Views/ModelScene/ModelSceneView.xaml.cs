@@ -23,6 +23,7 @@ using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector3 = System.Numerics.Vector3;
 using SimdQuaternion = System.Numerics.Quaternion;
 using Xv2CoreLib.Resource;
+using XenoKit.Engine.Gizmo.TransformOperations;
 
 namespace XenoKit.Views
 {
@@ -115,55 +116,129 @@ namespace XenoKit.Views
         //Pos/Rot/Scale deltas
         private SimdVector3 _currentPos = SimdVector3.Zero;
         private SimdVector3 _currentRot = SimdVector3.Zero;
+        private SimdVector3 _initialRot = SimdVector3.Zero;
         private SimdVector3 _currentScale = SimdVector3.One;
 
         public float PosX
         {
             get => _currentPos.X;
-            set => DoDirectTransform(new SimdVector3(value, _currentPos.Y, _currentPos.Z), _currentRot, _currentScale);
+            set 
+            {
+                if (_currentPos.X != value)
+                {
+                    _currentPos.X = value;
+                    if(!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float PosY
         {
             get => _currentPos.Y;
-            set => DoDirectTransform(new SimdVector3(_currentPos.X, value, _currentPos.Z), _currentRot, _currentScale);
+            set
+            {
+                if (_currentPos.Y != value)
+                {
+                    _currentPos.Y = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float PosZ
         {
             get => _currentPos.Z;
-            set => DoDirectTransform(new SimdVector3(_currentPos.X, _currentPos.Y, value), _currentRot, _currentScale);
+            set
+            {
+                if (_currentPos.Z != value)
+                {
+                    _currentPos.Z = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float RotX
         {
             get => _currentRot.X;
-            set => DoDirectTransform(_currentPos, new SimdVector3(value, _currentRot.Y, _currentRot.Z), _currentScale);
+            set
+            {
+                if (_currentRot.X != value)
+                {
+                    _currentRot.X = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float RotY
         {
             get => _currentRot.Y;
-            set => DoDirectTransform(_currentPos, new SimdVector3(_currentRot.X, value, _currentRot.Z), _currentScale);
+            set
+            {
+                if (_currentRot.Y != value)
+                {
+                    _currentRot.Y = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float RotZ
         {
             get => _currentRot.Z;
-            set => DoDirectTransform(_currentPos, new SimdVector3(_currentRot.X, _currentRot.Y, value), _currentScale);
+            set
+            {
+                if (_currentRot.Z != value)
+                {
+                    _currentRot.Z = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float ScaleX
         {
             get => _currentScale.X;
-            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(value, _currentScale.Y, _currentScale.Z));
+            set
+            {
+                if (_currentScale.X != value)
+                {
+                    _currentScale.X = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float ScaleY
         {
             get => _currentScale.Y;
-            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(_currentScale.X, value, _currentScale.Z));
+            set
+            {
+                if (_currentScale.Y != value)
+                {
+                    _currentScale.Y = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
         public float ScaleZ
         {
             get => _currentScale.Z;
-            set => DoDirectTransform(_currentPos, _currentRot, new SimdVector3(_currentScale.X, _currentScale.Y, value));
+            set
+            {
+                if (_currentScale.Z != value)
+                {
+                    _currentScale.Z = value;
+                    if (!DelayedTransformTimer.IsEnabled)
+                        DelayedTransformTimer.Start();
+                }
+            }
         }
 
         private DispatcherTimer DelayedSelectedEventTimer { get; set; }
+        private DispatcherTimer DelayedTransformTimer { get; set; }
 
         public ModelSceneView(ModelScene modelScene)
         {
@@ -177,6 +252,14 @@ namespace XenoKit.Views
                 DelayedSelectedEventTimer.Stop();
                 OnSelectedItemChanged();
             };
+
+            DelayedTransformTimer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(500) };
+            DelayedTransformTimer.Tick += (s, e) =>
+            {
+                DelayedTransformTimer.Stop();
+                DoDirectTransform();
+            };
+
             InitializeComponent();
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
         }
@@ -185,6 +268,9 @@ namespace XenoKit.Views
         {
             EmdFile?.RefreshValues();
             TextureViewModel?.UpdateProperties();
+
+            if(e.UndoGroup == UndoGroup.EMD)
+                UpdateTransformValues();
         }
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -210,6 +296,7 @@ namespace XenoKit.Views
             NotifyPropertyChanged(nameof(SelectedModelName));
             NotifyPropertyChanged(nameof(SelectedMeshName));
             NotifyPropertyChanged(nameof(SelectedSubmeshName));
+            _initialRot = SimdVector3.Zero;
             TryEnableModelGizmo();
         }
 
@@ -236,11 +323,11 @@ namespace XenoKit.Views
                 Viewport.Instance.ModelGizmo.SetCallback(TransformOperationBegin, TransformOperationComplete);
                 UpdateTransformValues();
 
-                var submeshes = ModelScene.Model.GetAllSubmeshesFromSourceObject(SelectedItem);
+                var submeshes = ModelScene.GetSelectedSubmeshes();
 
                 if(submeshes?.Count > 0)
                 {
-                    Viewport.Instance.ModelGizmo.SetContext(submeshes, GetAttachBone(submeshes));
+                    Viewport.Instance.ModelGizmo.SetContext(ModelScene.EmdFile, submeshes, GetAttachBone(submeshes));
                 }
                 else
                 {
@@ -298,10 +385,16 @@ namespace XenoKit.Views
             }
         }
 
-        private void DoDirectTransform(SimdVector3 newPos, SimdVector3 newRot, SimdVector3 newScale)
+        private void DoDirectTransform()
         {
-            var submeshes = ModelScene.Model.GetAllSubmeshesFromSourceObject(SelectedItem);
-            newPos -= Xv2Submesh.CalculateCenter(submeshes);
+            SimdVector3 newPos = _currentPos;
+            SimdVector3 newRot = _currentRot - _initialRot;
+            SimdVector3 newScale = _currentScale;
+            _initialRot = _currentRot;
+
+            var submeshes = ModelScene.GetSelectedSubmeshes();
+            SimdVector3 center = Xv2Submesh.CalculateCenter(submeshes);
+            newPos -= center;
 
             if (submeshes?.Count > 0)
             {
@@ -314,17 +407,20 @@ namespace XenoKit.Views
 
                     if (attachBone != null)
                     {
-                        invSkeletonMarix = MathHelpers.Invert(attachBone.AbsoluteAnimationMatrix);
+                        invSkeletonMarix = attachBone.AbsoluteAnimationMatrix;
                     }
                 }
+
+                if (SceneManager.PivotPoint == PivotPoint.Center)
+                    invSkeletonMarix *= Matrix4x4.CreateTranslation(center);
 
                 newRot.ClampEuler();
                 newScale.ClampScale();
 
-                Matrix4x4 deltaMatrix = Matrix4x4.CreateScale(newScale);
+                Matrix4x4 deltaMatrix = MathHelpers.Invert(submeshes[0].Transform * invSkeletonMarix);
+                deltaMatrix *= Matrix4x4.CreateScale(newScale);
                 deltaMatrix *= Matrix4x4.CreateFromQuaternion(newRot.EulerToQuaternion());
                 deltaMatrix *= Matrix4x4.CreateTranslation(newPos);
-                deltaMatrix *= MathHelpers.Invert(submeshes[0].Transform);
                 deltaMatrix *= invSkeletonMarix;
 
                 foreach(var submesh in submeshes)
@@ -332,7 +428,9 @@ namespace XenoKit.Views
                     submesh.Transform *= deltaMatrix;
                 }
 
-                UpdateTransformValues();
+                ModelTransformOperation.ApplyTransformation(submeshes, ModelScene.GetSourceModel());
+
+                //UpdateTransformValues();
             }
         }
 
@@ -342,6 +440,10 @@ namespace XenoKit.Views
         }
 
         #region Commands
+        public RelayCommand ApplyTransformationsCommand => new RelayCommand(ModelScene.ApplyTransformations);
+
+        public RelayCommand ClearTransformationsCommand => new RelayCommand(ModelScene.RemoveTransformations);
+
         public RelayCommand DeleteModelCommand => new RelayCommand(ModelScene.DeleteSelectedModels, ModelScene.IsModelSelected);
 
         public RelayCommand DeleteMeshCommand => new RelayCommand(ModelScene.DeleteSelectedMeshes, ModelScene.IsMeshSelected);
@@ -457,7 +559,7 @@ namespace XenoKit.Views
         {
             if(SelectedTexture == null)
             {
-                Viewport.Instance.Camera.LookAt(ModelScene.BoundingBox);
+                Viewport.Instance.Camera.LookAt(ModelScene.SelectedBoundingBox);
                 Log.Add("LookAt from View");
             }
         }

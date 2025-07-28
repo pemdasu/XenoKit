@@ -1,12 +1,18 @@
-﻿using GalaSoft.MvvmLight.CommandWpf;
+﻿using ControlzEx.Theming;
+using GalaSoft.MvvmLight.CommandWpf;
 using MahApps.Metro.IconPacks;
 using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using XenoKit.Engine;
+using XenoKit.Engine.Gizmo;
+using XenoKit.Engine.Model;
 using XenoKit.Inspector;
+using XenoKit.Properties;
 using Xv2CoreLib.Resource.App;
+using Application = System.Windows.Application;
 
 namespace XenoKit.Controls
 {
@@ -366,8 +372,22 @@ namespace XenoKit.Controls
                 }
             }
         }
+        public int PivotPoint
+        {
+            get => (int)SceneManager.PivotPoint;
+            set
+            {
+                SceneManager.PivotPoint = value != -1 ? (PivotPoint)value : Engine.Model.PivotPoint.Center;
+                NotifyPropertyChanged(nameof(PivotPoint));
+            }
+        }
 
-#endregion
+        public bool TranslateAllowed => CurrentGizmo.AllowTranslation && CurrentGizmo.Current?.IsContextValid() == true;
+        public bool RotateAllowed => CurrentGizmo.AllowRotation && CurrentGizmo.Current?.IsContextValid() == true;
+        public bool ScaleAllowed => CurrentGizmo.AllowScale && CurrentGizmo.Current?.IsContextValid() == true;
+
+        public Visibility ModelEditorVisibility => SceneManager.CurrentDynamicTab == DynamicTabs.ModelScene ? Visibility.Visible : Visibility.Collapsed;
+        #endregion
 
         public GameView()
         {
@@ -378,6 +398,21 @@ namespace XenoKit.Controls
             SettingsManager.SettingsReloaded += SettingsManager_SettingsReloaded;
             Viewport.DelayedEventUpdateEvent += DelayedUpdate;
             SceneManager.EditorTabChanged += SceneManager_EditorTabChanged;
+            CurrentGizmo.CurrentGizmoChanged += CurrentGizmo_CurrentGizmoChanged;
+            CurrentGizmo.CurrentGizmoModeChanged += CurrentGizmo_CurrentGizmoModeChanged;
+            ThemeManager.Current.ThemeChanged += Metro_ThemeChanged;
+
+            UpdateCheckedButtons();
+        }
+
+        private void CurrentGizmo_CurrentGizmoModeChanged(object sender, EventArgs e)
+        {
+            UpdateGizmoValues();
+        }
+
+        private void Metro_ThemeChanged(object sender, ThemeChangedEventArgs e)
+        {
+            UpdateCheckedButtons();
         }
 
         private void SceneManager_EditorTabChanged(object sender, EventArgs e)
@@ -420,6 +455,7 @@ namespace XenoKit.Controls
 
         private void UpdateOptions()
         {
+            UpdateCheckedButtons();
             bacLoopCheckBox.Visibility = Visibility.Collapsed;
             cameraCheckBox.Visibility = Visibility.Collapsed;
             audioCheckBox.Visibility = Visibility.Collapsed;
@@ -462,6 +498,13 @@ namespace XenoKit.Controls
             NotifyPropertyChanged(nameof(VfxSimulation));
         }
 
+        private void UpdateCheckedButtons()
+        {
+            UpdateGizmoValues();
+            SetButtonColor(boundingBoxButton, SceneManager.ShowModelEditorHighlights);
+            NotifyPropertyChanged(nameof(ModelEditorVisibility));
+        }
+
 #region Commands
         public RelayCommand SeekNextCommand => new RelayCommand(SeekNextFrame, CanSeek);
         private void SeekNextFrame()
@@ -482,8 +525,70 @@ namespace XenoKit.Controls
             //Can only seek in pause mode
             return Viewport.Instance?.IsPlaying == false;
         }
-#endregion
+        #endregion
 
+        #region TransformGizmo
+        public RelayCommand<int> TransformGizmoChangeCommand => new RelayCommand<int>(TransformGizmoChange);
+        private void TransformGizmoChange(int parameter)
+        {
+            GizmoMode gizmoMode = (GizmoMode)parameter;
+            SetGizmoMode(gizmoMode);
+        }
+
+        private void CurrentGizmo_CurrentGizmoChanged(object sender, EventArgs e)
+        {
+            UpdateGizmoValues();
+        }
+
+        private void SetGizmoMode(GizmoMode gizmoMode)
+        {
+            CurrentGizmo.SetGizmoMode(gizmoMode);
+        }
+
+        private void UpdateGizmoValues()
+        {
+            Brush defaultBrush = (Brush)Application.Current.FindResource("MahApps.Brushes.Menu.Background");
+            Brush selectedBrush = (Brush)Application.Current.FindResource("MahApps.Brushes.Accent");
+
+            translateButton.Background = defaultBrush;
+            rotateButton.Background = defaultBrush;
+            scaleButton.Background = defaultBrush;
+            noneButton.Background = defaultBrush;
+
+            NotifyPropertyChanged(nameof(TranslateAllowed));
+            NotifyPropertyChanged(nameof(RotateAllowed));
+            NotifyPropertyChanged(nameof(ScaleAllowed));
+
+            if (CurrentGizmo.Current?.IsContextValid() == true)
+            {
+                switch (CurrentGizmo.CurrentGizmoMode)
+                {
+                    case GizmoMode.Translate:
+                        translateButton.Background = selectedBrush;
+                        break;
+                    case GizmoMode.Rotate:
+                        rotateButton.Background = selectedBrush;
+                        break;
+                    case GizmoMode.Scale:
+                        scaleButton.Background = selectedBrush;
+                        break;
+                    case GizmoMode.None:
+                        noneButton.Background = selectedBrush;
+                        break;
+                }
+            }
+            else
+            {
+                noneButton.Background = selectedBrush;
+            }
+
+        }
+        #endregion
+
+        private void SetButtonColor(Button button, bool isChecked)
+        {
+            button.Background = isChecked ? (Brush)Application.Current.FindResource("MahApps.Brushes.Accent") : (Brush)Application.Current.FindResource("MahApps.Brushes.Menu.Background");
+        }
 
         private void Play_Click(object sender, RoutedEventArgs e)
         {
@@ -540,6 +645,12 @@ namespace XenoKit.Controls
             }
 
             return string.IsNullOrWhiteSpace(boneName) ? "None selected" : boneName;
+        }
+
+        private void boundingBoxButton_Click(object sender, RoutedEventArgs e)
+        {
+            SceneManager.ShowModelEditorHighlights = !SceneManager.ShowModelEditorHighlights;
+            UpdateCheckedButtons();
         }
     }
 }
