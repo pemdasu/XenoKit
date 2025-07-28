@@ -19,16 +19,11 @@ namespace XenoKit.Engine.View
         public virtual CameraState CameraState { get; protected set; } = new CameraState();
 
         private bool IsReflectionView = false;
-        private bool IsLeftClickHeldDown
-        {
-            get => Input.LeftClickHeldDownContext == this;
-            set => Input.LeftClickHeldDownContext = value ? this : null;
-        }
-        private bool IsRightClickHeldDown
-        {
-            get => Input.RightClickHeldDownContext == this;
-            set => Input.RightClickHeldDownContext = value ? this : null;
-        }
+
+        private bool leftClickDragStarted = false;
+        private bool rightClickDragStarted = false;
+        private SimdVector2 leftClickDragStartMousePos;
+        private SimdVector2 rightClickDragStartMousePos;
 
         private SimdVector3 RotateCamera(SimdVector3 position, SimdVector3 target, SimdVector2 mouseDelta, float sensitivity)
         {
@@ -171,20 +166,35 @@ namespace XenoKit.Engine.View
         {
             if (!ViewportIsFocused)
             {
-                IsRightClickHeldDown = false;
+                Input.ClearDragEvent(MouseButtons.Right, this);
                 return;
             }
 
-            if (Input.RightClickHeldDownContext == null && Input.MouseState.RightButton == ButtonState.Pressed)
+            bool hasDragEvent = Input.HasDragEvent(MouseButtons.Right);
+
+            if (hasDragEvent && Input.MouseState.RightButton == ButtonState.Released)
             {
-                IsRightClickHeldDown = true;
+                Input.ClearDragEvent(MouseButtons.Right);
             }
-            else if(IsRightClickHeldDown && Input.MouseState.RightButton == ButtonState.Released)
+            else if (!hasDragEvent)
             {
-                IsRightClickHeldDown = false;
+                if (!rightClickDragStarted && Input.MouseState.RightButton == ButtonState.Pressed)
+                {
+                    rightClickDragStarted = true;
+                    rightClickDragStartMousePos = Input.MousePosition;
+                }
+                else if (rightClickDragStarted && Input.MouseState.RightButton == ButtonState.Released)
+                {
+                    rightClickDragStarted = false;
+                }
+                else if (rightClickDragStarted && Input.CheckMousePositionForDrag(rightClickDragStartMousePos))
+                {
+                    rightClickDragStarted = false;
+                    Input.RegisterDragEvent(MouseButtons.Right, this);
+                }
             }
 
-            if (IsRightClickHeldDown)
+            if (Input.HasDragEvent(MouseButtons.Right, this))
             {
                 float distance = SimdVector3.Distance(CameraState.Position, CameraState.TargetPosition);
 
@@ -204,20 +214,35 @@ namespace XenoKit.Engine.View
         {
             if (!ViewportIsFocused)
             {
-                IsLeftClickHeldDown = false;
+                Input.ClearDragEvent(MouseButtons.Left, this);
                 return;
             }
 
-            if (Input.LeftClickHeldDownContext == null && Input.MouseState.LeftButton == ButtonState.Pressed)
+            bool hasDragEvent = Input.HasDragEvent(MouseButtons.Left);
+
+            if (hasDragEvent && Input.MouseState.LeftButton == ButtonState.Released)
             {
-                IsLeftClickHeldDown = true;
+                Input.ClearDragEvent(MouseButtons.Left);
             }
-            else if (IsLeftClickHeldDown && Input.MouseState.LeftButton == ButtonState.Released)
+            else if(!hasDragEvent)
             {
-                IsLeftClickHeldDown = false;
+                if (!leftClickDragStarted && Input.MouseState.LeftButton == ButtonState.Pressed)
+                {
+                    leftClickDragStarted = true;
+                    leftClickDragStartMousePos = Input.MousePosition;
+                }
+                else if (leftClickDragStarted && Input.MouseState.LeftButton == ButtonState.Released)
+                {
+                    leftClickDragStarted = false;
+                }
+                else if(leftClickDragStarted && Input.CheckMousePositionForDrag(leftClickDragStartMousePos))
+                {
+                    leftClickDragStarted = false;
+                    Input.RegisterDragEvent(MouseButtons.Left, this);
+                }
             }
 
-            if (IsLeftClickHeldDown)
+            if (Input.HasDragEvent(MouseButtons.Left, this))
             {
                 float factor = Input.IsKeyDown(Keys.LeftControl) ? 0.05f : 0.2f;
                 SpinCamera(-Input.MouseDelta, factor, Input.IsKeyDown(Keys.LeftAlt));
@@ -314,8 +339,8 @@ namespace XenoKit.Engine.View
 
         public virtual void ResetCamera()
         {
-            IsLeftClickHeldDown = false;
-            IsRightClickHeldDown = false;
+            Input.ClearDragEvent(MouseButtons.Right, this);
+            Input.ClearDragEvent(MouseButtons.Left, this);
             CameraState.Reset();
         }
 

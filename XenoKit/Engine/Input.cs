@@ -30,26 +30,50 @@ namespace XenoKit.Engine
         private int CurrentMouseWheelValue = 0;
         public int MouseScrollThisFrame = 0;
 
-        //Set externally whenever a mouse button is held down, allowing for exclusive control of that press. Mainly needed so that the camera wont recieve control when dealing with other mouse click events.
-        public object LeftClickHeldDownContext { get; set; }
-        public object RightClickHeldDownContext { get; set; }
+        private object leftClickHeldDownContext;
+        private object rightClickHeldDownContext;
+        private ulong dragFinishedAtTick = 0;
 
-        //Events
-        public event EventHandler LeftDoubleClick;
+        private bool isLeftClickDown = false;
+        private bool isRightClickDown = false;
+        private ulong leftClickTick = 0;
+        private ulong rightClickTick = 0;
+        private int numLeftClicks = 0;
+        private int numRightClicks = 0;
+        private SimdVector2 _mouseLocationAtLeftDoubleClickStart;
+        private SimdVector2 _mouseLocationAtRightDoubleClickStart;
 
-        //Left Click
-        private bool _wasLeftMouseReleased = false;
-        private int _currentLeftDoubleClickPeriod = 0;
-        private SimdVector2 _mouseLocationAtDoubleClickStart;
+        /// <summary>
+        /// Returns whether the left mouse button was pressed (single press). Will not return true during drag events.
+        /// </summary>
+        public bool IsMouseLeftClickDown {  get; private set; }
+        /// <summary>
+        /// Returns whether the right mouse button was pressed (single press). Will not return true during drag events.
+        /// </summary>
+        public bool IsMouseRightClickDown { get; private set; }
+        /// <summary>
+        /// Returns whether the left mouse button was pressed (double press). Will not return true during drag events.
+        /// </summary>
+        public bool IsMouseDoubleLeftClickDown { get; private set; }
+        /// <summary>
+        /// Returns whether the right mouse button was pressed (double press). Will not return true during drag events.
+        /// </summary>
+        public bool IsMouseDoubleRightClickDown { get; private set; }
 
         //Const
-        private const int DoubleClickPeriod = 60;
+        private const int ClickEventThreshold = 45;
+        private const int DragEndClickDelay = 20;
 
         public void Update(WpfMouse mouse, WpfKeyboard keyboard)
         {
             //Clear previous state
             for (int i = 0; i < ExclusiveKeys.Length; i++)
                 ExclusiveKeys[i] = false;
+
+            IsMouseLeftClickDown = false;
+            IsMouseRightClickDown = false;
+            IsMouseDoubleLeftClickDown = false;
+            IsMouseDoubleRightClickDown = false;
 
             PreviousMouseState = MouseState;
             _prevMousePos = _mousePos;
@@ -65,48 +89,76 @@ namespace XenoKit.Engine
             CurrentMouseWheelValue = MouseState.ScrollWheelValue;
 
             //Events
-            HandleLeftMouseDoubleClick();
-
+            HandleMouseClicks();
         }
 
-        private void HandleLeftMouseDoubleClick()
+        private void HandleMouseClicks()
         {
-            //If mouse has moved position drastically, then dont raise the event
-            if((MousePosition.X < _mouseLocationAtDoubleClickStart.X - 10 || MousePosition.X > _mouseLocationAtDoubleClickStart.X + 10) || 
-                (MousePosition.Y < _mouseLocationAtDoubleClickStart.Y - 10 || MousePosition.Y > _mouseLocationAtDoubleClickStart.Y + 10) && _wasLeftMouseReleased)
+            //handle left clicks
+            if((Viewport.Instance.Tick - leftClickTick) > ClickEventThreshold || numLeftClicks >= 2 || HasDragEvent(MouseButtons.Left))
             {
-                _wasLeftMouseReleased = false;
-                _currentLeftDoubleClickPeriod = 0;
+                leftClickTick = Viewport.Instance.Tick;
+                isLeftClickDown = false;
+                numLeftClicks = 0;
             }
 
-            //Double clicked
-            if (MouseState.LeftButton == ButtonState.Pressed && _currentLeftDoubleClickPeriod > 0 && _wasLeftMouseReleased)
+            if(MouseState.LeftButton == ButtonState.Pressed && !isLeftClickDown)
             {
-                LeftDoubleClick?.Invoke(MouseState, new EventArgs());
-                _wasLeftMouseReleased = false;
+                isLeftClickDown = true;
+            }
+            else if(MouseState.LeftButton == ButtonState.Released && isLeftClickDown)
+            {
+                numLeftClicks++;
+                isLeftClickDown = false;
+
+                if (numLeftClicks == 1)
+                {
+                    IsMouseLeftClickDown = true;
+                    _mouseLocationAtLeftDoubleClickStart = MousePosition;
+                }
+                else if (numLeftClicks > 1)
+                {
+                    if (!CheckMousePositionForDrag(_mouseLocationAtLeftDoubleClickStart))
+                        IsMouseDoubleLeftClickDown = true;
+                }
             }
 
-            //Mouse is relased after first click
-            if(MouseState.LeftButton == ButtonState.Released && _currentLeftDoubleClickPeriod > 0)
+            //handle right clicks
+            if ((Viewport.Instance.Tick - rightClickTick) > ClickEventThreshold || numRightClicks >= 2 || HasDragEvent(MouseButtons.Right))
             {
-                _wasLeftMouseReleased = true;
+                rightClickTick = Viewport.Instance.Tick;
+                isRightClickDown = false;
+                numRightClicks = 0;
             }
 
-            //Initial click
-            if (MouseState.LeftButton == ButtonState.Pressed && _currentLeftDoubleClickPeriod == 0)
+            if (MouseState.RightButton == ButtonState.Pressed && !isRightClickDown)
             {
-                _mouseLocationAtDoubleClickStart = MousePosition;
-                _currentLeftDoubleClickPeriod = DoubleClickPeriod;
+                isRightClickDown = true;
             }
+            else if (MouseState.RightButton == ButtonState.Released && isRightClickDown)
+            {
+                numRightClicks++;
+                isRightClickDown = false;
 
-            //Reset values if no second click happens
-            if (_currentLeftDoubleClickPeriod == 0)
-                _wasLeftMouseReleased = false;
-
-            if (_currentLeftDoubleClickPeriod > 0)
-                _currentLeftDoubleClickPeriod--;
+                if (numRightClicks == 1)
+                {
+                    IsMouseRightClickDown = true;
+                    _mouseLocationAtRightDoubleClickStart = MousePosition;
+                }
+                else if (numRightClicks > 1)
+                {
+                    if (!CheckMousePositionForDrag(_mouseLocationAtRightDoubleClickStart))
+                        IsMouseDoubleRightClickDown = true;
+                }
+            }
         }
-#region Mouse
+
+        public bool CheckMousePositionForDrag(SimdVector2 initialPos)
+        {
+            return SimdVector2.Distance(initialPos, MousePosition) > 5;
+        }
+
+        #region Mouse
 
         public bool WasButtonHeld(MouseButtons button)
         {
@@ -134,11 +186,11 @@ namespace XenoKit.Engine
         {
             if (button == MouseButtons.Left)
             {
-                LeftClickHeldDownContext = context;
+                leftClickHeldDownContext = context;
             }
             else if (button == MouseButtons.Right)
             {
-                RightClickHeldDownContext = context;
+                rightClickHeldDownContext = context;
             }
             else
             {
@@ -150,11 +202,11 @@ namespace XenoKit.Engine
         {
             if (button == MouseButtons.Left)
             {
-                return LeftClickHeldDownContext != null;
+                return leftClickHeldDownContext != null;
             }
             else if (button == MouseButtons.Right)
             {
-                return RightClickHeldDownContext != null;
+                return rightClickHeldDownContext != null;
             }
             else
             {
@@ -162,15 +214,15 @@ namespace XenoKit.Engine
             }
         }
 
-        public bool HasDragEventFor(MouseButtons button, object context)
+        public bool HasDragEvent(MouseButtons button, object context)
         {
             if (button == MouseButtons.Left)
             {
-                return LeftClickHeldDownContext == context;
+                return leftClickHeldDownContext == context;
             }
             else if (button == MouseButtons.Right)
             {
-                return RightClickHeldDownContext == context;
+                return rightClickHeldDownContext == context;
             }
             else
             {
@@ -180,13 +232,39 @@ namespace XenoKit.Engine
 
         public void ClearDragEvent(MouseButtons button)
         {
+            dragFinishedAtTick = Viewport.Instance.Tick;
+
             if (button == MouseButtons.Left)
             {
-                LeftClickHeldDownContext = null;
+                leftClickHeldDownContext = null;
             }
             else if (button == MouseButtons.Right)
             {
-                RightClickHeldDownContext = null;
+                rightClickHeldDownContext = null;
+            }
+            else
+            {
+                throw new ArgumentException("Input.ClearDragEvent: invalid mouse button, this method only accepts the Left and Right mouse buttons");
+            }
+        }
+
+        public void ClearDragEvent(MouseButtons button, object context)
+        {
+            if (button == MouseButtons.Left)
+            {
+                if(leftClickHeldDownContext == context)
+                {
+                    leftClickHeldDownContext = null;
+                    dragFinishedAtTick = Viewport.Instance.Tick;
+                }
+            }
+            else if (button == MouseButtons.Right)
+            {
+                if(rightClickHeldDownContext == context)
+                {
+                    rightClickHeldDownContext = null;
+                    dragFinishedAtTick = Viewport.Instance.Tick;
+                }
             }
             else
             {

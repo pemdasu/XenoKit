@@ -45,10 +45,9 @@ namespace XenoKit.Engine.Animation
         public VisualSkeleton(Actor chara)
         {
             character = chara;
-            Input.LeftDoubleClick += Input_LeftDoubleClick;
         }
 
-        private void Input_LeftDoubleClick(object sender, EventArgs e)
+        private void Input_LeftDoubleClick()
         {
             if (SceneManager.ShowVisualSkeleton && SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Action, EditorTabs.BCS_Bodies))
             {
@@ -78,6 +77,11 @@ namespace XenoKit.Engine.Animation
 
         public void Update(Xv2Bone[] bones)
         {
+            if (Input.IsMouseDoubleLeftClickDown)
+            {
+                Input_LeftDoubleClick();
+            }
+
             if (SceneManager.ShowVisualSkeleton)
             {
                 for (int i = visualBones.Count; i < bones.Length; i++)

@@ -37,12 +37,6 @@ namespace XenoKit.Engine.Gizmo
         private bool WasAutoHidden { get; set; }
         protected virtual Matrix WorldMatrix { get; } = Matrix.Identity;
 
-        //Mouse state
-        protected bool IsLeftClickHeld
-        {
-            get => Input.LeftClickHeldDownContext == this;
-            set => Input.LeftClickHeldDownContext = value ? this : null;
-        }
         //State
         protected GizmoAxis ActiveAxis = GizmoAxis.None;
         public GizmoMode ActiveMode { get; protected set; } = GizmoMode.Translate;
@@ -335,8 +329,7 @@ namespace XenoKit.Engine.Gizmo
                 TransformOperation = null;
             }
 
-            if (Input.LeftClickHeldDownContext == this)
-                Input.LeftClickHeldDownContext = null;
+            Input.ClearDragEvent(MouseButtons.Left, this);
         }
 
         public void SetGizmoMode(GizmoMode mode)
@@ -511,7 +504,7 @@ namespace XenoKit.Engine.Gizmo
 
             _lastIntersectionPosition = _intersectPosition;
 
-            if (IsLeftClickHeld && ActiveAxis != GizmoAxis.None && TransformOperation != null && ((!ViewportInstance.IsPlaying && AutoPause) || !AutoPause))
+            if (Input.HasDragEvent(MouseButtons.Left, this) && ActiveAxis != GizmoAxis.None && TransformOperation != null && ((!ViewportInstance.IsPlaying && AutoPause) || !AutoPause))
             {
                 switch (ActiveMode)
                 {
@@ -726,22 +719,22 @@ namespace XenoKit.Engine.Gizmo
 
         protected virtual void UpdateMouse()
         {
-            if (Input.MouseState.LeftButton == ButtonState.Pressed && Input.LeftClickHeldDownContext != this && ActiveAxis != GizmoAxis.None)
+            if (Input.MouseState.LeftButton == ButtonState.Pressed && !Input.HasDragEvent(MouseButtons.Left) && ActiveAxis != GizmoAxis.None)
             {
                 if (ViewportInstance.IsPlaying && AutoPause)
                 {
                     ViewportInstance.IsPlaying = false;
                 }
 
-                Input.LeftClickHeldDownContext = this;
+                Input.RegisterDragEvent(MouseButtons.Left, this);
                 ResetDeltas();
                 CallbackOnBegin?.Invoke();
                 StartTransformOperation();
             }
 
-            if ((Input.MouseState.LeftButton == ButtonState.Released && Input.LeftClickHeldDownContext == this) || ((ViewportInstance.IsPlaying && AutoPause) && Input.LeftClickHeldDownContext == this))
+            if ((Input.MouseState.LeftButton == ButtonState.Released && Input.HasDragEvent(MouseButtons.Left, this)) || ((ViewportInstance.IsPlaying && AutoPause) && Input.HasDragEvent(MouseButtons.Left, this)))
             {
-                Input.LeftClickHeldDownContext = null;
+                Input.ClearDragEvent(MouseButtons.Left);
 
                 if (TransformOperation?.Modified == true)
                 {
