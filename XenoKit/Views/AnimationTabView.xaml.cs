@@ -19,6 +19,7 @@ using XenoKit.Helper;
 using XenoKit.Inspector;
 using XenoKit.Engine.Animation;
 using Xv2CoreLib.AnimationFramework;
+using XenoKit.Engine.Gizmo;
 
 namespace XenoKit.Controls
 {
@@ -1356,7 +1357,7 @@ namespace XenoKit.Controls
         {
             if (sender is int value && SkinnedEntity != null && (SceneManager.IsOnTab(EditorTabs.Animation) || SceneManager.IsOnTab(EditorTabs.InspectorAnimation)))
             {
-                string boneName = SkinnedEntity.Skeleton.Bones[value].Name;
+                string boneName = value != -1 ? SkinnedEntity.Skeleton.Bones[value].Name : null;
                 SelectedBoneChanged(boneName);
             }
         }
@@ -1367,6 +1368,7 @@ namespace XenoKit.Controls
             if (string.IsNullOrWhiteSpace(boneName) && SelectedBone != null)
             {
                 SelectedBone = null;
+                AnimatorGizmo.CurrentSelectedBoneName = null;
                 return;
             }
 

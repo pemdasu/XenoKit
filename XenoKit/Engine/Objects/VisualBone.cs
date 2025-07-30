@@ -15,7 +15,7 @@ namespace XenoKit.Engine.Objects
         //Mesh settings
         private Color DefaultColor = Color.Blue;
         private Color SelectedColor = Color.Red;
-        private const float MeshSize = 0.01f;
+        private const float MeshSize = 0.02f;
 
         public VisualBone()
         {
@@ -40,6 +40,15 @@ namespace XenoKit.Engine.Objects
 
             return (value != null && !float.IsNaN(value.Value));
         }
-    
+
+        public bool IsMouseOver(Matrix4x4 world)
+        {
+            var aabb = new BoundingBox(new Vector3(-MeshSize), new Vector3(MeshSize));
+            aabb = aabb.Transform(world);
+            float? value = EngineUtils.IntersectDistance(aabb, Input.MousePosition);
+
+            return (value != null && !float.IsNaN(value.Value));
+        }
+
     }
 }

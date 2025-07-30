@@ -10,8 +10,11 @@ namespace XenoKit.Engine.Textures
 {
     public static class TextureLoader
     {
-        public static Texture2D ConvertToTexture2D(string path, GraphicsDevice graphicsDevice)
+        public static Texture2D ConvertToTexture2D(string path, GraphicsDevice graphicsDevice = null)
         {
+            if (graphicsDevice == null)
+                graphicsDevice = Viewport.Instance.GraphicsDevice;
+
             byte[] bytes = File.ReadAllBytes(path);
             EmbEntry embEntry = new EmbEntry();
             embEntry.Data = bytes;

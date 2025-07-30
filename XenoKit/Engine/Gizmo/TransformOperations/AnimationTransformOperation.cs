@@ -1,10 +1,14 @@
-﻿using System;
-using System.Linq;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Media.Imaging;
+using XenoKit.Editor;
 using XenoKit.Engine.Animation;
+using XenoKit.Engine.Model;
 using Xv2CoreLib.EAN;
+using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.UndoRedo;
-using Microsoft.Xna.Framework;
 
 namespace XenoKit.Engine.Gizmo.TransformOperations
 {
@@ -193,19 +197,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
                 Modified = true;
 
                 keyframe.ScaleByWorld(addUndo ? undos : null);
-
-                //Get absolute matrix of parent so that we can translate the keyframe from local space into world space
-                Matrix absoluteMatrix = SkinnedEntity.AnimationPlayer.GetCurrentParentAbsoluteMatrix(node.BoneName);
-
-                Vector3 pos = Vector3.Transform(new Vector3(keyframe.X, keyframe.Y, keyframe.Z), absoluteMatrix);
-
-                //Increment the keyframe values (world space).
-                pos.X += -delta.X;
-                pos.Y += delta.Y;
-                pos.Z += delta.Z;
-
-                //Translate the keyframe values back to local space
-                pos = Vector3.Transform(pos, Matrix.Invert(absoluteMatrix));
+                Vector3 pos = new Vector3(keyframe.X + delta.X, keyframe.Y + delta.Y, keyframe.Z + delta.Z);
 
                 if (addUndo)
                 {
@@ -266,6 +258,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
                 keyframe.Z += delta.Z;
             }
         }
+
     }
 
 }

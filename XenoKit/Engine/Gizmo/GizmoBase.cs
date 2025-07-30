@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Xv2CoreLib;
 using XenoKit.Engine.Gizmo.TransformOperations;
 using XenoKit.Engine.Shapes;
 using Plane = Microsoft.Xna.Framework.Plane;
+using XenoKit.Editor;
 
 namespace XenoKit.Engine.Gizmo
 {
@@ -87,6 +89,10 @@ namespace XenoKit.Engine.Gizmo
 
         public bool PrecisionModeEnabled;
         protected const float PRECISION_MODE_SCALE = 0.1f;
+
+        private string _inputText = string.Empty;
+        private float _inputAmount = float.PositiveInfinity;
+        private bool _hasInput = false;
         #endregion
 
         #region BoundingBoxes
@@ -195,11 +201,13 @@ namespace XenoKit.Engine.Gizmo
         public virtual bool AllowTranslate => true;
         public virtual bool AllowRotation => true;
         public virtual bool AllowScale => true;
+        protected virtual bool LocalTranslate => false;
 
         public bool IsMouseOver { get; private set; }
 
         public GizmoBase()
         {
+            Viewport.Instance.TextInput += Instance_TextInput;
             GeometryXYZ = new Sphere(XYZ_RADIUS * 2f, true);
 
             _geometryXyzEffect = new BasicEffect(GraphicsDevice) { VertexColorEnabled = true };
@@ -285,6 +293,25 @@ namespace XenoKit.Engine.Gizmo
                 throw new ArgumentException("GizmoBase: Translate, Rotate and Scale are all not allowed on derived class.");
         }
 
+        private void Instance_TextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            if(CanHaveTextInput() && e.Text.IsFloat())
+            {
+                string str = _inputText + e.Text;
+
+                if (str.IsFloat())
+                {
+                    _inputText = str;
+                    _hasInput = float.TryParse(_inputText, out float value);
+
+                    if (_hasInput)
+                    {
+                        _inputAmount = value;
+                    }
+                }
+            }
+        }
+
         public void SetCallback(Action callbackOnBegin, Action callbackOnComplete)
         {
             CallbackOnBegin = callbackOnBegin;
@@ -293,6 +320,10 @@ namespace XenoKit.Engine.Gizmo
 
         public void Enable()
         {
+            _inputText = string.Empty;
+            _hasInput = false;
+            _inputAmount = 0;
+
             CurrentGizmo.SetCurrentGizmo(this);
 
             if (!IsVisible && IsContextValid())
@@ -321,6 +352,10 @@ namespace XenoKit.Engine.Gizmo
 
         private void CancelOperation()
         {
+            _inputText = string.Empty;
+            _hasInput = false;
+            _inputAmount = 0;
+
             if (TransformOperation != null)
             {
                 if (!TransformOperation.IsFinished)
@@ -466,6 +501,8 @@ namespace XenoKit.Engine.Gizmo
             {
                 GeometryXYZ.Draw(_gizmoWorld, Viewport.Instance.Camera.ViewMatrix, Viewport.Instance.Camera.ProjectionMatrix, ActiveAxis == GizmoAxis.XYZ ? Color.Yellow : Color.White);
             }
+
+            DrawInputAmount();
         }
         
         public override void Update()
@@ -609,12 +646,13 @@ namespace XenoKit.Engine.Gizmo
                             if (PrecisionModeEnabled)
                                 delta *= PRECISION_MODE_SCALE;
 
-                            delta.X = -delta.X; //Axis correction
+                            //delta.X = -delta.X; //Axis correction
 
                             if (ActiveMode == GizmoMode.Translate)
                             {
                                 // transform (local or world)
-                                delta = Vector3.Transform(delta, _rotationMatrix);
+                                if(!LocalTranslate)
+                                    delta = Vector3.Transform(delta, _rotationMatrix);
 
                                 TransformOperation?.UpdatePos(delta);
                             }
@@ -715,6 +753,29 @@ namespace XenoKit.Engine.Gizmo
 
             // -- Apply Highlight -- //
             ApplyColor(ActiveAxis, _highlightColor);
+        }
+
+        private void DrawInputAmount()
+        {
+            if(CanHaveTextInput() && _hasInput)
+            {
+                Viewport.Instance.TextRenderer.DrawOnScreenText(_inputText, new Vector2(Viewport.Instance.RenderSystem.CurrentRT_Width / 2f, Viewport.Instance.RenderSystem.CurrentRT_Height / 2f), Color.Green, true);
+            }
+            else
+            {
+                _hasInput = false;
+                _inputAmount = 0;
+
+                if(!string.IsNullOrWhiteSpace(_inputText))
+                    _inputText = string.Empty;
+            }
+        }
+
+        private bool CanHaveTextInput()
+        {
+            if (!IsVisible || ViewportInstance.IsFullScreen) return false;
+            return (ActiveAxis == GizmoAxis.X || ActiveAxis == GizmoAxis.Y || ActiveAxis == GizmoAxis.Z) ||
+                (ActiveAxis == GizmoAxis.XYZ && ActiveMode == GizmoMode.Scale);
         }
 
         protected virtual void UpdateMouse()

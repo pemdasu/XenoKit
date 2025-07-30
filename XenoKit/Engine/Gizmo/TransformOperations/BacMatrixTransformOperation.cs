@@ -100,7 +100,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             {
                 Modified = true;
 
-                bacMatrix.PositionX += (-delta.X);
+                bacMatrix.PositionX += delta.X;
                 bacMatrix.PositionY += delta.Y;
                 bacMatrix.PositionZ += delta.Z;
             }

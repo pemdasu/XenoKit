@@ -32,7 +32,7 @@ namespace XenoKit.Engine.Animation
 
         //Bone Name settings:
         private Color BoneColor = Color.DarkBlue;
-        private Color BoneNameColor = Color.BlueViolet;
+        private Color BoneNameColor = Color.White;
         private const float FullAlphaDistance = 1f;
         private const float NameRenderDistance = 4f;
 
@@ -41,6 +41,8 @@ namespace XenoKit.Engine.Animation
         private EditorTabs CurrentEditorTab = EditorTabs.Animation;
         private IBacBone CurrentBacBoneEntry = null;
         private bool hideBones = SettingsManager.settings.XenoKit_HideLessImportantBones;
+
+        private int _mouseOverBone = -1;
 
         public VisualSkeleton(Actor chara)
         {
@@ -51,12 +53,7 @@ namespace XenoKit.Engine.Animation
         {
             if (SceneManager.ShowVisualSkeleton && SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Action, EditorTabs.BCS_Bodies))
             {
-                int selectedBone = GetBoneMouseIsOver();
-
-                if (selectedBone != -1 && SelectedBoneChanged != null)
-                {
-                    SelectedBoneChanged.Invoke(selectedBone, null);
-                }
+                SelectedBoneChanged?.Invoke(GetBoneMouseIsOver(), null);
             }
         }
 
@@ -77,13 +74,15 @@ namespace XenoKit.Engine.Animation
 
         public void Update(Xv2Bone[] bones)
         {
-            if (Input.IsMouseDoubleLeftClickDown)
-            {
-                Input_LeftDoubleClick();
-            }
-
             if (SceneManager.ShowVisualSkeleton)
             {
+                if (Input.IsMouseDoubleLeftClickDown)
+                {
+                    Input_LeftDoubleClick();
+                }
+
+                _mouseOverBone = GetBoneMouseIsOver();
+
                 for (int i = visualBones.Count; i < bones.Length; i++)
                     visualBones.Add(new VisualBone());
 
@@ -106,24 +105,27 @@ namespace XenoKit.Engine.Animation
                     if (SettingsManager.Instance.Settings.XenoKit_RenderBoneNames && visualBones[i].IsVisible)
                     {
                         float distance = ViewportInstance.Camera.DistanceFromCamera(newWorld.Translation);
+                        bool mouseIsOverThisBone = i == _mouseOverBone;
 
-                        if (distance < NameRenderDistance && ((SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly && visualBones[i].IsMouseOver()) || selected || !SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly))
+                        if (distance < NameRenderDistance && ((SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly && mouseIsOverThisBone) || selected || !SettingsManager.Instance.Settings.XenoKit_RenderBoneNamesMouseOverOnly))
                         {
                             SimdVector2 screenSpace = ViewportInstance.Camera.ProjectToScreenPosition(newWorld.Translation);
-                            screenSpace = new SimdVector2(screenSpace.X, screenSpace.Y + 5); //Text must go below the bone, not over
+                            screenSpace = new SimdVector2(screenSpace.X, screenSpace.Y + 20); //Text must go below the bone, not over
 
                             if (selected || distance < FullAlphaDistance)
                             {
-                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor);
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor, mouseIsOverThisBone || selected);
                             }
                             else
                             {
                                 //Text gradually fades with camera distance
-                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))));
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))), mouseIsOverThisBone || selected);
                             }
                         }
                     }
                 }
+
+
             }
         }
 

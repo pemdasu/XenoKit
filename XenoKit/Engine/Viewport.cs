@@ -133,9 +133,6 @@ namespace XenoKit.Engine
             _keyboard = new WpfKeyboard(this);
             _mouse = new WpfMouse(this);
 
-            //Load font
-            TextRenderer = new TextRenderer(GraphicsDevice, spriteBatch);
-
             _defaultStage = Xv2Stage.CreateDefaultStage();
             CurrentStage = _defaultStage;
             Input = new Input();
@@ -166,6 +163,7 @@ namespace XenoKit.Engine
             AudioEngine = new AudioEngine();
             VfxManager = new VfxManager();
             RenderSystem = new RenderSystem(spriteBatch, true);
+            TextRenderer = new TextRenderer();
             VfxPreview = new VfxPreview();
 
             MainRenderTarget = new RenderTargetWrapper(RenderSystem, 1, SurfaceFormat.Color, true, "MainRenderTarget");
@@ -362,16 +360,22 @@ namespace XenoKit.Engine
             RenderSystem.DisplayRenderTarget(MainRenderTarget.RenderTarget);
 
             //Draw last and over everything else
-            TextRenderer.Draw();
             CurrentGizmo.Draw();
             BacHitboxGizmo.Draw();
             WorldGrid.Draw();
+            TextRenderer.Draw();
 
             //Now apply axis correction
             GraphicsDevice.SetRenderTarget(MainRenderTarget.RenderTarget);
             RenderSystem.SetTextures(AxisCorrectionRenderTarget.RenderTarget);
             GraphicsDevice.Clear(Color.Transparent);
             RenderSystem.YBS.ApplyAxisCorrection();
+
+            //Merge TextRenderer with the rendered scene
+            if (TextRenderer.TextDrawThisFrame > 0)
+            {
+                RenderSystem.DisplayRenderTarget(TextRenderer.GetRenderTarget());
+            }
 
             RenderSystem.CreateSmallScene(MainRenderTarget.RenderTarget);
 

@@ -102,7 +102,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             {
                 Modified = true;
 
-                position += new SimdVector3(-delta.X, delta.Y, delta.Z);
+                position += delta.ToNumerics();
                 UpdateTransform();
             }
         }

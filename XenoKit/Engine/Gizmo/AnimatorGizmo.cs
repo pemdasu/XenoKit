@@ -35,7 +35,7 @@ namespace XenoKit.Engine.Gizmo
 
         //Settings
         protected override bool AutoPause => true;
-
+        protected override bool LocalTranslate => true;
 
         public void RemoveContext()
         {

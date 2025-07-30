@@ -17,7 +17,9 @@ namespace XenoKit.Engine
 
         private SimdVector2 _prevMousePos;
         private SimdVector2 _mousePos;
+        private SimdVector2 _axisCorrectMousePos;
         public SimdVector2 MousePosition => _mousePos;
+        public SimdVector2 AxisCorrectMousePosition => _axisCorrectMousePos;
         public SimdVector2 MouseDelta { get; private set; }
 
         //public Vector2 MousePosition {  get { return MouseState.Position.ToVector2(); } }
@@ -82,6 +84,7 @@ namespace XenoKit.Engine
 
             //_mousePos = new Vector2((game.GraphicsDevice.Viewport.Width - MouseState.X) * game.SuperSamplingFactor, MouseState.Y * game.SuperSamplingFactor);
             _mousePos = MouseState.Position.ToNumeric();
+            _axisCorrectMousePos = new SimdVector2(Viewport.Instance.RenderSystem.CurrentRT_Width - _mousePos.X, _mousePos.Y);
             MouseDelta = _mousePos - _prevMousePos;
 
             //Update scroll

@@ -39,7 +39,7 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
-                entity.Transform *= Matrix4x4.CreateTranslation(new SimdVector3(-delta.X, delta.Y, delta.Z));
+                entity.Transform *= Matrix4x4.CreateTranslation(new SimdVector3(delta.X, delta.Y, delta.Z));
             }
         }
     }
