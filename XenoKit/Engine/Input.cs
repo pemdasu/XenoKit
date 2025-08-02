@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Framework.WpfInterop.Input;
+using Xv2CoreLib.Resource.App;
 using SimdVector2 = System.Numerics.Vector2;
 
 namespace XenoKit.Engine
@@ -17,8 +18,10 @@ namespace XenoKit.Engine
 
         private SimdVector2 _prevMousePos;
         private SimdVector2 _mousePos;
+        private SimdVector2 _scaledMousePos;
         private SimdVector2 _axisCorrectMousePos;
         public SimdVector2 MousePosition => _mousePos;
+        public SimdVector2 ScaledMousePosition => _scaledMousePos;
         public SimdVector2 AxisCorrectMousePosition => _axisCorrectMousePos;
         public SimdVector2 MouseDelta { get; private set; }
 
@@ -84,7 +87,8 @@ namespace XenoKit.Engine
 
             //_mousePos = new Vector2((game.GraphicsDevice.Viewport.Width - MouseState.X) * game.SuperSamplingFactor, MouseState.Y * game.SuperSamplingFactor);
             _mousePos = MouseState.Position.ToNumeric();
-            _axisCorrectMousePos = new SimdVector2(Viewport.Instance.RenderSystem.CurrentRT_Width - _mousePos.X, _mousePos.Y);
+            _scaledMousePos = _mousePos * SettingsManager.settings.XenoKit_SuperSamplingFactor;
+            _axisCorrectMousePos = new SimdVector2(Viewport.Instance.GraphicsDevice.Viewport.Width - _mousePos.X, _mousePos.Y);
             MouseDelta = _mousePos - _prevMousePos;
 
             //Update scroll

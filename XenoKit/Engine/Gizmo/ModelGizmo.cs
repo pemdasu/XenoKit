@@ -14,7 +14,7 @@ namespace XenoKit.Engine.Gizmo
         {
             get
             {
-                if (transforms == null) return Matrix.Identity;
+                if (transforms == null || transforms.Count == 0) return Matrix.Identity;
                 Matrix pos = Matrix.CreateTranslation(centerPosition) * transforms[0].Transform;
 
                 if (attachBone != null)
@@ -57,7 +57,9 @@ namespace XenoKit.Engine.Gizmo
                 SourceModelFile.ModelModified -= SourceModel_ModelModified;
 
             SourceModelFile = sourceModel;
-            SourceModelFile.ModelModified += SourceModel_ModelModified;
+            if(SourceModelFile != null)
+                SourceModelFile.ModelModified += SourceModel_ModelModified;
+
             transforms = _transforms;
             CalculateCenter();
             this.attachBone = attachBone;

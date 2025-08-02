@@ -55,6 +55,7 @@ namespace XenoKit.Engine
 		private WpfKeyboard _keyboard;
 		private WpfMouse _mouse;
 		private SpriteBatch spriteBatch;
+        public bool ViewportIsFocused => (IsActive && IsMouseOver) || IsFullScreen;
 
         //Scene
         public bool IsPlaying = false;

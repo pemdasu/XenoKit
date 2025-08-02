@@ -6,6 +6,7 @@ using System.IO;
 using XenoKit.Editor;
 using XenoKit.Engine.Rendering;
 using XenoKit.Engine.Textures;
+using Xv2CoreLib.Resource.App;
 
 namespace XenoKit.Engine.Text
 {
@@ -21,6 +22,9 @@ namespace XenoKit.Engine.Text
         private SpriteFontBase font18;
         private SpriteFontBase font30;
         private SpriteFontBase font50;
+
+        private int FontSize = 20;
+        private SpriteFontBase font;
 
         //Render queue
         private const int MAX_TEXT_INSTANCES = 2048;
@@ -58,6 +62,21 @@ namespace XenoKit.Engine.Text
 
             renderTarget = new RenderTargetWrapper(Viewport.Instance.RenderSystem, 1f, SurfaceFormat.Color, false, "TextRender");
             Viewport.Instance.RenderSystem.RegisterRenderTarget(renderTarget);
+
+            UpdateFont();
+            SettingsManager.SettingsReloaded += SettingsManager_SettingsReloaded;
+            SettingsManager.SettingsSaved += SettingsManager_SettingsReloaded;
+        }
+
+        private void SettingsManager_SettingsReloaded(object sender, EventArgs e)
+        {
+            UpdateFont();
+        }
+
+        private void UpdateFont()
+        {
+            int scaledFontSize = (int)(FontSize * SettingsManager.settings.XenoKit_SuperSamplingFactor);
+            font = fontSystem.GetFont(scaledFontSize);
         }
 
         public void Draw()
@@ -75,11 +94,11 @@ namespace XenoKit.Engine.Text
                 if (RenderQueue[i].UseBackground)
                 {
                     Vector2 margin = new Vector2(10, 7);
-                    Vector2 size = font30.MeasureString(RenderQueue[i].Text);
+                    Vector2 size = font.MeasureString(RenderQueue[i].Text);
                     spriteBatch.Draw(backgroundTexture, new Rectangle((int)(RenderQueue[i].ScreenPosition.X - margin.X), (int)(RenderQueue[i].ScreenPosition.Y - margin.Y), (int)(size.X + margin.X * 2f), (int)(size.Y + margin.Y * 2f)), Color.Black);
                 }
 
-                spriteBatch.DrawString(font30, RenderQueue[i].Text, RenderQueue[i].ScreenPosition, RenderQueue[i].Color);
+                spriteBatch.DrawString(font, RenderQueue[i].Text, RenderQueue[i].ScreenPosition, RenderQueue[i].Color);
             }
 
             currentIndex = 0;
@@ -91,7 +110,7 @@ namespace XenoKit.Engine.Text
             DrawOnScreenText(text, pos, DefaultTextColor, false);
         }
 
-        public void DrawOnScreenText(string text, Vector2 pos, Color color, bool useBackground)
+        public void DrawOnScreenText(string text, Vector2 pos, Color color, bool useBackground, bool flipHorizontal = false)
         {
             if(currentIndex == RenderQueue.Length)
             {
@@ -99,7 +118,10 @@ namespace XenoKit.Engine.Text
                     return;
             }
 
-            RenderQueue[currentIndex++] = new TextInstance(text, color, new Vector2(renderTarget.Width - pos.X, pos.Y), useBackground);
+            //When using Unproject to get the screen pos of a object, the x axis will need to be flipped to account for the X-axis correction that XenoKit does. 
+
+            Vector2 _pos = flipHorizontal ? new Vector2(GraphicsDevice.Viewport.Width - pos.X, pos.Y) : pos;
+            RenderQueue[currentIndex++] = new TextInstance(text, color, _pos, useBackground);
         }
 
         private bool TryResizeQueue()

@@ -1357,8 +1357,13 @@ namespace XenoKit.Controls
         {
             if (sender is int value && SkinnedEntity != null && (SceneManager.IsOnTab(EditorTabs.Animation) || SceneManager.IsOnTab(EditorTabs.InspectorAnimation)))
             {
-                string boneName = value != -1 ? SkinnedEntity.Skeleton.Bones[value].Name : null;
-                SelectedBoneChanged(boneName);
+                //BUG: This event is being raised recieved by ALL animated objects, it should just be the one that raised it
+
+                if(SkinnedEntity.Skeleton.Bones.Length > value)
+                {
+                    string boneName = value != -1 ? SkinnedEntity.Skeleton.Bones[value].Name : null;
+                    SelectedBoneChanged(boneName);
+                }
             }
         }
 

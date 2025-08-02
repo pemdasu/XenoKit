@@ -114,12 +114,12 @@ namespace XenoKit.Engine.Animation
 
                             if (selected || distance < FullAlphaDistance)
                             {
-                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor, mouseIsOverThisBone || selected);
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, BoneNameColor, mouseIsOverThisBone || selected, true);
                             }
                             else
                             {
                                 //Text gradually fades with camera distance
-                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))), mouseIsOverThisBone || selected);
+                                Viewport.Instance.TextRenderer.DrawOnScreenText(character.Skeleton.Bones[i].Name, screenSpace, new Color(BoneNameColor, (1f - (distance / NameRenderDistance))), mouseIsOverThisBone || selected, true);
                             }
                         }
                     }

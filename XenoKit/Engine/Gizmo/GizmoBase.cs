@@ -759,7 +759,7 @@ namespace XenoKit.Engine.Gizmo
         {
             if(CanHaveTextInput() && _hasInput)
             {
-                Viewport.Instance.TextRenderer.DrawOnScreenText(_inputText, new Vector2(Viewport.Instance.RenderSystem.CurrentRT_Width / 2f, Viewport.Instance.RenderSystem.CurrentRT_Height / 2f), Color.Green, true);
+                Viewport.Instance.TextRenderer.DrawOnScreenText(_inputText, new Vector2(Viewport.Instance.RenderSystem.CurrentRT_Width / 2f, Viewport.Instance.RenderSystem.CurrentRT_Height / 2f), Color.Green, true, true);
             }
             else
             {
