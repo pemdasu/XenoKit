@@ -346,6 +346,7 @@ namespace XenoKit.Engine
         public static bool AllowBacLoop { get; set; }
 
         public static PivotPoint PivotPoint = PivotPoint.Center;
+        public static ViewportSelectionMode ViewportSelectionMode = ViewportSelectionMode.Model;
 
         #endregion
 

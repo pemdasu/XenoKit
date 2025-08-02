@@ -244,6 +244,7 @@ namespace XenoKit.Views
         {
             DataContext = this;
             ModelScene = modelScene;
+            ModelScene.ViewportSelectEvent += ModelScene_ViewportSelectEvent;
 
             //Delayed event timer for reacting to selected item changes. This is needed because the TreeView events fire off BEFORE the attached property (SelectedItems) does its thing, so we need another event to fire of after a small delay
             DelayedSelectedEventTimer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(50) };
@@ -262,6 +263,30 @@ namespace XenoKit.Views
 
             InitializeComponent();
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
+        }
+
+        private void ModelScene_ViewportSelectEvent(object source, ModelSceneSelectEventArgs e)
+        {
+            if(e.Object == null)
+            {
+                SelectedItems.Clear();
+            }
+            else if (e.Addition && !SelectedItems.Contains(e.Object))
+            {
+                SelectedItems.Add(e.Object);
+            }
+            else if (e.Addition && SelectedItems.Contains(e.Object))
+            {
+                SelectedItems.Remove(e.Object);
+            }
+            else
+            {
+                SelectedItems.Clear();
+                SelectedItems.Add(e.Object);
+            }
+
+            //RefreshSelectedItems(treeView);
+            DelayedSelectedEventTimer.Start();
         }
 
         private void Instance_UndoOrRedoCalled(object source, UndoEventRaisedEventArgs e)
@@ -560,7 +585,6 @@ namespace XenoKit.Views
             if(SelectedTexture == null)
             {
                 Viewport.Instance.Camera.LookAt(ModelScene.SelectedBoundingBox);
-                Log.Add("LookAt from View");
             }
         }
 

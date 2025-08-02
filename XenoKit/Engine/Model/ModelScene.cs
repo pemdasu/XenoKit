@@ -9,14 +9,17 @@ using XenoKit.Editor;
 using XenoKit.Editor.Data;
 using XenoKit.Engine.Animation;
 using XenoKit.Engine.Objects;
+using XenoKit.Engine.Scripting.BAC;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
+using XenoKit.Views;
 using Xv2CoreLib;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
+using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
@@ -59,6 +62,13 @@ namespace XenoKit.Engine.Model
         public ObservableCollection<object> SelectedItems { get; private set; } = new ObservableCollection<object>();
         private readonly List<Xv2Submesh> _selectedSubmeshes = new List<Xv2Submesh>();
         private readonly ReadOnlyCollection<Xv2Submesh> _readonlySelectedSubmeshes;
+
+        public event ModelSceneSelectEventHandler ViewportSelectEvent;
+
+        //Mouse-over objects
+        private Xv2Model _mouseOverModel = null;
+        private Xv2Mesh _mouseOverMesh = null;
+        private Xv2Submesh _mouseOverSubmesh = null;
 
         public ModelScene(Xv2ModelFile model)
         {
@@ -247,7 +257,65 @@ namespace XenoKit.Engine.Model
             if (Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && IsAnyModelObjectSelected())
             {
                 Viewport.Instance.Camera.LookAt(SelectedBoundingBox);
-                Log.Add("LookAt from Update");
+            }
+
+            //Handle in-viewport mesh selection
+            if (Viewport.Instance.ViewportIsFocused)
+            {
+                Ray ray = EngineUtils.CalculateRay(Input.MousePosition);
+                _mouseOverSubmesh = Model.TraverseBVH(ray);
+                _mouseOverMesh = null;
+                _mouseOverModel = null;
+
+                if (_mouseOverSubmesh != null)
+                {
+                    string name = null;
+
+                    switch (SceneManager.ViewportSelectionMode)
+                    {
+                        case ViewportSelectionMode.Model:
+                            {
+                                Log.Add("Model in Update");
+                                _mouseOverModel = _mouseOverSubmesh.Parent.Parent;
+                                name = _mouseOverModel.Name;
+
+                                if (Input.IsMouseLeftClickDown)
+                                    ViewportSelectEvent?.Invoke(this, new ModelSceneSelectEventArgs(_mouseOverModel.GetSourceModelObject()));
+                            }
+                            break;
+                        case ViewportSelectionMode.Mesh:
+                            {
+                                _mouseOverMesh = _mouseOverSubmesh.Parent;
+                                name = _mouseOverMesh.Name;
+
+                                if (Input.IsMouseLeftClickDown)
+                                    ViewportSelectEvent?.Invoke(this, new ModelSceneSelectEventArgs(_mouseOverMesh.GetSourceMeshObject()));
+                            }
+                            break;
+                        case ViewportSelectionMode.Submesh:
+                            {
+                                name = _mouseOverSubmesh.Name;
+
+                                if (Input.IsMouseLeftClickDown)
+                                    ViewportSelectEvent?.Invoke(this, new ModelSceneSelectEventArgs(_mouseOverSubmesh.GetSourceSubmeshObject()));
+                            }
+                            break;
+                    }
+
+                    if (name != null)
+                        Viewport.Instance.TextRenderer.DrawOnScreenText(name, Input.ScaledMousePosition + new System.Numerics.Vector2(20 * SettingsManager.settings.XenoKit_SuperSamplingFactor, 0), Color.White, true, false);
+
+                }
+                else if(_mouseOverSubmesh == null && Input.IsMouseLeftClickDown)
+                {
+                    ViewportSelectEvent?.Invoke(this, new ModelSceneSelectEventArgs(null));
+                }
+            }
+            else
+            {
+                _mouseOverSubmesh = null;
+                _mouseOverMesh = null;
+                _mouseOverModel = null;
             }
         }
 
@@ -268,6 +336,28 @@ namespace XenoKit.Engine.Model
 
                 //Draw highlighted (selected) meshes
                 Matrix4x4 world = Matrix4x4.Identity;
+
+                switch (SceneManager.ViewportSelectionMode)
+                {
+                    case ViewportSelectionMode.Model:
+                        if (_mouseOverModel != null)
+                        {
+                            _mouseOverModel.Draw(ref world, 0, DefaultShaders.WhiteWireframe);
+                        }
+                        break;
+                    case ViewportSelectionMode.Mesh:
+                        if (_mouseOverMesh != null)
+                        {
+                            _mouseOverMesh.Draw(ref world, 0, DefaultShaders.WhiteWireframe);
+                        }
+                        break;
+                    case ViewportSelectionMode.Submesh:
+                        if (_mouseOverSubmesh != null)
+                        {
+                            _mouseOverSubmesh.Draw(ref world, 0, DefaultShaders.WhiteWireframe);
+                        }
+                        break;
+                }
 
                 foreach (var selectedMesh in _selectedSubmeshes)
                 {
@@ -639,5 +729,26 @@ namespace XenoKit.Engine.Model
     {
         Origin,
         Center
+    }
+
+    public enum ViewportSelectionMode
+    {
+        Model,
+        Mesh,
+        Submesh
+    }
+
+    public delegate void ModelSceneSelectEventHandler(object source, ModelSceneSelectEventArgs e);
+
+    public class ModelSceneSelectEventArgs : EventArgs
+    {
+        public object Object { get; private set; }
+        public bool Addition { get; private set; }
+
+        public ModelSceneSelectEventArgs(object _object)
+        {
+            Object = _object;
+            Addition = Viewport.Instance.Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl);
+        }
     }
 }

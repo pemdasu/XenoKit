@@ -112,14 +112,14 @@ namespace XenoKit.Engine
         public static BoundingBox Transform(this BoundingBox box, Matrix transform)
         {
             Vector3[] corners = box.GetCorners();
-            Vector3 min = Vector3.Transform(corners[0], transform);
+            Vector3.Transform(ref corners[0], ref transform, out Vector3 min);
             Vector3 max = min;
 
             for (int i = 1; i < corners.Length; i++)
             {
-                Vector3 transformed = Vector3.Transform(corners[i], transform);
-                min = Vector3.Min(min, transformed);
-                max = Vector3.Max(max, transformed);
+                Vector3.Transform(ref corners[i], ref transform, out Vector3 transformed);
+                Vector3.Min(ref min, ref transformed, out min);
+                Vector3.Max(ref max, ref transformed, out max);
             }
 
             return new BoundingBox(min, max);

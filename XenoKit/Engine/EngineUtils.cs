@@ -10,6 +10,15 @@ namespace XenoKit.Engine
 {
     public static class EngineUtils
     {
+        public static Ray TransformRay(Ray ray, Matrix world)
+        {
+            ray.Position = Vector3.Transform(ray.Position, world);
+            ray.Direction = Vector3.TransformNormal(ray.Direction, world);
+            ray.Direction.Normalize();
+
+            return ray;
+        }
+
         public static Matrix CreateInfinitePerspective(float fov, float aspect, float nearPlane)
         {
             float yScale = 1.0f / (float)Math.Tan(fov / 2.0f);

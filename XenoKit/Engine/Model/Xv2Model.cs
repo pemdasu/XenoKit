@@ -1,27 +1,29 @@
-﻿using System;
-using System.Linq;
-using System.Windows.Media.Imaging;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
+using XenoKit.Editor;
 using XenoKit.Engine.Animation;
-using XenoKit.Engine.Vertex;
+using XenoKit.Engine.Collision;
+using XenoKit.Engine.Objects;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
-using XenoKit.Engine.Objects;
+using XenoKit.Engine.Vertex;
+using Xv2CoreLib;
+using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMO;
-using Xv2CoreLib.EMD;
 using Xv2CoreLib.NSK;
-using Xv2CoreLib;
 using Xv2CoreLib.Resource;
-using EmmMaterial = Xv2CoreLib.EMM.EmmMaterial;
-using static Xv2CoreLib.EMD.EMD_TextureSamplerDef;
-using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector3 = System.Numerics.Vector3;
-using SimdQuaternion = System.Numerics.Quaternion;
-using XenoKit.Editor;
 using Xv2CoreLib.Resource.UndoRedo;
+using static Xv2CoreLib.EMD.EMD_TextureSamplerDef;
+using EmmMaterial = Xv2CoreLib.EMM.EmmMaterial;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdQuaternion = System.Numerics.Quaternion;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine.Model
 {
@@ -39,6 +41,10 @@ namespace XenoKit.Engine.Model
         public ModelType Type { get; private set; }
         public List<Xv2Model> Models { get; private set; } = new List<Xv2Model>();
         public Xv2Skeleton Skeleton { get; private set; }
+
+        private AabbTree<Xv2Submesh> BVH = null;
+        private bool _bvhNeedsUpdate = false;
+        private bool _bvhIsUpdating = false;
 
         private Xv2ModelFile()
         {
@@ -233,6 +239,8 @@ namespace XenoKit.Engine.Model
                         }
 
                     }
+
+                    _bvhNeedsUpdate = true;
                 }
             }
             else if (e.EditType == EditTypeEnum.Remove || e.EditType == EditTypeEnum.Add)
@@ -248,6 +256,7 @@ namespace XenoKit.Engine.Model
                     LoadEmo(false, false);
                 }
 
+                _bvhNeedsUpdate = true;
                 MaterialsChanged?.Invoke(this, EventArgs.Empty);
             }
             else if(e.EditType == EditTypeEnum.Sampler)
@@ -315,6 +324,11 @@ namespace XenoKit.Engine.Model
                         submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton, instanceData);
                     }
                 }
+            }
+        
+            if(BVH != null)
+            {
+                //BVH.DebugDraw(world);
             }
         }
 
@@ -393,7 +407,6 @@ namespace XenoKit.Engine.Model
             }
         }
 
-
         #region Helpers
         public Xv2Model GetModel(EMD_Model emdModel)
         {
@@ -446,6 +459,20 @@ namespace XenoKit.Engine.Model
                     {
                         if (submesh.IsSourceSubmesh(sourceSubmesh))
                             yield return submesh;
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<Xv2Submesh> GetSubmeshes()
+        {
+            foreach (var model in Models)
+            {
+                foreach (var mesh in model.Meshes)
+                {
+                    foreach (var submesh in mesh.Submeshes)
+                    {
+                         yield return submesh;
                     }
                 }
             }
@@ -504,6 +531,53 @@ namespace XenoKit.Engine.Model
             {
                 Models[i].Dispose();
             }
+        }
+    
+        public Xv2Submesh TraverseBVH(Ray ray)
+        {
+            if(BVH == null || _bvhNeedsUpdate)
+            {
+                InitBVH();
+            }
+
+            if (BVH == null) return null;
+
+            var hits = BVH.Intersects(ray);
+
+            for(int i = 0; i < hits.Count; i++)
+            {
+                Ray transformedRay = hits[i].Parent.Parent.AttachBone != null ? EngineUtils.TransformRay(ray, Matrix.Invert(hits[i].Parent.Parent.AttachBone.AbsoluteAnimationMatrix)) : ray;
+
+                if (hits[i].BVH.IntersectsAny(transformedRay))
+                    return hits[i];
+            }
+
+            return null;
+            //return hits.Count > 0 ? hits[0] : null;
+            //bool success = BVH.Intersects(ray, out Xv2Submesh hit);
+            //return success ? hit : null;
+        }
+    
+        private async void InitBVH()
+        {
+            if(_bvhIsUpdating) return;
+            _bvhIsUpdating = true;
+            _bvhNeedsUpdate = false;
+
+            var submeshes = GetSubmeshes().ToArray();
+
+            await Task.Run(() =>
+            {
+                foreach (Xv2Submesh submesh in submeshes)
+                {
+                    submesh.InitBVH();
+                }
+
+                BVH = new AabbTree<Xv2Submesh>(GetSubmeshes().ToArray());
+
+            });
+
+            _bvhIsUpdating = false;
         }
     }
 
@@ -616,6 +690,17 @@ namespace XenoKit.Engine.Model
             SetAttachBone();
         }
 
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
+        {
+            for(int a = 0; a < Meshes.Count; a++)
+            {
+                for (int i = 0; i < Meshes[a].Submeshes.Count; i++)
+                {
+                    Meshes[a].Submeshes[i].Draw(ref world, actor, material, skeleton, instanceData);
+                }
+            }
+        }
+
         #region Helpers
         private Xv2Mesh GetMesh(EMD_Mesh mesh)
         {
@@ -645,6 +730,14 @@ namespace XenoKit.Engine.Model
                 ((Root.Type == ModelType.Emo || Root.Type == ModelType.Emg) && SourceEmgModel == sourceModel));
         }
 
+        public object GetSourceModelObject()
+        {
+            if (Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
+                return SourceEmdModel;
+
+            else
+                return SourceEmgModel;
+        }
         public void SetAttachBone()
         {
             if(Root.Type == ModelType.Nsk)
@@ -816,6 +909,14 @@ namespace XenoKit.Engine.Model
             }
         }
 
+        public void Draw(ref Matrix4x4 world, int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null)
+        {
+            for(int i = 0; i < Submeshes.Count; i++)
+            {
+                Submeshes[i].Draw(ref world, actor, material, skeleton, instanceData);
+            }
+        }
+
         #region Helpers
         private Xv2Submesh GetSubmesh(EMD_Submesh submesh, EMD_Triangle emdTriangle)
         {
@@ -843,6 +944,15 @@ namespace XenoKit.Engine.Model
         {
             return (((Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk) && SourceEmdMesh == sourceMesh) ||
                 ((Root.Type == ModelType.Emo || Root.Type == ModelType.Emg) && SourceEmgMesh == sourceMesh));
+        }
+
+        public object GetSourceMeshObject()
+        {
+            if (Root.Type == ModelType.Emd || Root.Type == ModelType.Nsk)
+                return SourceEmdMesh;
+
+            else
+                return SourceEmgMesh;
         }
 
         public List<Xv2Submesh> GetSubmeshes(EMD_Submesh submesh)
@@ -898,7 +1008,7 @@ namespace XenoKit.Engine.Model
         }
     }
 
-    public class Xv2Submesh : RenderObject, IDisposable
+    public class Xv2Submesh : RenderObject, IDisposable, IBvhNode
     {
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Model;
 
@@ -949,6 +1059,9 @@ namespace XenoKit.Engine.Model
         //Actor-Specific Information:
         private readonly Matrix4x4[] PrevWVP = new Matrix4x4[SceneManager.NumActors];
 
+        public AabbTree<TriangleBvhNode> BVH { get; private set; }
+        public bool IsBvhDirty { get; set; }
+
         static Xv2Submesh()
         {
             for (int i = 0; i < 24; i++)
@@ -995,6 +1108,8 @@ namespace XenoKit.Engine.Model
             {
                 CreateFromEmg();
             }
+
+            IsBvhDirty = true;
         }
 
         private void CreateFromEmd()
@@ -1394,6 +1509,15 @@ namespace XenoKit.Engine.Model
         #endregion
 
         #region Init
+        public void InitBVH()
+        {
+            if(BVH == null || IsBvhDirty)
+            {
+                BVH = new AabbTree<TriangleBvhNode>(TriangleBvhNode.GetNodes(Vertices, Indices));
+                IsBvhDirty = false;
+            }
+        }
+
         public void UpdateParent(Xv2Mesh parent)
         {
             Parent = parent;
@@ -1584,6 +1708,15 @@ namespace XenoKit.Engine.Model
                 ((Type == ModelType.Emo || Type == ModelType.Emg) && SourceEmgSubmesh == sourceSubmesh));
         }
 
+        public object GetSourceSubmeshObject()
+        {
+            if (Type == ModelType.Emd || Type == ModelType.Nsk)
+                return SourceEmdSubmesh;
+
+            else
+                return SourceEmgSubmesh;
+        }
+
         public static SimdVector3 CalculateCenter(IList<Xv2Submesh> submeshes)
         {
             SimdVector3 min = new SimdVector3(float.PositiveInfinity);
@@ -1639,6 +1772,15 @@ namespace XenoKit.Engine.Model
             aabb = new BoundingBox(min, max);
         }
     
+        public BoundingBox GetAABB()
+        {
+            return Parent.Parent.AttachBone != null ? BoundingBox.Transform(Parent.Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBox;
+        }
+
+        public Vector3 GetAABBCenter()
+        {
+            return Parent.Parent.AttachBone != null ? Vector3.Transform(BoundingBoxCenter, Parent.Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBoxCenter;
+        }
     }
 
     public enum ModelType

@@ -78,6 +78,22 @@
                         <ComboBoxItem Content="Pivot Origin"/>
                         <ComboBoxItem Content="Pivot Center"/>
                     </ComboBox>
+                    <ComboBox HorizontalAlignment="Left" Height="20" Width="100" Margin="5,0,0,0" ToolTip="Viewport selection mode" SelectedIndex="{Binding ElementName=UserControl, Path=ViewportSelectionMode}">
+                        <ComboBoxItem Content="Model"/>
+                        <ComboBoxItem Content="Mesh"/>
+                        <ComboBoxItem Content="Submesh"/>
+                    </ComboBox>
+                    <Separator Margin="-5,0,-5,0" HorizontalAlignment="Left" VerticalAlignment="Center" Height="5" Width="20" RenderTransformOrigin="0.5,0.5">
+                        <Separator.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform/>
+                                <SkewTransform/>
+                                <RotateTransform Angle="90"/>
+                                <TranslateTransform/>
+                            </TransformGroup>
+                        </Separator.RenderTransform>
+                    </Separator>
+                    
                 </StackPanel>
             </StackPanel>
         </Grid>

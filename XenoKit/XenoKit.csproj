@@ -512,6 +512,7 @@
     <Compile Include="Engine\Collision\AabbNode.cs" />
     <Compile Include="Engine\Collision\AabbTree.cs" />
     <Compile Include="Engine\Collision\BacHitbox.cs" />
+    <Compile Include="Engine\Collision\TriangleBvhNode.cs" />
     <Compile Include="Engine\FrameRateCounter.cs" />
     <Compile Include="Engine\Gizmo\CurrentGizmo.cs" />
     <Compile Include="Engine\Gizmo\EntityTransformGizmo.cs" />
