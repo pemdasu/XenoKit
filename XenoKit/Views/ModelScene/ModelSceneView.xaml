@@ -32,30 +32,9 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="0"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-
-        <StackPanel Margin="5" Orientation="Horizontal" HorizontalAlignment="Left">
-            <StackPanel.Resources>
-                <Style TargetType="{x:Type StackPanel}">
-                    <Setter Property="Margin" Value="7,0,0,0"/>
-                </Style>
-            </StackPanel.Resources>
-            
-            <StackPanel ToolTip="Apply all transformations (translation, rotation and scale) that have been made to the source model." VerticalAlignment="Center" HorizontalAlignment="Left">
-                <Button Command="{Binding ElementName=UserControl, Path=ApplyTransformationsCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
-                    <iconPacks:PackIconMaterialLight Kind="Plus"/>
-                </Button>
-                <TextBlock Text="Apply..." HorizontalAlignment="Center" FontSize="8"/>
-            </StackPanel>
-            <StackPanel ToolTip="Remove any transformations (translation, rotation and scale) that have been made.&#x0a;&#x0a;NOTE: This can NOT undo any transformations that have already been applied, but you can still use the regular undo commands for that (Ctrl + Z)." VerticalAlignment="Center" HorizontalAlignment="Left">
-                <Button Command="{Binding ElementName=UserControl, Path=ClearTransformationsCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="30">
-                    <iconPacks:PackIconMaterial Kind="NotificationClearAll"/>
-                </Button>
-                <TextBlock Text="Clear All" HorizontalAlignment="Center" FontSize="8"/>
-            </StackPanel>
-        </StackPanel>
 
         <TreeView x:Name="treeView" lbUtils:TreeViewMultipleSelectionAttached.IsMultipleSelection="True" lbUtils:TreeViewMultipleSelectionAttached.SelectedItems="{Binding ElementName=UserControl, Path=ModelScene.SelectedItems}"
                   Margin="5" Grid.Row="1" ItemsSource="{Binding ElementName=UserControl, Path=EmdFile.Models.Binding}" SelectedItemChanged="TreeView_SelectedItemChanged" TreeViewItem.Selected="treeView_Selected"

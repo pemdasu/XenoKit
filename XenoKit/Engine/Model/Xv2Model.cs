@@ -738,6 +738,7 @@ namespace XenoKit.Engine.Model
             else
                 return SourceEmgModel;
         }
+        
         public void SetAttachBone()
         {
             if(Root.Type == ModelType.Nsk)
@@ -1031,7 +1032,8 @@ namespace XenoKit.Engine.Model
         public VertexBufferBinding VertexBufferBinding { get; set; }
         public VertexPositionNormalTextureBlend[] Vertices { get; set; }
         public int[] Indices { get; set; }
-        public int[] UsedIndices { get; set; }
+        private bool IsDisposed = false;
+
 
         //AABB
         public BoundingBox BoundingBox { get; set; }
@@ -1315,6 +1317,8 @@ namespace XenoKit.Engine.Model
 
         private void DrawEnd(int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton, ModelInstanceData instanceData = null)
         {
+            if (IsDisposed) return;
+
             RenderSystem.MeshDrawCalls++;
             material.ActorSlot = actor;
 
@@ -1541,6 +1545,8 @@ namespace XenoKit.Engine.Model
 
         public void Dispose()
         {
+            IsDisposed = true;
+
             if (VertexBuffer != null && VertexBuffer.IsDisposed == false)
                 VertexBuffer.Dispose();
 

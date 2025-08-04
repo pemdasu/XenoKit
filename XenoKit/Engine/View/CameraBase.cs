@@ -7,6 +7,7 @@ using SimdVector2 = System.Numerics.Vector2;
 using SimdVector3 = System.Numerics.Vector3;
 using SimdQuaternion = System.Numerics.Quaternion;
 using Xv2CoreLib.Resource;
+using XenoKit.Editor;
 
 namespace XenoKit.Engine.View
 {
@@ -122,7 +123,7 @@ namespace XenoKit.Engine.View
         {
             if (!ViewportIsFocused) return;
 
-            float translateSpeed = 0.2f;
+            float translateSpeed = 0.2f * LocalSettings.Instance.CameraTranslateSpeed;
 
             if (Input.IsKeyDown(Keys.LeftControl))
                 translateSpeed *= 0.25f;
@@ -198,7 +199,7 @@ namespace XenoKit.Engine.View
             {
                 float distance = SimdVector3.Distance(CameraState.Position, CameraState.TargetPosition);
 
-                float factor = 0.005f;
+                float factor = 0.005f * LocalSettings.Instance.CameraPanSpeed;
                 if(distance > 10f)
                     factor *= 1f + (MathHelper.Clamp(distance / 200f, 0f, 1f) * 50f);
 
@@ -245,6 +246,7 @@ namespace XenoKit.Engine.View
             if (Input.HasDragEvent(MouseButtons.Left, this))
             {
                 float factor = Input.IsKeyDown(Keys.LeftControl) ? 0.05f : 0.2f;
+                factor *= LocalSettings.Instance.CameraSpinSpeed;
                 SpinCamera(-Input.MouseDelta, factor, Input.IsKeyDown(Keys.LeftAlt));
             }
         }

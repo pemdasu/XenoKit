@@ -482,6 +482,8 @@ namespace XenoKit.Views
             }
             else if (physicsPart != null)
             {
+                part = Character.BcsFile.File.GetParentPart(physicsPart);
+
                 string emb = physicsPart.GetEmbPath();
                 string dyt = physicsPart.GetDytPath();
                 string emm = physicsPart.GetEmmPath();

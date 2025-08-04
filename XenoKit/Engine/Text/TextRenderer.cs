@@ -19,10 +19,6 @@ namespace XenoKit.Engine.Text
 
         private readonly Texture2D backgroundTexture;
 
-        private SpriteFontBase font18;
-        private SpriteFontBase font30;
-        private SpriteFontBase font50;
-
         private int FontSize = 20;
         private SpriteFontBase font;
 
@@ -43,9 +39,6 @@ namespace XenoKit.Engine.Text
             spriteBatch = new SpriteBatch(GraphicsDevice);
             fontSystem = new FontSystem();
             fontSystem.AddFont(File.ReadAllBytes(string.Format(@"{0}{1}\Fonts\arial.ttf", Path.GetPathRoot(Environment.SystemDirectory), Environment.SpecialFolder.Windows)));
-            font18 = fontSystem.GetFont(18);
-            font30 = fontSystem.GetFont(30);
-            font50 = fontSystem.GetFont(50);
 
             string texturePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"XenoKit/Textures/textBackground1.dds");
 

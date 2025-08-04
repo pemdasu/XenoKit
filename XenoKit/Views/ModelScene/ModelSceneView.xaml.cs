@@ -465,10 +465,6 @@ namespace XenoKit.Views
         }
 
         #region Commands
-        public RelayCommand ApplyTransformationsCommand => new RelayCommand(ModelScene.ApplyTransformations);
-
-        public RelayCommand ClearTransformationsCommand => new RelayCommand(ModelScene.RemoveTransformations);
-
         public RelayCommand DeleteModelCommand => new RelayCommand(ModelScene.DeleteSelectedModels, ModelScene.IsModelSelected);
 
         public RelayCommand DeleteMeshCommand => new RelayCommand(ModelScene.DeleteSelectedMeshes, ModelScene.IsMeshSelected);

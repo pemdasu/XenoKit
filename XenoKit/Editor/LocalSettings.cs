@@ -35,6 +35,16 @@ namespace XenoKit.Editor
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
         public bool EnableFog { get; set; } = true;
 
+        [CustomSerialize]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public float CameraTranslateSpeed { get; set; } = 1f;
+        [CustomSerialize]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public float CameraPanSpeed { get; set; } = 1f;
+        [CustomSerialize]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public float CameraSpinSpeed { get; set; } = 1f;
+
         public SerializedCameraState[] CameraStates { get; set; } = new SerializedCameraState[5];
 
         private static bool Load()
@@ -65,6 +75,10 @@ namespace XenoKit.Editor
                     if(instance.CameraStates[i] == null)
                         instance.CameraStates[i] = new SerializedCameraState();
                 }
+
+                instance.CameraTranslateSpeed = MathHelper.Clamp(instance.CameraTranslateSpeed, 0.1f, 5f);
+                instance.CameraPanSpeed = MathHelper.Clamp(instance.CameraPanSpeed, 0.1f, 5f);
+                instance.CameraSpinSpeed = MathHelper.Clamp(instance.CameraSpinSpeed, 0.1f, 5f);
 
                 return true;
             }

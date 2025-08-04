@@ -275,7 +275,6 @@ namespace XenoKit.Engine.Model
                     {
                         case ViewportSelectionMode.Model:
                             {
-                                Log.Add("Model in Update");
                                 _mouseOverModel = _mouseOverSubmesh.Parent.Parent;
                                 name = _mouseOverModel.Name;
 
@@ -391,16 +390,6 @@ namespace XenoKit.Engine.Model
         }
 
         #region Edit Methods
-        public void ApplyTransformations()
-        {
-
-        }
-
-        public void RemoveTransformations()
-        {
-
-        }
-
         public void DeleteSelectedModels()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -513,7 +502,7 @@ namespace XenoKit.Engine.Model
 
         public void CopySelectedMeshes()
         {
-            if (!IsModelSelected()) return;
+            if (!IsMeshSelected()) return;
 
             if (SelectedItems[0] is EMD_Mesh)
             {
@@ -525,7 +514,7 @@ namespace XenoKit.Engine.Model
 
         public void CopySelectedSubmeshes()
         {
-            if (!IsModelSelected()) return;
+            if (!IsSubmeshSelected()) return;
 
             if (SelectedItems[0] is EMD_Submesh)
             {
@@ -563,7 +552,7 @@ namespace XenoKit.Engine.Model
                 SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_MESH);
 
                 List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
-                EMD_Model parentModel = SelectedItems[0] as EMD_Model;
+                EMD_Model parentModel = SelectedItems[0] is EMD_Model ? SelectedItems[0] as EMD_Model : EmdFile.GetParentModel(SelectedItems[0] as EMD_Mesh);
 
                 if (parentModel == null)
                     return;
@@ -588,7 +577,7 @@ namespace XenoKit.Engine.Model
                 SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_SUBMESH);
 
                 List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
-                EMD_Mesh parentMesh = SelectedItems[0] as EMD_Mesh;
+                EMD_Mesh parentMesh = SelectedItems[0] is EMD_Mesh ? SelectedItems[0] as EMD_Mesh : EmdFile.GetParentMesh(SelectedItems[0] as EMD_Submesh);
 
                 if (parentMesh == null)
                     return;
