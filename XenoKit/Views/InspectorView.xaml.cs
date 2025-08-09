@@ -154,14 +154,14 @@ namespace XenoKit.Views
             }
             else if (SelectedItem is MeshInspectorEntity mesh)
             {
-                if(mesh.EmoFile != null)
+                if(mesh.EmgFile != null)
                 {
-                    MessageBox.Show("The Model Viewer currently does not support EMO files.", "Not Supported", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Only EMD, NSK and EMO models are supported for editing", "Not Supported", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 ModelScene modelScene = Engine.Viewport.Instance.CompiledObjectManager.GetCompiledObject<ModelScene>(mesh.Model);
-                modelScene.SetFiles(Engine.Shader.ShaderType.Chara, mesh.TextureFile?.EmbFile, mesh.MaterialFile?.EmmFile, mesh.DytFile?.EmbFile);
+                modelScene.SetFiles(Engine.Shader.ShaderType.Chara, mesh.TextureFile?.EmbFile, mesh.MaterialFile?.EmmFile, mesh.DytFile?.EmbFile, mesh.Parent?.EskFile);
                 modelScene.SetPaths(false, mesh.Path, mesh.TextureFile?.Path, mesh.MaterialFile?.Path, mesh.DytFile?.Path);
 
                 if (!TabManager.FocusTab(modelScene))

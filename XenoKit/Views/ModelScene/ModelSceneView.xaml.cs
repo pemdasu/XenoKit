@@ -24,6 +24,9 @@ using SimdVector3 = System.Numerics.Vector3;
 using SimdQuaternion = System.Numerics.Quaternion;
 using Xv2CoreLib.Resource;
 using XenoKit.Engine.Gizmo.TransformOperations;
+using Xv2CoreLib.EMO;
+using Xv2CoreLib.EMG;
+using Xv2CoreLib.EMA;
 
 namespace XenoKit.Views
 {
@@ -46,6 +49,7 @@ namespace XenoKit.Views
 
         public ModelScene ModelScene { get; private set; }
         public EMD_File EmdFile => ModelScene.Model.Type == ModelType.Nsk ? ModelScene.Model.SourceNskFile.EmdFile : ModelScene.Model.SourceEmdFile;
+        public EMO_File EmoFile => ModelScene.Model.SourceEmoFile;
 
         public ObservableCollection<object> SelectedItems => ModelScene.SelectedItems;
         public object SelectedItem => SelectedItems.Count > 0 ? SelectedItems[0] : null;
@@ -53,6 +57,11 @@ namespace XenoKit.Views
         public EMD_Mesh SelectedMesh => SelectedItem as EMD_Mesh;
         public EMD_Submesh SelectedSubmesh => SelectedItem as EMD_Submesh;
         public EMD_TextureSamplerDef SelectedTexture => SelectedItem as EMD_TextureSamplerDef;
+        public EMO_Part EMO_SelectedPart => SelectedItem as EMO_Part;
+        public EMG_File EMO_SelectedEmgFile => SelectedItem as EMG_File;
+        public EMG_Mesh EMO_SelectedMesh => SelectedItem as EMG_Mesh;
+        public EMG_SubmeshGroup EMO_SelectedSubmesh => SelectedItem as EMG_SubmeshGroup;
+
 
         public EmdTextureViewModel TextureViewModel { get; set; }
 
@@ -76,13 +85,42 @@ namespace XenoKit.Views
             get => SelectedMesh?.Name;
             set
             {
-                if (SelectedMesh != null && SelectedMesh?.Name != value)
+                if (SelectedMesh != null && SelectedMesh.Name != value)
                 {
                     UndoManager.Instance.AddUndo(new UndoablePropertyGeneric(nameof(SelectedMesh.Name), SelectedMesh, SelectedMesh.Name, value, "Mesh Name"));
+
                     SelectedMesh.Name = value;
                     NotifyPropertyChanged(nameof(SelectedMeshName));
                     SelectedMesh.RefreshValues();
                 }
+            }
+        }
+        public string SelectedMeshBoneName
+        {
+            get => SelectedMesh?.Name;
+            set
+            {
+                if (SelectedMesh != null && SelectedMesh.Name != value)
+                {
+                    var bone = ModelScene.Model.SourceNskFile.EskFile.Skeleton.GetBone(value);
+                    string boneName = value;
+
+                    if(bone == null)
+                    {
+                        boneName = ModelScene.Model.SourceNskFile.EskFile.Skeleton.ESKBones[0].Name;
+                    }
+
+                    UndoManager.Instance.AddCompositeUndo(new List<IUndoRedo>()
+                        {
+                            new UndoablePropertyGeneric(nameof(SelectedMesh.Name), SelectedMesh, SelectedMesh.Name, boneName),
+                            new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Bone, SelectedMesh))
+                        }, "Bone Name");
+
+                    SelectedMesh.Name = boneName;
+                    NotifyPropertyChanged(nameof(SelectedMeshBoneName));
+                    SelectedMesh.RefreshValues();
+                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Bone, SelectedMesh, null);
+                } 
             }
         }
         public string SelectedSubmeshName
@@ -95,7 +133,8 @@ namespace XenoKit.Views
                     UndoManager.Instance.AddCompositeUndo(new List<IUndoRedo>()
                     {
                         new UndoablePropertyGeneric(nameof(SelectedSubmesh.Name), SelectedSubmesh, SelectedSubmesh.Name, value),
-                        new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Material, SelectedSubmesh))
+                        new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Material, SelectedSubmesh)),
+                        new UndoActionDelegate(SelectedSubmesh, nameof(SelectedSubmesh.RefreshValues), true)
                     }, "Submesh Name", UndoGroup.EMD);
 
                     SelectedSubmesh.Name = value;
@@ -105,13 +144,71 @@ namespace XenoKit.Views
                 }
             }
         }
+        public string EMO_SelectedSubmeshName
+        {
+            get => EMO_SelectedSubmesh?.MaterialName;
+            set
+            {
+                if (EMO_SelectedSubmesh != null && EMO_SelectedSubmesh?.MaterialName != value)
+                {
+                    UndoManager.Instance.AddCompositeUndo(new List<IUndoRedo>()
+                    {
+                        new UndoablePropertyGeneric(nameof(EMO_SelectedSubmesh.MaterialName), EMO_SelectedSubmesh, EMO_SelectedSubmesh.MaterialName, value),
+                        new UndoActionDelegate(EmoFile, nameof(EmoFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Material, EMO_SelectedSubmesh)),
+                        new UndoActionDelegate(EMO_SelectedSubmesh, nameof(EMO_SelectedSubmesh.RefreshValues), true)
+                    }, "Submesh Name", UndoGroup.EMD);
+
+                    EMO_SelectedSubmesh.MaterialName = value;
+                    NotifyPropertyChanged(nameof(EMO_SelectedSubmesh));
+                    EMO_SelectedSubmesh.RefreshValues();
+                    EmoFile.TriggerModelModifiedEvent(EditTypeEnum.Material, EMO_SelectedSubmesh, null);
+                }
+            }
+        }
+        public int DytIndex
+        {
+            get => ModelScene.DytIndex;
+            set => ModelScene.DytIndex = value;
+        }
+
+        public Bone EMO_SelectedBone
+        {
+            get => EMO_SelectedPart?.LinkedBone;
+            set
+            {
+                if (EMO_SelectedPart != null && EMO_SelectedPart.LinkedBone != value)
+                {
+                    UndoManager.Instance.AddCompositeUndo(new List<IUndoRedo>()
+                        {
+                            new UndoablePropertyGeneric(nameof(EMO_SelectedPart.LinkedBone), EMO_SelectedPart, EMO_SelectedPart.LinkedBone, value),
+                            new UndoActionDelegate(EmoFile, nameof(EmoFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Bone, EMO_SelectedPart))
+                        }, "Bone Name");
+
+                    EMO_SelectedPart.LinkedBone = value;
+                    NotifyPropertyChanged(nameof(EMO_SelectedBone));
+                    EmoFile.TriggerModelModifiedEvent(EditTypeEnum.Bone, EMO_SelectedPart, null);
+                }
+            }
+        }
+
 
         //Visibilities
         public Visibility ModelNameVisibility => SelectedModel != null ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility MeshNameVisibility => SelectedMesh != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility MeshNameVisibility => SelectedMesh != null && ModelScene.Model.Type == ModelType.Emd ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility MeshBoneNameVisibility => SelectedMesh != null && ModelScene.Model.Type == ModelType.Nsk ? Visibility.Visible : Visibility.Collapsed;
         public Visibility SubmeshNameVisibility => SelectedSubmesh != null ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility TransformVisibility => SelectedModel != null || SelectedMesh != null || SelectedSubmesh != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility TransformVisibility => SelectedModel != null || SelectedMesh != null || SelectedSubmesh != null || EMO_SelectedEmgFile != null || EMO_SelectedMesh != null || EMO_SelectedPart != null ? Visibility.Visible : Visibility.Collapsed;
         public Visibility TextureVisibility => SelectedTexture != null ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility EMO_PartVisibility => EMO_SelectedPart != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EMO_EmgFileVisibility => EMO_SelectedEmgFile != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EMO_MeshVisibility => EMO_SelectedMesh != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EMO_SubmeshVisibility => EMO_SelectedSubmesh != null ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility EmdNskVisibility => ModelScene.Model.Type == ModelType.Emd || ModelScene.Model.Type == ModelType.Nsk ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EmdVisibility => ModelScene.Model.Type == ModelType.Emd ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility NskVisibility => ModelScene.Model.Type == ModelType.Nsk ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility EmoVisibility => ModelScene.Model.Type == ModelType.Emo ? Visibility.Visible : Visibility.Collapsed;
 
         //Pos/Rot/Scale deltas
         private SimdVector3 _currentPos = SimdVector3.Zero;
@@ -244,7 +341,9 @@ namespace XenoKit.Views
         {
             DataContext = this;
             ModelScene = modelScene;
+            ModelScene.SelectedSubmeshesChanged += ModelScene_SelectedSubmeshesChanged;
             ModelScene.ViewportSelectEvent += ModelScene_ViewportSelectEvent;
+            ModelScene.ViewportInputEvent += ModelScene_ViewportInputEvent;
 
             //Delayed event timer for reacting to selected item changes. This is needed because the TreeView events fire off BEFORE the attached property (SelectedItems) does its thing, so we need another event to fire of after a small delay
             DelayedSelectedEventTimer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(50) };
@@ -263,6 +362,30 @@ namespace XenoKit.Views
 
             InitializeComponent();
             UndoManager.Instance.UndoOrRedoCalled += Instance_UndoOrRedoCalled;
+
+            treeView.IsEnabled = (EmdFile != null);
+            emoTreeView.IsEnabled = (EmoFile != null);
+        }
+
+        private void ModelScene_SelectedSubmeshesChanged(object sender, EventArgs e)
+        {
+            TryEnableModelGizmo();
+        }
+
+        private void ModelScene_ViewportInputEvent(object source, ViewportInputEventArgs e)
+        {
+            if (e.Key == Microsoft.Xna.Framework.Input.Keys.Delete)
+            {
+                DeleteAnything();
+            }
+            else if (e.Key == Microsoft.Xna.Framework.Input.Keys.C && e.IsCtrlHeld)
+            {
+                CopyAnything();
+            }
+            else if(e.Key == Microsoft.Xna.Framework.Input.Keys.V && e.IsCtrlHeld)
+            {
+                PasteAnything();
+            }
         }
 
         private void ModelScene_ViewportSelectEvent(object source, ModelSceneSelectEventArgs e)
@@ -309,36 +432,47 @@ namespace XenoKit.Views
 
             if (SelectedTexture != null)
             {
-                TextureViewModel = new EmdTextureViewModel(SelectedTexture, EmdFile.GetParentSubmesh(SelectedTexture), EmdFile, ModelScene.EmbFile);
+                if(EmdFile != null)
+                {
+                    TextureViewModel = new EmdTextureViewModel(SelectedTexture, EmdFile.GetParentSubmesh(SelectedTexture), EmdFile, ModelScene.EmbFile);
+                }
+                else if(EmoFile != null)
+                {
+                    TextureViewModel = new EmdTextureViewModel(SelectedTexture, EmoFile.GetParentSubmeshGroup(SelectedTexture), EmoFile, ModelScene.EmbFile);
+                }
                 NotifyPropertyChanged(nameof(TextureViewModel));
             }
 
-            NotifyPropertyChanged(nameof(ModelNameVisibility));
-            NotifyPropertyChanged(nameof(MeshNameVisibility));
-            NotifyPropertyChanged(nameof(SubmeshNameVisibility));
+            if(EmdFile != null)
+            {
+                NotifyPropertyChanged(nameof(ModelNameVisibility));
+                NotifyPropertyChanged(nameof(MeshNameVisibility));
+                NotifyPropertyChanged(nameof(MeshBoneNameVisibility));
+                NotifyPropertyChanged(nameof(SubmeshNameVisibility));
+                NotifyPropertyChanged(nameof(SelectedModelName));
+                NotifyPropertyChanged(nameof(SelectedMeshName));
+                NotifyPropertyChanged(nameof(SelectedMeshBoneName));
+                NotifyPropertyChanged(nameof(SelectedSubmeshName));
+            }
+            else
+            {
+                NotifyPropertyChanged(nameof(EMO_SelectedPart));
+                NotifyPropertyChanged(nameof(EMO_SelectedEmgFile));
+                NotifyPropertyChanged(nameof(EMO_SelectedMesh));
+                NotifyPropertyChanged(nameof(EMO_SelectedSubmesh));
+                NotifyPropertyChanged(nameof(EMO_PartVisibility));
+                NotifyPropertyChanged(nameof(EMO_EmgFileVisibility));
+                NotifyPropertyChanged(nameof(EMO_MeshVisibility));
+                NotifyPropertyChanged(nameof(EMO_SubmeshVisibility));
+                NotifyPropertyChanged(nameof(EMO_SelectedBone));
+                NotifyPropertyChanged(nameof(EMO_SelectedSubmeshName));
+            }
+
             NotifyPropertyChanged(nameof(TransformVisibility));
             NotifyPropertyChanged(nameof(TextureVisibility));
-            NotifyPropertyChanged(nameof(SelectedModelName));
-            NotifyPropertyChanged(nameof(SelectedMeshName));
-            NotifyPropertyChanged(nameof(SelectedSubmeshName));
+
             _initialRot = SimdVector3.Zero;
             TryEnableModelGizmo();
-        }
-
-        private void treeView_Selected(object sender, RoutedEventArgs e)
-        {
-
-            /*
-            TreeViewItem tvi = e.OriginalSource as TreeViewItem;
-
-            if (tvi == null || e.Handled) return;
-
-            if (!tvi.IsExpanded)
-                tvi.IsExpanded = true;
-
-            //tvi.IsExpanded = !tvi.IsExpanded;
-            e.Handled = true;
-            */
         }
 
         private void TryEnableModelGizmo()
@@ -350,9 +484,9 @@ namespace XenoKit.Views
 
                 var submeshes = ModelScene.GetSelectedSubmeshes();
 
-                if(submeshes?.Count > 0)
+                if(submeshes?.Count > 0 && EMO_SelectedSubmesh == null) //EMO has its vertex data on the parent mesh - not the submesh like in EMD. So EMO submeshes shouldn't be transformed by themselves.
                 {
-                    Viewport.Instance.ModelGizmo.SetContext(ModelScene.EmdFile, submeshes, GetAttachBone(submeshes));
+                    Viewport.Instance.ModelGizmo.SetContext(ModelScene.GetSourceModel(), submeshes, GetAttachBone(submeshes));
                 }
                 else
                 {
@@ -461,10 +595,12 @@ namespace XenoKit.Views
 
         private Xv2Bone GetAttachBone(IList<Xv2Submesh> submeshes)
         {
-            return submeshes[0].Parent.Parent.AttachBone;
+            return submeshes[0].Parent.AttachBone;
         }
 
         #region Commands
+        public RelayCommand DeleteEmoPartCommand => new RelayCommand(ModelScene.DeleteSelectedEmoPart, ModelScene.IsEmoPartSelected);
+
         public RelayCommand DeleteModelCommand => new RelayCommand(ModelScene.DeleteSelectedModels, ModelScene.IsModelSelected);
 
         public RelayCommand DeleteMeshCommand => new RelayCommand(ModelScene.DeleteSelectedMeshes, ModelScene.IsMeshSelected);
@@ -494,23 +630,45 @@ namespace XenoKit.Views
         public RelayCommand PasteTextureCommand => new RelayCommand(PasteTexture, CanPasteTexture);
         private void PasteTexture()
         {
-            EMD_Submesh submesh = SelectedSubmesh != null ? SelectedSubmesh : EmdFile.GetParentSubmesh(SelectedTexture);
-
-            if (submesh.TextureSamplerDefs.Count >= 4)
-            {
-                MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            EMD_TextureSamplerDef texture = (EMD_TextureSamplerDef)Clipboard.GetData(ClipboardConstants.EmdTextureSampler);
+            if (EmdFile != null)
+            {
+                EMD_Submesh submesh = SelectedSubmesh != null ? SelectedSubmesh : EmdFile.GetParentSubmesh(SelectedTexture);
 
-            undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
-            submesh.TextureSamplerDefs.Add(texture);
+                if (submesh.TextureSamplerDefs.Count >= 4)
+                {
+                    MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    return;
+                }
 
-            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
-            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+                EMD_TextureSamplerDef texture = (EMD_TextureSamplerDef)Clipboard.GetData(ClipboardConstants.EmdTextureSampler);
+
+                undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
+                submesh.TextureSamplerDefs.Add(texture);
+
+                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
+                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+            }
+            else if(EmoFile != null)
+            {
+                EMG_SubmeshGroup submesh = EMO_SelectedSubmesh != null ? EMO_SelectedSubmesh : EmoFile.GetParentSubmeshGroup(SelectedTexture);
+
+                if (submesh.TextureSamplerDefs.Count >= 4)
+                {
+                    MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    return;
+                }
+
+                EMD_TextureSamplerDef texture = (EMD_TextureSamplerDef)Clipboard.GetData(ClipboardConstants.EmdTextureSampler);
+
+                undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
+                submesh.TextureSamplerDefs.Add(texture);
+
+                undos.Add(new UndoActionDelegate(EmoFile, nameof(EmoFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
+                EmoFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+            }
+                
 
             UndoManager.Instance.AddCompositeUndo(undos, "Paste Texture Sampler");
         }
@@ -518,23 +676,44 @@ namespace XenoKit.Views
         public RelayCommand AddTextureCommand => new RelayCommand(AddTexture, CanAddTexture);
         private void AddTexture()
         {
-            EMD_Submesh submesh = SelectedSubmesh != null ? SelectedSubmesh : EmdFile.GetParentSubmesh(SelectedTexture);
-
-            if (submesh.TextureSamplerDefs.Count >= 4)
-            {
-                MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                return;
-            }
-
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            EMD_TextureSamplerDef texture = new EMD_TextureSamplerDef();
+            if (EmdFile != null)
+            {
+                EMD_Submesh submesh = SelectedSubmesh != null ? SelectedSubmesh : EmdFile.GetParentSubmesh(SelectedTexture);
 
-            undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
-            submesh.TextureSamplerDefs.Add(texture);
+                if (submesh.TextureSamplerDefs.Count >= 4)
+                {
+                    MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    return;
+                }
 
-            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
-            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+                EMD_TextureSamplerDef texture = new EMD_TextureSamplerDef();
+
+                undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
+                submesh.TextureSamplerDefs.Add(texture);
+
+                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
+                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+            }
+            else if(EmoFile != null)
+            {
+                EMG_SubmeshGroup submesh = EMO_SelectedSubmesh != null ? EMO_SelectedSubmesh : EmoFile.GetParentSubmeshGroup(SelectedTexture);
+
+                if (submesh.TextureSamplerDefs.Count >= 4)
+                {
+                    MessageBox.Show("Cannot add anymore Texture Samplers.", "Maximum Texture Samplers", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    return;
+                }
+
+                EMD_TextureSamplerDef texture = new EMD_TextureSamplerDef();
+
+                undos.Add(new UndoableListAdd<EMD_TextureSamplerDef>(submesh.TextureSamplerDefs, texture));
+                submesh.TextureSamplerDefs.Add(texture);
+
+                undos.Add(new UndoActionDelegate(EmoFile, nameof(EmoFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, submesh)));
+                EmoFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submesh);
+            }
 
             UndoManager.Instance.AddCompositeUndo(undos, "Add Texture Sampler");
         }
@@ -572,7 +751,14 @@ namespace XenoKit.Views
                 window.Focus();
             }
 
-            window.SelectMaterial(ModelScene.EmmFile.GetMaterial(SelectedSubmeshName));
+            if(EmdFile != null)
+            {
+                window.SelectMaterial(ModelScene.EmmFile.GetMaterial(SelectedSubmeshName));
+            }
+            else if(EmoFile != null && EMO_SelectedSubmesh != null)
+            {
+                window.SelectMaterial(ModelScene.EmmFile.GetMaterial(EMO_SelectedSubmesh.MaterialName));
+            }
         }
 
         public RelayCommand LookAtObjectCommand => new RelayCommand(LookAtObject, IsAnythingSelected);
@@ -587,19 +773,20 @@ namespace XenoKit.Views
 
         private bool CanPasteTexture()
         {
-            return Clipboard.ContainsData(ClipboardConstants.EmdTextureSampler) && (SelectedSubmesh != null || SelectedTexture != null);
+            return Clipboard.ContainsData(ClipboardConstants.EmdTextureSampler) && (SelectedSubmesh != null || SelectedTexture != null || EMO_SelectedSubmesh != null);
         }
 
         private bool CanAddTexture()
         {
-            return SelectedSubmesh != null || SelectedTexture != null;
+            return SelectedSubmesh != null || SelectedTexture != null || EMO_SelectedSubmesh != null;
         }
         
         private bool CanGotoMaterial()
         {
             //Checks if submesh is selected, and then if a material exists for it
-            if (!ModelScene.IsSubmeshSelected()) return false;
-            return ModelScene.EmmFile?.GetMaterial(SelectedSubmeshName) != null;
+            if (!ModelScene.IsSubmeshSelected() && !ModelScene.IsEmgSubmeshSelected()) return false;
+            string matNam = EmdFile != null ? SelectedSubmeshName : EMO_SelectedSubmesh?.MaterialName;
+            return ModelScene.EmmFile?.GetMaterial(matNam) != null;
         }
         #endregion
 
@@ -610,7 +797,11 @@ namespace XenoKit.Views
         {
             if (!ModelScene.HasOnlyOneSelectedType()) return;
 
-            if (ModelScene.IsModelSelected())
+            if (ModelScene.IsEmoPartSelected())
+            {
+                ModelScene.DeleteSelectedEmoPart();
+            }
+            else if (ModelScene.IsModelSelected())
             {
                 ModelScene.DeleteSelectedModels();
             }
@@ -699,7 +890,7 @@ namespace XenoKit.Views
                 }
             }
 
-            RefreshSelectedItems(treeView);
+            RefreshSelectedItems(EmdFile != null ? treeView : emoTreeView);
         }
 
         private static void RefreshSelectedItems(TreeView treeView)
@@ -729,6 +920,22 @@ namespace XenoKit.Views
                     else if (item is EMD_Submesh emdSubmesh)
                     {
                         RefreshSelectedItems(selectedItems, emdSubmesh.TextureSamplerDefs, tvi.ItemContainerGenerator);
+                    }
+                    else if (item is EMO_Part emoPart)
+                    {
+                        RefreshSelectedItems(selectedItems, emoPart.EmgFiles, tvi.ItemContainerGenerator);
+                    }
+                    else if (item is EMG_File emg)
+                    {
+                        RefreshSelectedItems(selectedItems, emg.EmgMeshes, tvi.ItemContainerGenerator);
+                    }
+                    else if (item is EMG_Mesh emgMesh)
+                    {
+                        RefreshSelectedItems(selectedItems, emgMesh.SubmeshGroups, tvi.ItemContainerGenerator);
+                    }
+                    else if (item is EMG_SubmeshGroup emgSubmesh)
+                    {
+                        RefreshSelectedItems(selectedItems, emgSubmesh.TextureSamplerDefs, tvi.ItemContainerGenerator);
                     }
                 }
 

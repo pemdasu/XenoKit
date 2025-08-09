@@ -1,6 +1,7 @@
-﻿using System;
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework.Input;
 using MonoGame.Framework.WpfInterop.Input;
+using System;
+using XenoKit.Engine.Model;
 using Xv2CoreLib.Resource.App;
 using SimdVector2 = System.Numerics.Vector2;
 
@@ -15,6 +16,7 @@ namespace XenoKit.Engine
         public MouseState MouseState { get; private set; }
         public MouseState PreviousMouseState { get; private set; }
         public KeyboardState KeyboardState { get; private set; }
+        private KeyboardState _previousKeyboardState;
 
         private SimdVector2 _prevMousePos;
         private SimdVector2 _mousePos;
@@ -83,6 +85,7 @@ namespace XenoKit.Engine
             PreviousMouseState = MouseState;
             _prevMousePos = _mousePos;
             MouseState = mouse.GetState();
+            _previousKeyboardState = KeyboardState;
             KeyboardState = keyboard.GetState();
 
             //_mousePos = new Vector2((game.GraphicsDevice.Viewport.Width - MouseState.X) * game.SuperSamplingFactor, MouseState.Y * game.SuperSamplingFactor);
@@ -303,7 +306,28 @@ namespace XenoKit.Engine
         {
             ExclusiveKeys[(int)key] = true;
         }
+        
+        /// <summary>
+        /// Checks if a key that was previously pressed has been released. Returns true for the one frame after it was released only, otherwise false.
+        /// </summary>
+        public bool WasKeyReleased(Keys key)
+        {
+            return (_previousKeyboardState.IsKeyDown(key) && KeyboardState.IsKeyUp(key));
+        }
         #endregion
     }
 
+    public delegate void ViewportInputEventHandler(object source, ViewportInputEventArgs e);
+
+    public class ViewportInputEventArgs : EventArgs
+    {
+        public Keys Key { get; private set; }
+        public bool IsCtrlHeld { get; private set; }
+
+        public ViewportInputEventArgs(Keys key)
+        {
+            Key = key;
+            IsCtrlHeld = Viewport.Instance.Input.IsKeyDown(Keys.LeftControl);
+        }
+    }
 }

@@ -221,7 +221,7 @@ namespace XenoKit.Controls
                     MonoGame.RenderSystem.ParticleBatcher.NumBatches,
                     MonoGame.RenderSystem.ParticleBatcher.NumTotalBatched,
                     MonoGame.Input.MousePosition,
-                    MonoGame.IsMouseOver);
+                    SceneManager.DebugTestValue);
 #else
                 return null;
 #endif

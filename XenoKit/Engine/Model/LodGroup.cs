@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using System.Windows.Documents;
 using XenoKit.Engine.Animation;
+using XenoKit.Engine.Stage;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib;
 using Xv2CoreLib.EMA;
@@ -17,6 +19,7 @@ namespace XenoKit.Engine.Model
     {
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
+        public StageObject ParentStageObject { get; private set; }
         public FMP_Object ParentObject { get; private set; }
         public List<Lod> LODs { get; private set; } = new List<Lod>();
         public Xv2Texture[] Textures { get; private set; }
@@ -26,8 +29,9 @@ namespace XenoKit.Engine.Model
 
         private int lodIndex = -1;
 
-        public LodGroup (FMP_Visual visual, FMP_Object parentObject)
+        public LodGroup (FMP_Visual visual, FMP_Object parentObject, StageObject parent)
         {
+            ParentStageObject = parent;
             ParentObject = parentObject;
 
             string embPath = $"stage/{visual.EmbFile}";
@@ -60,6 +64,25 @@ namespace XenoKit.Engine.Model
             {
                 ModelInstanceTree = new ModelInstanceTree(ParentObject.InstanceData);
             }
+        }
+
+        public void DrawReflection(Matrix4x4 world)
+        {
+            Lod lod = GetCurrentLod();
+
+            if (ModelInstanceTree != null)
+            {
+                for (int i = 0; i < ModelInstanceTree.InstanceGroups.Length; i++)
+                {
+                    if (ModelInstanceTree.InstanceGroups[i].FrustumIntersects())
+                        lod.DrawReflection(world, Textures, ModelInstanceTree.InstanceGroups[i]);
+                }
+            }
+            else
+            {
+                lod.DrawReflection(world, Textures, null);
+            }
+            DrawThisFrame = false;
         }
 
         public override void Draw()

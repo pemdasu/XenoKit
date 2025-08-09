@@ -19,6 +19,23 @@ namespace XenoKit.Engine.Stage
         public static event EventHandler CurrentStageChanged;
         public static event EventHandler CurrentSpmChanged;
 
+        private int _drawThisFrame = 0;
+        public override bool DrawThisFrame
+        {
+            //Draw twice per frame: ReflectionPass and regular pass
+            set
+            {
+                if (value)
+                    _drawThisFrame = 2;
+                else
+                    MathHelper.Clamp(--_drawThisFrame, 0, 2);
+            }
+            get
+            {
+                return _drawThisFrame > 0;
+            }
+        }
+
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Stage;
 
         public const string ENV_NAME = "ENVTEX";
@@ -42,7 +59,6 @@ namespace XenoKit.Engine.Stage
 
         //Reflections
         public TextureCube EnvTexture { get; private set; }
-        public LodGroup ReflectionModel { get; private set; }
 
         //Objects
         public List<StageObject> Objects { get; private set; } = new List<StageObject>();
@@ -87,29 +103,35 @@ namespace XenoKit.Engine.Stage
             UpdateStageLighting();
 
             //Load collision
-            foreach(var collisionGroup in FmpFile.CollisionGroups)
-            {
-                CollisionGroups.Add(new StageCollisionGroup(collisionGroup));
-            }
+            //foreach(var collisionGroup in FmpFile.CollisionGroups)
+            //{
+            //    CollisionGroups.Add(new StageCollisionGroup(collisionGroup));
+            //}
 
             bool hasWaterEntry = FmpFile.Objects.Any(x => x.Name == "WATER");
 
             //Load assets
             foreach (var _object in FmpFile.Objects)
             {
-                if ((_object.Flags & ObjectFlags.Enabled) == 0) continue; //Object not enabled by default, so dont create it
+                bool isEnabled = (_object.Flags & ObjectFlags.Enabled) != 0;
+                bool isRef = (hasWaterEntry && _object.Name.StartsWith("REF")) || _object.HasCommand("MIRROR OBJECT");
+                if (!isRef && !isEnabled) continue;
 
                 StageObject stageObj = new StageObject();
                 stageObj.Object = _object;
-                stageObj.Transform = _object.Matrix.ToNumerics();
+                stageObj.Transform = _object.Transform.ToMatrix();
 
-                if(_object.Entities?.Count - 1 >= _object.InitialEntityIndex)
+                //When a map file has a WATER object entry, any object that starts with "REF" is considered a water reflection
+                //Objects can also have a "MIRROR OBJECT" command which sets them up as a reflection (does not require a WATER entry)
+                stageObj.IsReflection = isRef;
+
+                if (_object.Entities?.Count - 1 >= _object.InitialEntityIndex)
                 {
                     //Just load the initial entity for now
                     FMP_Entity entity = _object.Entities[_object.InitialEntityIndex];
 
                     StageEntity stageEntity = new StageEntity();
-                    stageEntity.Transform = entity.Matrix.ToNumerics();
+                    stageEntity.Transform = entity.Transform.ToMatrix();
 
                     if (entity.Visual != null)
                     {
@@ -122,20 +144,9 @@ namespace XenoKit.Engine.Stage
                         else
                         {
                             stageEntity.Visual = new StageVisual();
-                            stageEntity.Visual.LodGroup = new LodGroup(entity.Visual, _object);
+                            stageEntity.Visual.LodGroup = new LodGroup(entity.Visual, _object, stageObj);
 
-                            if ((hasWaterEntry && _object.Name.StartsWith("REF")) || _object.HasCommand("MIRROR OBJECT"))
-                            {
-                                //When a map file has a WATER object entry, any object that starts with "REF" is considered a water reflection
-                                //Objects can also have a "MIRROR OBJECT" command which sets them up as a reflection (does not require a WATER entry)
-
-                                ReflectionModel = stageEntity.Visual.LodGroup;
-                            }
-                            else
-                            {
-                                //Only add the entity if its not a reflection/env/otherspecial entry type
-                                stageObj.Entities.Add(stageEntity);
-                            }
+                            stageObj.Entities.Add(stageEntity);
                         }
 
                     }
@@ -157,7 +168,7 @@ namespace XenoKit.Engine.Stage
                 }
                 */
 
-
+                
                 Objects.Add(stageObj);
             }
             /*
@@ -172,8 +183,22 @@ namespace XenoKit.Engine.Stage
             */
         }
 
+        public void DrawReflection()
+        {
+            foreach (StageObject obj in Objects)
+            {
+                obj.DrawReflection();
+            }
+        }
+
         public override void Draw()
         {
+            if (RenderSystem.IsReflectionPass)
+            {
+                DrawReflection();
+                return;
+            }
+
             foreach(StageObject obj in Objects)
             {
                 obj.Draw();
@@ -198,11 +223,6 @@ namespace XenoKit.Engine.Stage
         public override void Update()
         {
             DrawThisFrame = true;
-
-            if (ReflectionModel != null)
-            {
-                ReflectionModel.DrawThisFrame = true;
-            }
         }
 
         private void UpdateStageLighting()
@@ -221,9 +241,6 @@ namespace XenoKit.Engine.Stage
 
         public void SetActiveStage()
         {
-            if (ReflectionModel != null)
-                RenderSystem.AddReflectionRenderEntity(ReflectionModel);
-
             if(EnvTexture != null)
                 ShaderManager.SetSceneCubeMap(EnvTexture);
 
@@ -233,8 +250,7 @@ namespace XenoKit.Engine.Stage
 
         public void UnsetActiveStage()
         {
-            if (ReflectionModel != null)
-                RenderSystem.RemoveReflectionRenderEntity(ReflectionModel);
+
         }
 
         public static Xv2Stage CreateDefaultStage()

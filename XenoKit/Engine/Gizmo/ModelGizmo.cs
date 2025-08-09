@@ -75,6 +75,11 @@ namespace XenoKit.Engine.Gizmo
         private void SourceModel_ModelModified(object source, ModelModifiedEventArgs e)
         {
             CalculateCenter();
+            
+            if(e.EditType == EditTypeEnum.Bone)
+            {
+                attachBone = transforms?.Count > 0 ? transforms[0].Parent.AttachBone : attachBone;
+            }
         }
 
         public void RemoveContext()

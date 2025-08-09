@@ -13,6 +13,11 @@ namespace XenoKit.Engine.Stage
         public Matrix4x4 Transform { get; set; }
         public StageVisual Visual { get; set; }
 
+        public void DrawReflection(Matrix4x4 world)
+        {
+            Visual?.DrawReflection(world * Transform);
+        }
+
         public void Draw(Matrix4x4 world)
         {
             Visual?.Draw(world * Transform);

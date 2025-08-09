@@ -627,8 +627,8 @@ namespace XenoKit.Engine.Shader
                             sampler = new GlobalSampler(slot, Viewport.Instance.RenderSystem.GetSamplerAlphaDepthRT(),
                                                         new SamplerState()
                                                         {
-                                                            AddressU = TextureAddressMode.Clamp,
-                                                            AddressV = TextureAddressMode.Clamp,
+                                                            AddressU = TextureAddressMode.Wrap,
+                                                            AddressV = TextureAddressMode.Wrap,
                                                             AddressW = TextureAddressMode.Wrap,
                                                             BorderColor = new Microsoft.Xna.Framework.Color(1, 1, 1, 1),
                                                             MaxAnisotropy = 1,

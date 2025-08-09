@@ -4,15 +4,17 @@ using GalaSoft.MvvmLight;
 using static Xv2CoreLib.EMD.EMD_TextureSamplerDef;
 using Xv2CoreLib.EMB_CLASS;
 using System.Windows;
+using Xv2CoreLib.EMO;
 
 namespace XenoKit.ViewModel.EMD
 {
     public class EmdTextureViewModel : ObservableObject
     {
         private EMB_File embFile;
-        private EMD_File emdFile;
+        private IModelFile modelFile;
+        private EMO_File emoFile;
         private EMD_TextureSamplerDef texture;
-        private object submeshContext; //EMD_Submesh or EMG_Submesh
+        private object submeshContext; //EMD_Submesh or EMG_SubmeshGroup
 
         public byte I_00
         {
@@ -38,13 +40,13 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.EmbIndex), texture, texture.EmbIndex, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler EmbIndex", UndoGroup.EMD);
 
                 texture.EmbIndex = value;
 
                 RaisePropertyChanged(() => EmbIndex);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public AddressMode AddressModeU
@@ -58,12 +60,12 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.AddressModeU), texture, texture.AddressModeU, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler AddressModeU", UndoGroup.EMD);
                 texture.AddressModeU = value;
 
                 RaisePropertyChanged(() => AddressModeU);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public AddressMode AddressModeV
@@ -77,12 +79,12 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.AddressModeV), texture, texture.AddressModeV, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler AddressModeV", UndoGroup.EMD);
                 texture.AddressModeV = value;
 
                 RaisePropertyChanged(() => AddressModeV);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public Filtering FilteringMin
@@ -96,12 +98,12 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.FilteringMin), texture, texture.FilteringMin, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler FilteringMin", UndoGroup.EMD);
                 texture.FilteringMin = value;
 
                 RaisePropertyChanged(() => FilteringMin);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public Filtering FilteringMag
@@ -115,12 +117,12 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.FilteringMag), texture, texture.FilteringMag, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler FilteringMag", UndoGroup.EMD);
                 texture.FilteringMag = value;
 
                 RaisePropertyChanged(() => FilteringMag);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public float ScaleU
@@ -134,13 +136,13 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.ScaleU), texture, texture.ScaleU, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler ScaleU", UndoGroup.EMD);
 
                 texture.ScaleU = value;
 
                 RaisePropertyChanged(() => ScaleU);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
         public float ScaleV
@@ -154,12 +156,12 @@ namespace XenoKit.ViewModel.EMD
                 UndoManager.Instance.AddCompositeUndo(new System.Collections.Generic.List<IUndoRedo>()
                 {
                     new UndoableProperty<EMD_TextureSamplerDef>(nameof(EMD_TextureSamplerDef.ScaleV), texture, texture.ScaleV, value),
-                    new UndoActionDelegate(emdFile, nameof(emdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
+                    new UndoActionDelegate(modelFile, nameof(modelFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, submeshContext))
                 }, "TextureSampler ScaleV", UndoGroup.EMD);
                 texture.ScaleV = value;
 
                 RaisePropertyChanged(() => ScaleV);
-                emdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
+                modelFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, submeshContext);
             }
         }
 
@@ -177,10 +179,10 @@ namespace XenoKit.ViewModel.EMD
         public Visibility TextureSelectorVisibility => embFile != null ? Visibility.Visible : Visibility.Collapsed;
         public Visibility TextureIndexVisibility => embFile == null ? Visibility.Visible : Visibility.Collapsed;
 
-        public EmdTextureViewModel(EMD_TextureSamplerDef texture, object submeshContext, EMD_File emdFile, EMB_File embFile)
+        public EmdTextureViewModel(EMD_TextureSamplerDef texture, object submeshContext, IModelFile modelFile, EMB_File embFile)
         {
             this.texture = texture;
-            this.emdFile = emdFile;
+            this.modelFile = modelFile;
             this.submeshContext = submeshContext;
             this.embFile = embFile;
         }

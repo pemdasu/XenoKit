@@ -50,9 +50,9 @@ namespace XenoKit.Engine.Vfx
             */
         }
 
-        public void PreviewEffect(Effect effect)
+        public async void PreviewEffect(Effect effect)
         {
-            SceneManager.EnsureActorIsSet(0);
+            await SceneManager.AsyncEnsureActorIsSet(0);
 
             if (Effect != null)
                 Effect.Dispose();
@@ -60,9 +60,9 @@ namespace XenoKit.Engine.Vfx
             Effect = new VfxEffect(SceneManager.Actors[0], effect, System.Numerics.Matrix4x4.Identity);
         }
 
-        public void PreviewAsset(Xv2CoreLib.EffectContainer.Asset asset)
+        public async void PreviewAsset(Xv2CoreLib.EffectContainer.Asset asset)
         {
-            SceneManager.EnsureActorIsSet(0);
+            await SceneManager.AsyncEnsureActorIsSet(0);
 
             if (Asset != null)
                 Asset.Dispose();

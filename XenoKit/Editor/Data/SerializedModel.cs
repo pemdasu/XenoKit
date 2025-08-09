@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Xv2CoreLib.EMA;
 using Xv2CoreLib.EMB_CLASS;
 using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
+using Xv2CoreLib.ESK;
 using Xv2CoreLib.Resource.UndoRedo;
 
 namespace XenoKit.Editor.Data
@@ -13,20 +15,17 @@ namespace XenoKit.Editor.Data
     [Serializable]
     public class SerializedModel
     {
-        public const string CLIPBOARD_EMD_MODEL = "EmdModelSerialized";
-        public const string CLIPBOARD_EMD_MESH = "EmdMeshSerialized";
+        public const string CLIPBOARD_MODEL = "EmdModelSerialized";
+        public const string CLIPBOARD_MESH = "EmdMeshSerialized";
         public const string CLIPBOARD_EMD_SUBMESH = "EmdSubmeshSerialized";
-        public const string CLIPBOARD_EMO_MODEL = "EmoModelSerialized";
-        public const string CLIPBOARD_EMO_MESH = "EmoMeshSerialized";
-        public const string CLIPBOARD_EMO_SUBMESH = "EmoSubmeshSerialized";
 
         //The model object to be serialized. Only one of these will be used, the rest will be null
         public EMD_Model[] EmdModel { get; set; }
         public EMD_Mesh[] EmdMesh { get; set; }
         public EMD_Submesh[] EmdSubmesh { get; set; }
-        public EMO_Part[] EmoModel { get; set; }
-        public EMG_File[] EmoMesh { get; set; }
-        public EMG_Submesh[] EmoSubmesh { get; set; }
+        public EMG_File[] EmoModel { get; set; }
+        public EMG_Mesh[] EmoMesh { get; set; }
+        public string[] Bones { get; set; }
 
         //Material and textures (only those used by the model object will be serialized)
         public List<EmmMaterial> Materials { get; set; } = new List<EmmMaterial>();
@@ -73,13 +72,60 @@ namespace XenoKit.Editor.Data
             }
         }
 
+        public SerializedModel(EMG_Mesh[] emgMesh, EMM_File emmFile, EMB_File embFile, Skeleton skeleton)
+        {
+            EmoMesh = emgMesh;
+            Bones = skeleton.GetBoneNames();
+
+            foreach (var mesh in EmoMesh)
+            {
+                foreach (var submeshGroup in mesh.SubmeshGroups)
+                {
+                    CreateTextureAndMaterials(submeshGroup, emmFile, embFile);
+                }
+            }
+        }
+
+        public SerializedModel(EMG_File[] emgFile, EMM_File emmFile, EMB_File embFile, Skeleton skeleton)
+        {
+            EmoModel = emgFile;
+            Bones = skeleton.GetBoneNames();
+
+            foreach (var emg in EmoModel)
+            {
+                foreach (var mesh in emg.EmgMeshes)
+                {
+                    foreach (var submeshGroup in mesh.SubmeshGroups)
+                    {
+                        CreateTextureAndMaterials(submeshGroup, emmFile, embFile);
+                    }
+                }
+            }
+        }
+
         private void CreateTextureAndMaterials(EMD_Submesh submesh, EMM_File emmFile, EMB_File embFile)
         {
             CreateTextures(submesh.TextureSamplerDefs, embFile);
 
             if(Materials.FirstOrDefault(x => x.Name == submesh.Name) == null)
             {
-                Materials.Add(emmFile.GetMaterial(submesh.Name));
+                var material = emmFile.GetMaterial(submesh.Name);
+
+                if (material != null)
+                    Materials.Add(material);
+            }
+        }
+
+        private void CreateTextureAndMaterials(EMG_SubmeshGroup submeshGroup, EMM_File emmFile, EMB_File embFile)
+        {
+            CreateTextures(submeshGroup.TextureSamplerDefs, embFile);
+
+            if (Materials.FirstOrDefault(x => x.Name == submeshGroup.MaterialName) == null)
+            {
+                var material = emmFile.GetMaterial(submeshGroup.MaterialName);
+
+                if(material != null)
+                    Materials.Add(material);
             }
         }
 
@@ -133,6 +179,18 @@ namespace XenoKit.Editor.Data
                     PasteTextures(submesh.TextureSamplerDefs, embFile, undos);
                 }
             }
+            else if (EmoMesh != null)
+            {
+                PasteMaterials(EmoMesh, emmFile, undos);
+
+                foreach (var mesh in EmoMesh)
+                {
+                    foreach(var submesh in mesh.SubmeshGroups)
+                    {
+                        PasteTextures(submesh.TextureSamplerDefs, embFile, undos);
+                    }
+                }
+            }
 
             return undos;
         }
@@ -150,6 +208,27 @@ namespace XenoKit.Editor.Data
                         material.DecompileParameters();
                         emmFile.Materials.Add(material);
                         undos.Add(new UndoableListAdd<EmmMaterial>(emmFile.Materials, material));
+                    }
+                }
+            }
+        }
+
+        private void PasteMaterials(IEnumerable<EMG_Mesh> meshes, EMM_File emmFile, List<IUndoRedo> undos)
+        {
+            foreach (var mesh in meshes)
+            {
+                foreach(var submesh in mesh.SubmeshGroups)
+                {
+                    if (emmFile.Materials.FirstOrDefault(x => x.Name == submesh.MaterialName) == null)
+                    {
+                        EmmMaterial material = Materials.FirstOrDefault(x => x.Name == submesh.MaterialName);
+
+                        if (material != null)
+                        {
+                            material.DecompileParameters();
+                            emmFile.Materials.Add(material);
+                            undos.Add(new UndoableListAdd<EmmMaterial>(emmFile.Materials, material));
+                        }
                     }
                 }
             }
@@ -185,6 +264,33 @@ namespace XenoKit.Editor.Data
                 }
             }
         }
+
         #endregion
+
+        public EMD_Mesh[] GetEmdMesh(ESK_Skeleton targetSkeleton)
+        {
+            if (EmdMesh != null)
+                return EmdMesh;
+
+            if(EmoMesh != null)
+            {
+                return EMG_Mesh.ConvertToEmd(EmoMesh, targetSkeleton, Bones, targetSkeleton != null ? targetSkeleton.ESKBones[0].Name : null);
+            }
+
+            throw new Exception("SerializedModel.GetEmdMesh: this SerializedModel does not contain EmdMesh data.");
+        }
+
+        public EMG_Mesh[] GetEmoMesh(Skeleton targetSkeleton)
+        {
+            if (EmoMesh != null)
+                return EmoMesh;
+
+            if (EmdMesh != null)
+            {
+                return EMD_Mesh.ConvertToEmg(EmdMesh, targetSkeleton);
+            }
+
+            throw new Exception("SerializedModel.GetEmoMesh: this SerializedModel does not contain EmoMesh data.");
+        }
     }
 }

@@ -65,17 +65,29 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
         public static void ApplyTransformation(IList<Xv2Submesh> transforms, IModelFile SourceModel)
         {
-            List<IUndoRedo> undos = new List<IUndoRedo>();
-            List<object> sourceSubmeshes = new List<object>();
+            List<IUndoRedo> undos = new List<IUndoRedo>(64);
+            List<object> sourceSubmeshes = new List<object>(transforms.Count);
 
             foreach (var submesh in transforms)
             {
-                submesh.ApplyTransformationToSource(undos);
+                object source = null;
 
                 if (submesh.SourceEmdSubmesh != null)
-                    sourceSubmeshes.Add(submesh.SourceEmdSubmesh);
-                else if (submesh.SourceEmgSubmesh != null)
-                    sourceSubmeshes.Add(submesh.SourceEmgSubmesh);
+                    source = submesh.SourceEmdSubmesh;
+                else if (submesh.SourceEmgMesh != null)
+                    source = submesh.SourceEmgMesh;
+
+                if (source == null) return;
+
+                if (!sourceSubmeshes.Contains(source))
+                {
+                    submesh.ApplyTransformationToSource(undos);
+                    sourceSubmeshes.Add(source);
+                }
+                else
+                {
+                    submesh.Transform = Matrix4x4.Identity;
+                }
             }
 
             undos.Add(new UndoActionDelegate(SourceModel, nameof(SourceModel.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Vertex, sourceSubmeshes)));
@@ -130,10 +142,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
         private void UpdateTransform()
         {
-            Matrix4x4 attachMatrix = transforms[0].Parent.Parent.AttachBone != null ? transforms[0].Parent.Parent.AttachBone.AbsoluteAnimationMatrix : Matrix4x4.Identity;
+            Matrix4x4 attachMatrix = (SceneManager.PivotPoint == PivotPoint.Center) ? Matrix4x4.CreateTranslation(center) : Matrix4x4.Identity;
 
-            if (SceneManager.PivotPoint == PivotPoint.Center)
-                attachMatrix *= Matrix4x4.CreateTranslation(center);
+            if (transforms[0].Parent.AttachBone != null)
+                attachMatrix *= transforms[0].Parent.AttachBone.AbsoluteAnimationMatrix;
 
             Matrix4x4 deltaMatrix = MathHelpers.Invert(originalMatrix * attachMatrix);
             deltaMatrix *= Matrix4x4.CreateScale(scale);

@@ -20,6 +20,7 @@ using XenoKit.Windows;
 using Xv2CoreLib;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.SAV;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace XenoKit
 {
@@ -65,7 +66,6 @@ namespace XenoKit
             DebugMenuVisible = Visibility.Visible;
 #endif
             sw = Stopwatch.StartNew();
-
             //Force en-US culture accross whole application to ensure error messages will always be in english
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("en-US");
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
@@ -83,8 +83,7 @@ namespace XenoKit
 
             InitTheme();
             InitGameDir();
-            RegisterEvents();
-            AsyncInit();
+            Log.LogEntryAddedEvent += LogEntryAdded;
 
             //Set window size
             if (SettingsManager.Instance.Settings.XenoKit_WindowSizeX > MinWidth && SystemParameters.FullPrimaryScreenWidth >= SettingsManager.Instance.Settings.XenoKit_WindowSizeX)
@@ -106,10 +105,12 @@ namespace XenoKit
 
             mainTabControl.SelectedIndex = 1;
             eepkEditor.SelectedEffectTabChanged += EepkEditor_SelectedEffectTabChanged;
-
             Closing += MainWindow_Closing;
+        }
 
-            Log.Add("Init finished at " + sw.Elapsed, LogType.Debug);
+        private async void MetroWindow_ContentRendered(object sender, EventArgs e)
+        {
+            await AsyncInit();
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
@@ -190,19 +191,14 @@ namespace XenoKit
 
         private async Task AsyncInit()
         {
-            Log.Add("AsyncInit start at " + sw.Elapsed, LogType.Debug);
             Files.Instance.Initialize(this);
 
             //Check for updates silently
 #if !DEBUG
             CheckForUpdate(false);
 #endif
+            Log.Add("Finished init at " + sw.Elapsed, LogType.Debug);
 
-        }
-
-        private void RegisterEvents()
-        {
-            Log.LogEntryAddedEvent += new EventHandler(LogEntryAdded);
         }
 
         /// <summary>
@@ -221,19 +217,6 @@ namespace XenoKit
                 MessageBox.Show("The game directory was not found. \n\nThe application will now close.", "Game Directory Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(0);
             }
-        }
-
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            // get the current app style (theme and accent) from the application
-            // you can then use the current theme and custom accent instead set a new theme
-            //Tuple<AppTheme, Accent> appStyle = ThemeManager.DetectAppStyle(Application.Current);
-
-            // now set the Green accent and dark theme
-            //ThemeManager.ChangeAppStyle(Application.Current,
-            //                            ThemeManager.GetAccent("Red"),
-            //                           ThemeManager.GetAppTheme("BaseDark")); // or appStyle.Item1
-
         }
 
         public void InitTheme()
@@ -535,9 +518,9 @@ namespace XenoKit
             Files.Instance.SelectedItemOrTabChanged(sender, e);
         }
 
-        private void UpdateSelectedTab()
+        private async void UpdateSelectedTab()
         {
-            bool changed = SceneManager.SetSceneState(mainTabControl.SelectedIndex, bcsTabControl.SelectedIndex, audioControl.audioTabControl.SelectedIndex, eepkEditor.tabControl.SelectedIndex);
+            bool changed = await SceneManager.SetSceneState(mainTabControl.SelectedIndex, bcsTabControl.SelectedIndex, audioControl.audioTabControl.SelectedIndex, eepkEditor.tabControl.SelectedIndex);
 
             //Auto play bac entry if nothing is active
             if (SceneManager.CurrentSceneState == EditorTabs.Action)

@@ -11,10 +11,21 @@ namespace XenoKit.Engine.Stage
         public Matrix4x4 Transform { get; set; }
         public List<StageEntity> Entities { get; set; } = new List<StageEntity>();
         public List<StageColliderInstance> ColliderInstances { get; set; } = new List<StageColliderInstance>();
+        public bool IsReflection { get; set; }
+
+        public void DrawReflection()
+        {
+            if (!IsReflection) return;
+
+            foreach (var entity in Entities)
+            {
+                entity.DrawReflection(Transform);
+            }
+        }
 
         public void Draw()
         {
-            if (SceneManager.StageGeometryVisible)
+            if (SceneManager.StageGeometryVisible && !IsReflection)
             {
                 foreach (var entity in Entities)
                 {
@@ -35,8 +46,8 @@ namespace XenoKit.Engine.Stage
 
         public void DrawSimple()
         {
-            //if ((Object.Flags & ObjectFlags.CastShadow) == 0) 
-            //    return; //No shadows
+            if ((Object.Flags & ObjectFlags.CastShadow) == 0 || IsReflection) 
+                return; //No shadows
 
             foreach (var entity in Entities)
             {

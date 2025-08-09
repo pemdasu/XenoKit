@@ -531,6 +531,7 @@
     <Compile Include="Engine\Rendering\YBSPostFilterStep.cs" />
     <Compile Include="Engine\Rendering\YBSPostProcess.cs" />
     <Compile Include="Engine\RenderObject.cs" />
+    <Compile Include="Engine\RenderScene.cs" />
     <Compile Include="Engine\Scripting\Simulation.cs" />
     <Compile Include="Engine\Shader\DefaultShaders.cs" />
     <Compile Include="Engine\Stage\StageCollider.cs" />

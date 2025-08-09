@@ -366,8 +366,8 @@ namespace XenoKit.Views
                     {
                         EMB_File embFile = (EMB_File)LoadFile(embPath);
                         EMM_File emmFile = (EMM_File)LoadFile(emmPath);
-                        EMB_File dytFile = (EMB_File)LoadFile(dytPath);
-                        modelScene.SetFiles(Engine.Shader.ShaderType.Chara, embFile, emmFile, dytFile);
+                        EMB_File dytFile = dytPath != null ? (EMB_File)LoadFile(dytPath) : null;
+                        modelScene.SetFiles(Engine.Shader.ShaderType.Chara, embFile, emmFile, dytFile, Character.EskFile.File);
                         modelScene.SetPaths(true, SelectedFile.RelativePath, embPath, emmPath, dytPath);
 
                         ModelSceneView modelSceneView = new ModelSceneView(modelScene);
@@ -503,6 +503,7 @@ namespace XenoKit.Views
     
         private object LoadFile(string path)
         {
+            if (string.IsNullOrWhiteSpace(path)) return null;
             var partSetEntry = Character.PartSetFiles.FirstOrDefault(x => $"chara/{Character.CmsEntry.ShortName}/{x.Name}" == path);
 
             if (partSetEntry != null)

@@ -569,12 +569,14 @@ namespace XenoKit.Engine
             if (CurrentStage != null)
             {
                 RenderSystem.RemoveRenderEntity(CurrentStage);
+                RenderSystem.RemoveReflectionRenderEntity(CurrentStage);
                 CurrentStage.UnsetActiveStage();
             }
 
             if (stage != null)
             {
                 RenderSystem.AddRenderEntity(stage);
+                RenderSystem.AddReflectionRenderEntity(stage);
             }
 
             _isDefaultStageActive = stage == null;

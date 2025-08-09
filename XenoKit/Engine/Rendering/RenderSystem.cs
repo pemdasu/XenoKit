@@ -30,7 +30,7 @@ namespace XenoKit.Engine.Rendering
         private readonly List<RenderObject> StagesToRemove = new List<RenderObject>();
         private readonly List<RenderObject> EffectsToRemove = new List<RenderObject>();
 
-        private RenderObject RenderScene = null;
+        private RenderScene RenderScene = null;
 
         private int _particleCount = 0;
         public int ActiveParticleCount { get; private set; }
@@ -272,7 +272,7 @@ namespace XenoKit.Engine.Rendering
 
             if (SceneManager.UseRenderScene)
                 RenderScene.DrawPass(true);
-            
+
             //Color Pass (Chara + Stage Enviroment)
             SetRenderTargets(ColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
             GraphicsDevice.Clear(Color.Transparent);
@@ -280,10 +280,23 @@ namespace XenoKit.Engine.Rendering
             DrawEntity(Characters, LOW_REZ_NONE);
 
             if (SceneManager.UseRenderScene)
-                DrawRenderScene();
+                DrawRenderScene(RenderPipelineStage.ModelMain);
+
+            //Create SamplerAlphaDepth
+            SetRenderTargets(SamplerAlphaDepth.RenderTarget);
+            GraphicsDevice.Clear(Color.Red);
+            GraphicsDevice.SetDepthAsTexture(DepthBuffer.RenderTarget, 0);
+            PostFilter.Apply(AGE_TEST_DEPTH_TO_PFXD);
+            GraphicsDevice.Textures[0] = null;
 
             if (!ViewportInstance.IsBlackVoid)
+            {
+                //Some stage objects should be drawn AFTER SamplerAlphaDepth is created, while others are drawn before
+
+                SetRenderTargets(ColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
+                GraphicsDevice.SetDepthBuffer(DepthBuffer.RenderTarget);
                 DrawEntity(Stages, LOW_REZ_NONE);
+            }
 
             //Black Chara Outline Shader
             if (SettingsManager.settings.XenoKit_UseOutlinePostEffect)
@@ -293,13 +306,6 @@ namespace XenoKit.Engine.Rendering
                 SetTexture(NormalPassRT0.RenderTarget);
                 PostFilter.Apply(AGE_TEST_EDGELINE_MRT);
             }
-
-            //Create SamplerAlphaDepth
-            SetRenderTargets(SamplerAlphaDepth.RenderTarget);
-            GraphicsDevice.Clear(Color.Red);
-            GraphicsDevice.SetDepthAsTexture(DepthBuffer.RenderTarget, 0);
-            PostFilter.Apply(AGE_TEST_DEPTH_TO_PFXD);
-            GraphicsDevice.Textures[0] = null;
 
             //Stage Outline, NewColorPassRT
             GraphicsDevice.SetRenderTarget(NextColorPassRT0.RenderTarget);
@@ -315,6 +321,9 @@ namespace XenoKit.Engine.Rendering
             _particleCount = ParticleBatcher.NumTotalBatched;
             DrawEntity(Effects, LOW_REZ_NONE);
             DrawParticleBatcher(LOW_REZ_NONE);
+
+            if (SceneManager.UseRenderScene)
+                DrawRenderScene(RenderPipelineStage.EffectInitial);
 
             //LowRez Pass
             SetRenderTargets(LowRezRT0.RenderTarget, LowRezRT1.RenderTarget);
@@ -369,6 +378,7 @@ namespace XenoKit.Engine.Rendering
             GraphicsDevice.Clear(Color.Transparent);
 
             DisplayRenderTarget(result.RenderTarget, false);
+            //DisplayRenderTarget(ReflectionRT.RenderTarget, true);
 
             //Process screenshots at this stage, before merging the RT with the rest of the scene
             if (ScreenshotRequested)
@@ -511,7 +521,6 @@ namespace XenoKit.Engine.Rendering
         private void DrawEntity(List<RenderObject> entities, int lowRezMode)
         {
             if (SceneManager.UseRenderScene) return;
-
             int particleCount = 0;
 
             //OPAQUE PASS
@@ -574,9 +583,9 @@ namespace XenoKit.Engine.Rendering
             _particleCount += particleCount;
         }
 
-        private void DrawRenderScene()
+        private void DrawRenderScene(RenderPipelineStage stage)
         {
-            if (RenderScene == null) return;
+            if (RenderScene == null || RenderScene.RenderPipelineStage != stage) return;
 
             CurrentDrawPass = Rendering.DrawPass.Opaque;
             RenderScene.Draw();
@@ -882,7 +891,7 @@ namespace XenoKit.Engine.Rendering
             }
         }
         
-        public void SetRenderScene(RenderObject scene)
+        public void SetRenderScene(RenderScene scene)
         {
             RenderScene = scene;
         }
@@ -955,4 +964,15 @@ namespace XenoKit.Engine.Rendering
         Additive,
         Subtractive
     }
+
+    public enum RenderPipelineStage 
+    { 
+        Shadow, //Characters / Stage models with shadow shader
+        Normal, //Characters with normal shader
+        ModelMain, //Characters / Stage models
+        EffectInitial,
+        EffectLowRez,
+        EffectLowRezSmoke
+    }
+
 }

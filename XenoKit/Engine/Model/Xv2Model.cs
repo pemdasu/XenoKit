@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 using System.Windows.Media.Imaging;
 using XenoKit.Editor;
 using XenoKit.Engine.Animation;
@@ -36,7 +37,7 @@ namespace XenoKit.Engine.Model
         public EMD_File SourceEmdFile { get; private set; }
         public EMO_File SourceEmoFile { get; private set; }
         public EMG_File SourceEmgFile { get; private set; }
-        private bool IsReflectionMesh = false;
+        public bool IsReflectionMesh { get; private set; }
 
         public ModelType Type { get; private set; }
         public List<Xv2Model> Models { get; private set; } = new List<Xv2Model>();
@@ -94,12 +95,14 @@ namespace XenoKit.Engine.Model
         public static Xv2Submesh LoadEmg(EMG_File emgFile)
         {
             if (emgFile.EmgMeshes.Count == 0) return null;
-            if (emgFile.EmgMeshes[0].Submeshes.Count == 0) return null;
+            if (emgFile.EmgMeshes[0].SubmeshGroups.Count == 0) return null;
+            if (emgFile.EmgMeshes[0].SubmeshGroups[0].Submeshes.Count == 0) return null;
 
             EMG_Mesh mesh = emgFile.EmgMeshes[0];
-            EMG_Submesh submesh = emgFile.EmgMeshes[0].Submeshes[0];
+            EMG_Submesh submesh = emgFile.EmgMeshes[0].SubmeshGroups[0].Submeshes[0];
+            EMG_SubmeshGroup submeshGroup = emgFile.EmgMeshes[0].SubmeshGroups[0];
 
-            Xv2Submesh xv2Submesh = new Xv2Submesh(mesh, submesh, false, null, null);
+            Xv2Submesh xv2Submesh = new Xv2Submesh(mesh, submesh, submeshGroup, false, null, null);
 
             return xv2Submesh;
         }
@@ -178,6 +181,9 @@ namespace XenoKit.Engine.Model
             }
 
             CalculateAABBs();
+
+            if (registerEvent)
+                SourceEmoFile.ModelModified += SourceEmdFile_ModelModified;
         }
 
         private void LoadEmg(bool registerEvent = false)
@@ -230,9 +236,9 @@ namespace XenoKit.Engine.Model
                                 compiledSubmesh.ReloadSubmesh();
                             }
                         }
-                        else if (sourceSubmesh is EMG_Submesh emgSubmesh)
+                        else if (sourceSubmesh is EMG_Mesh emgMesh)
                         {
-                            foreach (var compiledSubmesh in GetSubmeshes(emgSubmesh))
+                            foreach (var compiledSubmesh in GetSubmeshesFromEmgMesh(emgMesh))
                             {
                                 compiledSubmesh.ReloadSubmesh();
                             }
@@ -268,9 +274,9 @@ namespace XenoKit.Engine.Model
                         submesh.InitSamplers();
                     }
                 }
-                else if (e.Context is EMG_Submesh emgSubmesh)
+                else if (e.Context is EMG_SubmeshGroup emgSubmesh)
                 {
-                    foreach (var submesh in GetSubmeshes(emgSubmesh))
+                    foreach (var submesh in GetSubmeshesFromEmoGroup(emgSubmesh))
                     {
                         submesh.InitSamplers();
                     }
@@ -284,23 +290,34 @@ namespace XenoKit.Engine.Model
             {
                 MaterialsChanged?.Invoke(this, EventArgs.Empty);
             }
+            else if(e.EditType == EditTypeEnum.Bone)
+            {
+                if(e.Context is EMD_Mesh emdMesh)
+                {
+                    Xv2Mesh xv2Mesh = GetMesh(emdMesh);
+                    xv2Mesh.SetAttachBone();
+                }
+                else if (e.Context is EMO_Part emoPart)
+                {
+                    foreach(var model in GetModelsFromEmoPart(emoPart))
+                    {
+                        model.SetAttachBone();
+                    }
+                }
+            }
 
             ModelModified?.Invoke(this, e);
         }
 
         private void ReinitializeTextureSamplers()
         {
-            for (int i = 0; i < SourceEmdFile.Models.Count; i++)
+            foreach(var model in Models)
             {
-                for (int a = 0; a < SourceEmdFile.Models[i].Meshes.Count; a++)
+                foreach(var mesh in model.Meshes)
                 {
-                    for (int s = 0; s < SourceEmdFile.Models[i].Meshes[a].Submeshes.Count; s++)
+                    foreach(var submesh in mesh.Submeshes)
                     {
-                        //Triangle lists are separated into submeshes in XenoKit, so we must account for that here.
-                        for (int b = 0; b < SourceEmdFile.Models[i].Meshes[a].Submeshes[s].Triangles.Count; b++)
-                        {
-                            Models[i].Meshes[a].Submeshes[s + b].InitSamplers();
-                        }
+                        submesh.InitSamplers();
                     }
                 }
             }
@@ -356,7 +373,6 @@ namespace XenoKit.Engine.Model
 
         public void SetAsReflectionMesh(bool isReflection)
         {
-            if (isReflection == IsReflectionMesh) return;
             IsReflectionMesh = isReflection;
 
             //Invert normal Y so they are correct in the reflection
@@ -366,17 +382,10 @@ namespace XenoKit.Engine.Model
                 {
                     foreach(Xv2Submesh submesh in mesh.Submeshes)
                     {
-                        for(int i = 0; i < submesh.Vertices.Length; i++)
-                        {
-                            submesh.Vertices[i].Normal = new Vector3(submesh.Vertices[i].Normal.X, -submesh.Vertices[i].Normal.Y, submesh.Vertices[i].Normal.Z);
-                            submesh.Vertices[i].Tangent = new Vector3(submesh.Vertices[i].Tangent.X, -submesh.Vertices[i].Tangent.Y, submesh.Vertices[i].Tangent.Z);
-                        }
-
+                        submesh.SetReflection(isReflection);
                     }
                 }
             }
-
-            CreateBuffers();
         }
 
         public void CreateBuffers()
@@ -435,6 +444,14 @@ namespace XenoKit.Engine.Model
 
             return null;
         }
+        
+        public IEnumerable<Xv2Model> GetModelsFromEmoPart(EMO_Part emoPart)
+        {
+            foreach (var model in Models)
+            {
+                if (model.SourceEmoPart == emoPart) yield return model;
+            }
+        }
 
         public Xv2Mesh GetMesh(object sourceMeshObject)
         {
@@ -447,6 +464,71 @@ namespace XenoKit.Engine.Model
             }
 
             return null;
+        }
+
+        public IEnumerable<Xv2Submesh> GetSubmeshesFromEmoPart(EMO_Part emoPart)
+        {
+            foreach (var model in Models)
+            {
+                if(model.SourceEmoPart == emoPart)
+                {
+                    foreach (var mesh in model.Meshes)
+                    {
+                        foreach (var submesh in mesh.Submeshes)
+                        {
+                            yield return submesh;
+                        }
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<Xv2Submesh> GetSubmeshesFromEmg(EMG_File emgFile)
+        {
+            foreach (var model in Models)
+            {
+                if (model.SourceEmgModel == emgFile)
+                {
+                    foreach (var mesh in model.Meshes)
+                    {
+                        foreach (var submesh in mesh.Submeshes)
+                        {
+                            yield return submesh;
+                        }
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<Xv2Submesh> GetSubmeshesFromEmgMesh(EMG_Mesh emgMesh)
+        {
+            foreach (var model in Models)
+            {
+                foreach (var mesh in model.Meshes)
+                {
+                    if(mesh.SourceEmgMesh == emgMesh)
+                    {
+                        foreach (var submesh in mesh.Submeshes)
+                        {
+                            yield return submesh;
+                        }
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<Xv2Submesh> GetSubmeshesFromEmoGroup(EMG_SubmeshGroup group)
+        {
+            foreach (var model in Models)
+            {
+                foreach(var mesh in model.Meshes)
+                {
+                    foreach(var submesh in mesh.Submeshes)
+                    {
+                        if(submesh.SourceEmgSubmeshGroup == group) yield return submesh;
+                    }
+                }
+            }
         }
 
         public IEnumerable<Xv2Submesh> GetSubmeshes(object sourceSubmesh)
@@ -507,6 +589,18 @@ namespace XenoKit.Engine.Model
             {
                 return new List<Xv2Submesh>(GetSubmeshes(submesh));
             }
+            else if(sourceObject is EMO_Part emoPart)
+            {
+                return new List<Xv2Submesh>(GetSubmeshesFromEmoPart(emoPart));
+            }
+            else if (sourceObject is EMG_File emgFile)
+            {
+                return new List<Xv2Submesh>(GetSubmeshesFromEmg(emgFile));
+            }
+            else if (sourceObject is EMG_Mesh emgMesh)
+            {
+                return new List<Xv2Submesh>(GetSubmeshesFromEmgMesh(emgMesh));
+            }
 
             return null;
         }
@@ -546,7 +640,7 @@ namespace XenoKit.Engine.Model
 
             for(int i = 0; i < hits.Count; i++)
             {
-                Ray transformedRay = hits[i].Parent.Parent.AttachBone != null ? EngineUtils.TransformRay(ray, Matrix.Invert(hits[i].Parent.Parent.AttachBone.AbsoluteAnimationMatrix)) : ray;
+                Ray transformedRay = hits[i].Parent.AttachBone != null ? EngineUtils.TransformRay(ray, Matrix.Invert(hits[i].Parent.AttachBone.AbsoluteAnimationMatrix)) : ray;
 
                 if (hits[i].BVH.IntersectsAny(transformedRay))
                     return hits[i];
@@ -741,12 +835,7 @@ namespace XenoKit.Engine.Model
         
         public void SetAttachBone()
         {
-            if(Root.Type == ModelType.Nsk)
-            {
-                int boneIdx = Root.Skeleton.GetBoneIndex(Name);
-                AttachBone = Root.Skeleton.Bones.Length > boneIdx && boneIdx != -1 ? Root.Skeleton.Bones[boneIdx] : null;
-            }
-            else if(Root.Type == ModelType.Emo)
+            if(Root.Type == ModelType.Emo)
             {
                 AttachBone = Root.Skeleton.GetBone(SourceEmoPart.LinkedBone);
             }
@@ -807,6 +896,9 @@ namespace XenoKit.Engine.Model
 
     public class Xv2Mesh : RenderObject, IDisposable
     {
+        private Xv2Bone _attachBone = null;
+        public Xv2Bone AttachBone => SourceEmgMesh != null ? Parent?.AttachBone : _attachBone;
+
         public List<Xv2Submesh> Submeshes { get; set; } = new List<Xv2Submesh>();
 
         public Xv2ModelFile Root { get; private set; }
@@ -878,6 +970,8 @@ namespace XenoKit.Engine.Model
                     }
                 }
             }
+
+            SetAttachBone();
         }
 
         private void CreateFromEmg(bool reloadAll = true)
@@ -886,27 +980,39 @@ namespace XenoKit.Engine.Model
             //This is for updating the Xv2Mesh when changes are made
             for (int i = Submeshes.Count - 1; i >= 0; i--)
             {
-                if (!SourceEmgMesh.Submeshes.Exists(Submeshes[i].SourceEmgSubmesh))
+                if (!SourceEmgMesh.SubmeshGroups.Exists(Submeshes[i].SourceEmgSubmeshGroup) || !Submeshes[i].SourceEmgSubmeshGroup.Submeshes.Exists(Submeshes[i].SourceEmgSubmesh))
                 {
                     Submeshes[i].Dispose();
                     Submeshes.RemoveAt(i);
                 }
             }
 
-            for (int i = 0; i < SourceEmgMesh.Submeshes.Count; i++)
+            for (int i = 0; i < SourceEmgMesh.SubmeshGroups.Count; i++)
             {
-                Xv2Submesh submesh = GetSubmesh(SourceEmgMesh.Submeshes[i]);
+                for(int a = 0; a < SourceEmgMesh.SubmeshGroups[i].Submeshes.Count; a++)
+                {
+                    Xv2Submesh submesh = GetSubmesh(SourceEmgMesh.SubmeshGroups[i].Submeshes[a]);
 
-                if (submesh != null)
-                {
-                    if (reloadAll)
-                        submesh.ReloadSubmesh();
+                    if (submesh != null)
+                    {
+                        if (reloadAll)
+                            submesh.ReloadSubmesh();
+                    }
+                    else
+                    {
+                        submesh = new Xv2Submesh(SourceEmgMesh, SourceEmgMesh.SubmeshGroups[i].Submeshes[a], SourceEmgMesh.SubmeshGroups[i], Root.Type == ModelType.Emo, this, Root);
+                        Submeshes.Add(submesh);
+                    }
                 }
-                else
-                {
-                    submesh = new Xv2Submesh(SourceEmgMesh, SourceEmgMesh.Submeshes[i], Root.Type == ModelType.Emo, this, Root);
-                    Submeshes.Add(submesh);
-                }
+            }
+        }
+
+        public void SetAttachBone()
+        {
+            if (Root.Type == ModelType.Nsk)
+            {
+                int boneIdx = Root.Skeleton.GetBoneIndex(SourceEmdMesh.Name);
+                _attachBone = Root.Skeleton.Bones.Length > boneIdx && boneIdx != -1 ? Root.Skeleton.Bones[boneIdx] : null;
             }
         }
 
@@ -1021,6 +1127,7 @@ namespace XenoKit.Engine.Model
         public Xv2Mesh Parent { get; private set; }
         public EMD_Submesh SourceEmdSubmesh { get; private set; }
         public EMD_Triangle SourceEmdTriangleList { get; private set; }
+        public EMG_SubmeshGroup SourceEmgSubmeshGroup { get; private set; }
         public EMG_Submesh SourceEmgSubmesh { get; private set; }
         public EMG_Mesh SourceEmgMesh { get; private set; }
         public AsyncObservableCollection<EMD_TextureSamplerDef> SamplerDefs { get; set; } //From EMD_Submesh or EMG_Mesh
@@ -1033,6 +1140,7 @@ namespace XenoKit.Engine.Model
         public VertexPositionNormalTextureBlend[] Vertices { get; set; }
         public int[] Indices { get; set; }
         private bool IsDisposed = false;
+        private bool IsReflection = false;
 
 
         //AABB
@@ -1085,11 +1193,12 @@ namespace XenoKit.Engine.Model
 #endif
         }
 
-        public Xv2Submesh(EMG_Mesh emgMesh, EMG_Submesh emgSubmesh, bool isEmo, Xv2Mesh parent, Xv2ModelFile root)
+        public Xv2Submesh(EMG_Mesh emgMesh, EMG_Submesh emgSubmesh, EMG_SubmeshGroup emgSubmeshGroup, bool isEmo, Xv2Mesh parent, Xv2ModelFile root)
         {
-            Name = emgSubmesh.MaterialName;
+            Name = emgSubmeshGroup.MaterialName;
             SourceEmgMesh = emgMesh;
             SourceEmgSubmesh = emgSubmesh;
+            SourceEmgSubmeshGroup = emgSubmeshGroup;
             Root = root;
             Type = isEmo ? ModelType.Emo : ModelType.Emg;
             Parent = parent;
@@ -1170,7 +1279,12 @@ namespace XenoKit.Engine.Model
             BoneNames = SourceEmdTriangleList.Bones.ToArray();
             Indices = SourceEmdTriangleList.Faces.ToArray();
 
-            CreateBuffers();
+            bool wasReflection = IsReflection || Root?.IsReflectionMesh == true;
+            IsReflection = false;
+            if (!SetReflection(wasReflection))
+            {
+                CreateBuffers();
+            }
         }
 
         private void CreateFromEmg()
@@ -1226,7 +1340,7 @@ namespace XenoKit.Engine.Model
             }
 
             //Samplers
-            SamplerDefs = SourceEmgMesh.TextureLists[SourceEmgSubmesh.TextureListIndex].TextureSamplerDefs;
+            SamplerDefs = SourceEmgSubmeshGroup.TextureSamplerDefs;
             InitSamplers();
 
             EnableSkinning = hasBlendWeights;
@@ -1242,7 +1356,12 @@ namespace XenoKit.Engine.Model
                 }
             }
 
-            CreateBuffers();
+            bool wasReflection = IsReflection || Root?.IsReflectionMesh == true;
+            IsReflection = false;
+            if (!SetReflection(wasReflection))
+            {
+                CreateBuffers();
+            }
         }
 
         #region Draw / Update 
@@ -1250,9 +1369,11 @@ namespace XenoKit.Engine.Model
         {
             if (materials == null) return;
 
-            Matrix4x4 newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Xv2Bone attachBone = Parent.AttachBone;
+            Matrix4x4 newWorld = attachBone != null ? Transform * attachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
-            Xv2ShaderEffect material = MaterialIndex != -1 ? materials[MaterialIndex] : DefaultShaders.VertexColor_W;
+            Xv2ShaderEffect material = MaterialIndex != -1 ? materials[MaterialIndex] : (EnableSkinning ? DefaultShaders.VertexColor_W : DefaultShaders.WhiteWireframe);
+
 
             if (!RenderSystem.CheckDrawPass(material)) return;
 
@@ -1304,7 +1425,8 @@ namespace XenoKit.Engine.Model
         {
             //if (!RenderSystem.CheckDrawPass(material)) return;
 
-            Matrix4x4 newWorld = Parent.Parent.AttachBone != null ? Transform * Parent.Parent.AttachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Xv2Bone attachBone = Parent.AttachBone;
+            Matrix4x4 newWorld = attachBone != null ? Transform * attachBone.AbsoluteAnimationMatrix * world : Transform * world;
 
             if (!FrustumIntersects(newWorld) && instanceData == null)
                 return;
@@ -1318,7 +1440,13 @@ namespace XenoKit.Engine.Model
         private void DrawEnd(int actor, Xv2ShaderEffect material, Xv2Skeleton skeleton, ModelInstanceData instanceData = null)
         {
             if (IsDisposed) return;
-
+            if(MathHelpers.FloatEquals(material.World.Translation.X, -191.0107) &&
+                MathHelpers.FloatEquals(material.World.Translation.Y, -30.51358) &&
+                MathHelpers.FloatEquals(material.World.Translation.Z, 161.74263))
+            {
+                Vector4 test = new Vector4(Vector3.Transform(Viewport.Instance.Camera.CameraState.Position, Matrix.Invert(material.World)), 1f);
+                SceneManager.DebugTestValue = test.ToString();
+            }
             RenderSystem.MeshDrawCalls++;
             material.ActorSlot = actor;
 
@@ -1527,6 +1655,21 @@ namespace XenoKit.Engine.Model
             Parent = parent;
         }
 
+        public bool SetReflection(bool isReflection)
+        {
+            if (IsReflection == isReflection) return false;
+            IsReflection = isReflection;
+
+            for (int i = 0; i < Vertices.Length; i++)
+            {
+                Vertices[i].Normal = new Vector3(Vertices[i].Normal.X, -Vertices[i].Normal.Y, Vertices[i].Normal.Z);
+                Vertices[i].Tangent = new Vector3(Vertices[i].Tangent.X, -Vertices[i].Tangent.Y, Vertices[i].Tangent.Z);
+            }
+
+            CreateBuffers();
+            return true;
+        }
+
         public void CreateBuffers()
         {
             if (VertexBuffer == null)
@@ -1631,7 +1774,7 @@ namespace XenoKit.Engine.Model
             }
             else if (Root.Type == ModelType.Emo || Root.Type == ModelType.Emg)
             {
-                return SourceEmgSubmesh.MaterialName;
+                return SourceEmgSubmeshGroup.MaterialName;
             }
             else
             {
@@ -1720,7 +1863,7 @@ namespace XenoKit.Engine.Model
                 return SourceEmdSubmesh;
 
             else
-                return SourceEmgSubmesh;
+                return SourceEmgSubmeshGroup;
         }
 
         public static SimdVector3 CalculateCenter(IList<Xv2Submesh> submeshes)
@@ -1757,10 +1900,10 @@ namespace XenoKit.Engine.Model
                 {
                     Matrix world = submesh.Transform;
 
-                    if (submesh.Parent.Parent.AttachBone != null)
+                    if (submesh.Parent.AttachBone != null)
                     {
                         ;
-                        world *= submesh.Parent.Parent.AttachBone.AbsoluteAnimationMatrix;
+                        world *= submesh.Parent.AttachBone.AbsoluteAnimationMatrix;
                         BoundingBox transformedBoundingBox = submesh.BoundingBox.Transform(world);
                         min = SimdVector3.Min(transformedBoundingBox.Min.ToNumerics(), min);
                         max = SimdVector3.Max(transformedBoundingBox.Max.ToNumerics(), max);
@@ -1780,12 +1923,12 @@ namespace XenoKit.Engine.Model
     
         public BoundingBox GetAABB()
         {
-            return Parent.Parent.AttachBone != null ? BoundingBox.Transform(Parent.Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBox;
+            return Parent.AttachBone != null ? BoundingBox.Transform(Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBox;
         }
 
         public Vector3 GetAABBCenter()
         {
-            return Parent.Parent.AttachBone != null ? Vector3.Transform(BoundingBoxCenter, Parent.Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBoxCenter;
+            return Parent.AttachBone != null ? Vector3.Transform(BoundingBoxCenter, Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBoxCenter;
         }
     }
 

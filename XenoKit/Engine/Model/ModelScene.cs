@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,26 +20,29 @@ using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMG;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.EMO;
+using Xv2CoreLib.ESK;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Model
 {
-    public class ModelScene : RenderObject, IDynamicTabObject
+    public class ModelScene : RenderScene, IDynamicTabObject
     {
         public event EventHandler SelectedSubmeshesChanged;
 
         private bool PathsRelativeToGame = false;
-        public string EmdPath { get; private set; }
+        public string ModelFilePath { get; private set; }
         public string EmbPath { get; private set; }
         public string EmmPath { get; private set; }
         public string DytPath { get; private set; }
 
         public EMD_File EmdFile => Model.Type == ModelType.Nsk ? Model.SourceNskFile.EmdFile : Model.SourceEmdFile;
+        public EMO_File EmoFile => Model.SourceEmoFile;
         public EMB_File EmbFile { get; private set; }
         public EMM_File EmmFile { get; private set; }
         public EMB_File DytFile { get; private set; }
+        public ESK_File EskFile { get; private set; }
 
         public Xv2ModelFile Model { get; private set; }
         private Xv2Texture[] Textures { get; set; }
@@ -54,7 +58,7 @@ namespace XenoKit.Engine.Model
         private SamplerInfo DytSampler;
 
         private ShaderType ShaderType { get; set; } = ShaderType.Chara;
-        private int DytIndex = 0;
+        public int DytIndex = 0;
         private bool IsMaterialsDirty = false;
         private bool IsTexturesDirty = false;
         private bool IsDytDirty = false;
@@ -64,6 +68,7 @@ namespace XenoKit.Engine.Model
         private readonly ReadOnlyCollection<Xv2Submesh> _readonlySelectedSubmeshes;
 
         public event ModelSceneSelectEventHandler ViewportSelectEvent;
+        public event ViewportInputEventHandler ViewportInputEvent;
 
         //Mouse-over objects
         private Xv2Model _mouseOverModel = null;
@@ -76,6 +81,8 @@ namespace XenoKit.Engine.Model
             Model = model;
             Model.MaterialsChanged += Model_MaterialsChanged;
             Model.ModelModified += Model_ModelModified;
+
+            RenderPipelineStage = model.Type == ModelType.Emo ? Rendering.RenderPipelineStage.EffectInitial : Rendering.RenderPipelineStage.ModelMain;
 
             DytSampler = new SamplerInfo()
             {
@@ -108,38 +115,39 @@ namespace XenoKit.Engine.Model
             //Create list of Xv2Submeshes from SelectedItems (which are source objects - EMD, EMO etc)
             _selectedSubmeshes.Clear();
 
-            if(!IsTextureSelected())
+            if(!IsTextureSelected() && !IsEmgSubmeshSelected())
                 Model.GetAllSubmeshesFromSourceObjects(SelectedItems, _selectedSubmeshes);
 
             SelectedSubmeshesChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        public void SetFiles(ShaderType type, EMB_File emb, EMM_File emm, EMB_File dyt = null)
+        public void SetFiles(ShaderType type, EMB_File emb, EMM_File emm, EMB_File dyt = null, ESK_File eskFile = null)
         {
             ShaderType = type;
             EmbFile = emb;
             EmmFile = emm;
             DytFile = dyt;
+            EskFile = eskFile;
             Initialize();
         }
 
-        public void SetPaths(bool pathRelativeToGame, string emdPath, string embPath, string emmPath, string dytPath)
+        public void SetPaths(bool pathRelativeToGame, string modelFilePath, string embPath, string emmPath, string dytPath)
         {
             //Must be called once when the files are set, to enable saving
             PathsRelativeToGame = pathRelativeToGame;
-            EmdPath = emdPath;
+            ModelFilePath = modelFilePath;
             EmbPath = embPath;
             EmmPath = emmPath;
             DytPath = dytPath;
         }
 
-        public string GetSaveContextFileName() => Path.GetFileName(EmdPath);
+        public string GetSaveContextFileName() => Path.GetFileName(ModelFilePath);
 
         public bool CanSave() => true;
 
         public void Save()
         {
-            string emdPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmdPath) : EmdPath;
+            string modelFilePath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(ModelFilePath) : ModelFilePath;
             string embPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmbPath) : EmbPath;
             string emmPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(EmmPath) : EmmPath;
             string dytPath = PathsRelativeToGame ? FileManager.Instance.GetAbsolutePath(DytPath) : DytPath;
@@ -166,19 +174,23 @@ namespace XenoKit.Engine.Model
                 Log.Add($"Saved \"{DytPath}\"");
             }
 
-            if (!string.IsNullOrWhiteSpace(EmdPath))
+            if (!string.IsNullOrWhiteSpace(ModelFilePath))
             {
-                if (Path.GetExtension(EmdPath) == ".emd")
+                if (Path.GetExtension(ModelFilePath) == ".emd")
                 {
-                    Model.SourceEmdFile.Save(emdPath);
+                    Model.SourceEmdFile.Save(modelFilePath);
                 }
-                else if (Path.GetExtension(EmdPath) == ".nsk")
+                else if (Path.GetExtension(ModelFilePath) == ".nsk")
                 {
-                    Model.SourceNskFile.SaveFile(emdPath);
+                    Model.SourceNskFile.SaveFile(modelFilePath);
+                }
+                else if (Path.GetExtension(ModelFilePath) == ".emo")
+                {
+                    Model.SourceEmoFile.SaveFile(modelFilePath);
                 }
 
                 numSaved++;
-                Log.Add($"Saved \"{EmdPath}\" ({numSaved} files saved)");
+                Log.Add($"Saved \"{ModelFilePath}\" ({numSaved} files saved)");
             }
         }
 
@@ -316,6 +328,8 @@ namespace XenoKit.Engine.Model
                 _mouseOverMesh = null;
                 _mouseOverModel = null;
             }
+
+            HandleInputEvents();
         }
 
         public override void Draw()
@@ -327,7 +341,7 @@ namespace XenoKit.Engine.Model
             }
 
             Model.Draw(Matrix4x4.Identity, 0, Materials, Textures, DytTexture, DytIndex, Skeleton);
-
+            
             if (SceneManager.ShowModelEditorHighlights)
             {
                 if (IsAnyModelObjectSelected())
@@ -389,7 +403,43 @@ namespace XenoKit.Engine.Model
             IsBoundingBoxDirty = false;
         }
 
+        private void HandleInputEvents()
+        {
+            if (Input.WasKeyReleased(Keys.Delete))
+                ViewportInputEvent?.Invoke(this, new ViewportInputEventArgs(Keys.Delete));
+
+            if (Input.WasKeyReleased(Keys.C))
+                ViewportInputEvent?.Invoke(this, new ViewportInputEventArgs(Keys.C));
+
+            if (Input.WasKeyReleased(Keys.V))
+                ViewportInputEvent?.Invoke(this, new ViewportInputEventArgs(Keys.V));
+        }
+
         #region Edit Methods
+        public void DeleteSelectedEmoPart()
+        {
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+            List<Tuple<object, object>> deletedList = new List<Tuple<object, object>>();
+
+            foreach (var item in SelectedItems)
+            {
+                if (item is EMO_Part emoPart)
+                {
+                    undos.Add(new UndoableListRemove<EMO_Part>(Model.SourceEmoFile.Parts, emoPart));
+                    Model.SourceEmoFile.Parts.Remove(emoPart);
+
+                    deletedList.Add(new Tuple<object, object>(emoPart, null));
+                }
+            }
+
+            Tuple<object, object>[] deletedArray = deletedList.ToArray();
+            undos.Add(new UndoActionDelegate(Model.SourceEmoFile, nameof(Model.SourceEmoFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            Model.SourceEmoFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Delete Model");
+            SelectedItems.Clear();
+        }
+
         public void DeleteSelectedModels()
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -404,11 +454,19 @@ namespace XenoKit.Engine.Model
 
                     deletedList.Add(new Tuple<object, object>(emdModel, null));
                 }
+                else if (item is EMG_File emgFile)
+                {
+                    EMO_Part emoPart = Model.SourceEmoFile.GetParentPart(emgFile);
+                    undos.Add(new UndoableListRemove<EMG_File>(emoPart.EmgFiles, emgFile));
+                    emoPart.EmgFiles.Remove(emgFile);
+
+                    deletedList.Add(new Tuple<object, object>(emgFile, null));
+                }
             }
 
             Tuple<object, object>[] deletedArray = deletedList.ToArray();
-            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
-            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
+            undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Model");
             SelectedItems.Clear();
@@ -430,11 +488,20 @@ namespace XenoKit.Engine.Model
 
                     deletedList.Add(new Tuple<object, object>(emdMesh, parentModel));
                 }
+                else if(item is EMG_Mesh emgMesh)
+                {
+                    EMG_File parentEmg = Model.SourceEmoFile.GetParentEmg(emgMesh);
+
+                    undos.Add(new UndoableListRemove<EMG_Mesh>(parentEmg.EmgMeshes, emgMesh));
+                    parentEmg.EmgMeshes.Remove(emgMesh);
+
+                    deletedList.Add(new Tuple<object, object>(emgMesh, parentEmg));
+                }
             }
 
             Tuple<object, object>[] deletedArray = deletedList.ToArray();
-            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
-            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
+            undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Mesh");
             SelectedItems.Clear();
@@ -456,11 +523,20 @@ namespace XenoKit.Engine.Model
 
                     deletedList.Add(new Tuple<object, object>(emdSubmesh, parentMesh));
                 }
+                else if (item is EMG_SubmeshGroup emgSubmeshGroup)
+                {
+                    EMG_Mesh parentMesh = Model.SourceEmoFile.GetParentMesh(emgSubmeshGroup);
+
+                    undos.Add(new UndoableListRemove<EMG_SubmeshGroup>(parentMesh.SubmeshGroups, emgSubmeshGroup));
+                    parentMesh.SubmeshGroups.Remove(emgSubmeshGroup);
+
+                    deletedList.Add(new Tuple<object, object>(emgSubmeshGroup, parentMesh));
+                }
             }
 
             Tuple<object, object>[] deletedArray = deletedList.ToArray();
-            undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
-            EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
+            undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Remove, deletedList)));
+            GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Remove, deletedList, null);
 
             UndoManager.Instance.AddCompositeUndo(undos, "Delete Submesh");
             SelectedItems.Clear();
@@ -474,13 +550,27 @@ namespace XenoKit.Engine.Model
             {
                 if (item is EMD_TextureSamplerDef texture)
                 {
-                    EMD_Submesh parentSubmesh = EmdFile.GetParentSubmesh(texture);
+                    if(EmdFile != null)
+                    {
+                        EMD_Submesh parentSubmesh = EmdFile.GetParentSubmesh(texture);
 
-                    undos.Add(new UndoableListRemove<EMD_TextureSamplerDef>(parentSubmesh.TextureSamplerDefs, texture));
-                    parentSubmesh.TextureSamplerDefs.Remove(texture);
+                        undos.Add(new UndoableListRemove<EMD_TextureSamplerDef>(parentSubmesh.TextureSamplerDefs, texture));
+                        parentSubmesh.TextureSamplerDefs.Remove(texture);
 
-                    undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, parentSubmesh)));
-                    EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, parentSubmesh);
+                        undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, parentSubmesh)));
+                        GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, parentSubmesh);
+                    }
+                    else if(Model.SourceEmoFile != null)
+                    {
+                        EMG_SubmeshGroup parentSubmesh = Model.SourceEmoFile.GetParentSubmeshGroup(texture);
+
+                        undos.Add(new UndoableListRemove<EMD_TextureSamplerDef>(parentSubmesh.TextureSamplerDefs, texture));
+                        parentSubmesh.TextureSamplerDefs.Remove(texture);
+
+                        undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Sampler, texture, parentSubmesh)));
+                        GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Sampler, texture, parentSubmesh);
+                    }
+
                 }
             }
 
@@ -496,7 +586,13 @@ namespace XenoKit.Engine.Model
             {
                 EMD_Model[] models = GetSelectedItemsAsTypeArray<EMD_Model>();
                 SerializedModel serializedModel = new SerializedModel(models, EmmFile, EmbFile);
-                Clipboard.SetData(SerializedModel.CLIPBOARD_EMD_MODEL, serializedModel);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_MODEL, serializedModel);
+            }
+            else if (SelectedItems[0] is EMG_File)
+            {
+                EMG_File[] emgFiles = GetSelectedItemsAsTypeArray<EMG_File>();
+                SerializedModel serializedModel = new SerializedModel(emgFiles, EmmFile, EmbFile, EmoFile.Skeleton);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_MODEL, serializedModel);
             }
         }
 
@@ -506,9 +602,15 @@ namespace XenoKit.Engine.Model
 
             if (SelectedItems[0] is EMD_Mesh)
             {
-                EMD_Mesh[] models = GetSelectedItemsAsTypeArray<EMD_Mesh>();
-                SerializedModel serializedModel = new SerializedModel(models, EmmFile, EmbFile);
-                Clipboard.SetData(SerializedModel.CLIPBOARD_EMD_MESH, serializedModel);
+                EMD_Mesh[] meshes = GetSelectedItemsAsTypeArray<EMD_Mesh>();
+                SerializedModel serializedModel = new SerializedModel(meshes, EmmFile, EmbFile);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_MESH, serializedModel);
+            }
+            else if (SelectedItems[0] is EMG_Mesh)
+            {
+                EMG_Mesh[] meshes = GetSelectedItemsAsTypeArray<EMG_Mesh>();
+                SerializedModel serializedModel = new SerializedModel(meshes, EmmFile, EmbFile, EmoFile.Skeleton);
+                Clipboard.SetData(SerializedModel.CLIPBOARD_MESH, serializedModel);
             }
         }
 
@@ -526,48 +628,102 @@ namespace XenoKit.Engine.Model
 
         public void PasteModels()
         {
-            if (Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MODEL))
+            if (!Clipboard.ContainsData(SerializedModel.CLIPBOARD_MODEL)) return;
+
+            SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_MODEL);
+            List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+            object context = null;
+
+            if (EmdFile != null)
             {
-                SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_MODEL);
+                context = serializedModel.EmdModel;
 
-                List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+                if (serializedModel.EmdModel == null)
+                {
+                    Log.Add("EMO to EMD model paste is not currently supported. Only mesh is.", LogType.Warning);
+                    return;
+                }
 
-                foreach(var model in serializedModel.EmdModel)
+                foreach (var model in serializedModel.EmdModel)
                 {
                     undos.Add(new UndoableListAdd<EMD_Model>(EmdFile.Models, model));
                     EmdFile.Models.Add(model);
                 }
-
-                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdModel)));
-                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdModel, null);
-
-                UndoManager.Instance.AddCompositeUndo(undos, "Paste Model");
             }
+            else if (EmoFile != null)
+            {
+                context = serializedModel.EmoModel;
+                EMO_Part emoPart = SelectedItems[0] is EMO_Part ? SelectedItems[0] as EMO_Part : EmoFile.GetParentPart(SelectedItems[0] as EMG_File);
+
+                if (emoPart == null) return;
+
+                if (serializedModel.EmoModel == null)
+                {
+                    Log.Add("EMD to EMO model paste is not currently supported. Only mesh is.", LogType.Warning);
+                    return;
+                }
+
+                foreach (var model in serializedModel.EmoModel)
+                {
+                    undos.Add(new UndoableListAdd<EMG_File>(emoPart.EmgFiles, model));
+                    emoPart.EmgFiles.Add(model);
+                }
+
+            }
+
+            undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EMD_File.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, context)));
+            GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Add, context, null);
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Paste Model");
         }
 
         public void PasteMeshes()
         {
-            if (Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MESH))
-            {
-                SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_EMD_MESH);
+            if (!Clipboard.ContainsData(SerializedModel.CLIPBOARD_MESH)) return;
 
-                List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+            SerializedModel serializedModel = (SerializedModel)Clipboard.GetData(SerializedModel.CLIPBOARD_MESH);
+            List<IUndoRedo> undos = serializedModel.PasteTexturesAndMaterials(EmbFile, EmmFile);
+            object context = null;
+
+            if (EmdFile != null)
+            {
                 EMD_Model parentModel = SelectedItems[0] is EMD_Model ? SelectedItems[0] as EMD_Model : EmdFile.GetParentModel(SelectedItems[0] as EMD_Mesh);
+                context = parentModel;
 
                 if (parentModel == null)
                     return;
 
-                foreach (var model in serializedModel.EmdMesh)
+                EMD_Mesh[] meshes = serializedModel.GetEmdMesh(EskFile?.Skeleton);
+
+                foreach (var mesh in meshes)
                 {
-                    undos.Add(new UndoableListAdd<EMD_Mesh>(parentModel.Meshes, model));
-                    parentModel.Meshes.Add(model);
+                    undos.Add(new UndoableListAdd<EMD_Mesh>(parentModel.Meshes, mesh));
+                    parentModel.Meshes.Add(mesh);
+                }
+            }
+            else if (EmoFile != null)
+            {
+                context = serializedModel.EmoMesh;
+                EMG_File parentModel = SelectedItems[0] is EMG_File ? SelectedItems[0] as EMG_File : EmoFile.GetParentEmg(SelectedItems[0] as EMG_Mesh);
+                context = parentModel;
+
+                if (parentModel == null)
+                    return;
+
+                EMG_Mesh[] meshes = serializedModel.GetEmoMesh(EmoFile.Skeleton);
+
+                foreach (var model in meshes)
+                {
+                    undos.Add(new UndoableListAdd<EMG_Mesh>(parentModel.EmgMeshes, model));
+                    parentModel.EmgMeshes.Add(model);
                 }
 
-                undos.Add(new UndoActionDelegate(EmdFile, nameof(EmdFile.TriggerModelModifiedEvent), true, args: EMD_File .CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdMesh, parentModel)));
-                EmdFile.TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmdMesh, parentModel);
-
-                UndoManager.Instance.AddCompositeUndo(undos, "Paste Mesh");
             }
+
+            undos.Add(new UndoActionDelegate(GetSourceModel(), nameof(EMD_File.TriggerModelModifiedEvent), true, args: EMD_File.CreateTriggerParams(EditTypeEnum.Add, serializedModel.EmdMesh, context)));
+            GetSourceModel().TriggerModelModifiedEvent(EditTypeEnum.Add, serializedModel.EmoMesh, context);
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Paste Mesh");
         }
 
         public void PasteSubmeshes()
@@ -612,25 +768,39 @@ namespace XenoKit.Engine.Model
             return items.ToArray();
         }
 
+        public bool IsEmoPartSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return SelectedItems[0] is EMO_Part;
+        }
+
         public bool IsModelSelected()
         {
             if (SelectedItems.Count < 1) return false;
 
-            return (SelectedItems[0] is EMD_Model || SelectedItems[0] is EMO_Part);
+            return (SelectedItems[0] is EMD_Model || SelectedItems[0] is EMG_File);
         }
 
         public bool IsMeshSelected()
         {
             if (SelectedItems.Count < 1) return false;
 
-            return (SelectedItems[0] is EMD_Mesh || SelectedItems[0] is EMG_File);
+            return (SelectedItems[0] is EMD_Mesh || SelectedItems[0] is EMG_Mesh);
         }
 
         public bool IsSubmeshSelected()
         {
             if (SelectedItems.Count < 1) return false;
 
-            return (SelectedItems[0] is EMD_Submesh || SelectedItems[0] is EMG_Submesh);
+            return (SelectedItems[0] is EMD_Submesh || SelectedItems[0] is EMG_SubmeshGroup);
+        }
+
+        public bool IsEmgSubmeshSelected()
+        {
+            if (SelectedItems.Count < 1) return false;
+
+            return (SelectedItems[0] is EMG_SubmeshGroup);
         }
 
         public bool IsTextureSelected()
@@ -659,17 +829,17 @@ namespace XenoKit.Engine.Model
         
         public bool CanPasteModel()
         {
-            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MODEL) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_MODEL);
+            return Clipboard.ContainsData(SerializedModel.CLIPBOARD_MODEL);
         }
 
         public bool CanPasteMesh()
         {
-            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_MESH) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_MESH);
+            return Clipboard.ContainsData(SerializedModel.CLIPBOARD_MESH);
         }
 
         public bool CanPasteSubmesh()
         {
-            return (Model.Type == ModelType.Nsk || Model.Type == ModelType.Emd) ? Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_SUBMESH) : Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMO_SUBMESH);
+            return EmdFile != null && Clipboard.ContainsData(SerializedModel.CLIPBOARD_EMD_SUBMESH);
         }
         #endregion
 
@@ -708,6 +878,8 @@ namespace XenoKit.Engine.Model
                 case ModelType.Emd:
                 case ModelType.Nsk:
                     return EmdFile;
+                case ModelType.Emo:
+                    return Model.SourceEmoFile;
             }
 
             return null;
@@ -740,4 +912,5 @@ namespace XenoKit.Engine.Model
             Addition = Viewport.Instance.Input.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.LeftControl);
         }
     }
+
 }

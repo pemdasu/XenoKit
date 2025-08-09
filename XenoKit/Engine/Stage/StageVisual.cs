@@ -13,6 +13,11 @@ namespace XenoKit.Engine.Stage
     {
         public LodGroup LodGroup { get; set; }
 
+        public void DrawReflection(Matrix4x4 world)
+        {
+            LodGroup.DrawReflection(world);
+        }
+
         public void Draw(Matrix4x4 world)
         {
             LodGroup.Draw(world);

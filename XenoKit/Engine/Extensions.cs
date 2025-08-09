@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using XenoKit.Helper.Find;
 using Xv2CoreLib.EMD;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.Resource;
@@ -84,21 +83,9 @@ namespace XenoKit.Engine
             );
         }
 
-        public static Matrix ToXna(this FMP_Matrix matrix)
+        public static Matrix ToXna(this FMP_Transform matrix)
         {
-            return new Matrix(matrix.L0[0], matrix.L0[1], matrix.L0[2], 0f,
-                              matrix.L1[0], matrix.L1[1], matrix.L1[2], 0f,
-                              matrix.L2[0], matrix.L2[1], matrix.L2[2], 0f,
-                              matrix.L3[0], matrix.L3[1], matrix.L3[2], 1f);
-
-        }
-        
-        public static System.Numerics.Matrix4x4 ToNumerics(this FMP_Matrix matrix)
-        {
-            return new System.Numerics.Matrix4x4(matrix.L0[0], matrix.L0[1], matrix.L0[2], 0f,
-                              matrix.L1[0], matrix.L1[1], matrix.L1[2], 0f,
-                              matrix.L2[0], matrix.L2[1], matrix.L2[2], 0f,
-                              matrix.L3[0], matrix.L3[1], matrix.L3[2], 1f);
+            return matrix.ToMatrix();
 
         }
 

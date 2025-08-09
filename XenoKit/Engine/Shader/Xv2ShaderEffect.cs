@@ -1,18 +1,19 @@
-﻿using System;
-using System.Linq;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Xv2CoreLib.EMM;
+using System;
+using System.Linq;
+using System.Windows.Media.Media3D;
 using XenoKit.Engine.Shader.DXBC;
-using XenoKit.Engine.Vfx.Asset;
-using Xv2CoreLib.SDS;
-using Xv2CoreLib.Resource.App;
 using XenoKit.Engine.Stage;
+using XenoKit.Engine.Vfx.Asset;
+using Xv2CoreLib.EMM;
+using Xv2CoreLib.Resource;
+using Xv2CoreLib.Resource.App;
+using Xv2CoreLib.SDS;
 using Matrix4x4 = System.Numerics.Matrix4x4;
+using SimdQuaternion = System.Numerics.Quaternion;
 using SimdVector3 = System.Numerics.Vector3;
 using SimdVector4 = System.Numerics.Vector4;
-using SimdQuaternion = System.Numerics.Quaternion;
-using Xv2CoreLib.Resource;
 
 namespace XenoKit.Engine.Shader
 {
@@ -978,7 +979,20 @@ namespace XenoKit.Engine.Shader
             //Required for T1_VFX_MTN_DIS_ALPHA, unsure where the value comes from (it changes)
             //Parameters["g_vColor13_PS"]?.SetValue(new Vector4(1.00f, 1.00f, 1.00f, 0.80559f));
 
+            if (MathHelpers.FloatEquals(World.Translation.X, -191.0107) &&
+                MathHelpers.FloatEquals(World.Translation.Y, -30.51358) &&
+                MathHelpers.FloatEquals(World.Translation.Z, 161.74263))
+            {
+                Vector4 test = new Vector4(MatParam.SpcCoeff, MatParam.SpcPower, 0, 0);
+                Vector4 test2 = new Vector4(2.0159f, 2.06009f, 2.01842f, 2.01591f);
+                Parameters["g_vSpecular_PS"]?.SetValue(test);
+                Parameters["g_vSpecular_VS"]?.SetValue(test);
+                Parameters["g_vParam0_PS"]?.SetValue(new Vector4(0.00556f, 0.99444f, 180.00f, 0.00f));
+                Parameters["g_vParam1_PS"]?.SetValue(new Vector4(0.50f, 0.50f, 0.10f, 104857.70313f));
 
+            }
+            //Parameters["g_vSpecular_VS"]?.SetValue(new Vector4(2.0159f, 2.06009f, 2.01842f, 2.01591f));
+            //g_vEyePos_VS?.SetValue(new Vector4(Vector3.Transform(Viewport.Instance.Camera.CameraState.Position, Matrix.Invert(World)), 1f));
             //Update global parameters
             if (shaderProgram.UseVertexShaderBuffer[VS_STAGE_CB])
             {

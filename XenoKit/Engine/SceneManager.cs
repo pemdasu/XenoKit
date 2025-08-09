@@ -91,13 +91,14 @@ namespace XenoKit.Engine
         public static bool IsOnEffectTab = false;
         public static bool IsOnInspectorTab = false;
         public static bool UseRenderScene = false;
+        public static string DebugTestValue = null;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="mainTabIdx"></param>
         /// <returns></returns>
-        public static bool SetSceneState(int mainTabIdx, int bcsTabIdx, int audioTabIdx, int effectTabIdx)
+        public static async Task<bool> SetSceneState(int mainTabIdx, int bcsTabIdx, int audioTabIdx, int effectTabIdx)
         {
             EditorTabs prevTab = CurrentSceneState;
             MainEditorTabs mainTab = (MainEditorTabs)mainTabIdx;
@@ -236,7 +237,7 @@ namespace XenoKit.Engine
 
             if (CurrentSceneState == EditorTabs.Action)
             {
-                EnsureActorIsSet(0);
+                await AsyncEnsureActorIsSet(0);
             }
 
             //Needed because for SOME reason the tab changed event gets fired randomly when no change actually occured...
@@ -358,6 +359,7 @@ namespace XenoKit.Engine
         public readonly static Actor[] Actors = new Actor[NumActors];
 
         public readonly static bool[] ActorsEnable = new bool[3] { true, true, false };
+        private readonly static bool[] ActorIsLoading = new bool[NumActors];
 
 
         /// <summary>
@@ -406,12 +408,48 @@ namespace XenoKit.Engine
             }
         }
 
-        private static void WaitUntilActorIsSet(int actorSlot)
+        public static async Task AsyncEnsureActorIsSet(int actorSlot = 0)
         {
-            while (Actors[actorSlot] == null)
+            if (actorSlot >= Actors.Length) throw new InvalidOperationException($"SceneManager.AsyncEnsureActorIsSet: idx {actorSlot} is greater than the maximum amount of Actors.");
+            
+            if (Actors[actorSlot] == null)
             {
-                Task.Delay(100);
+                if (ActorIsLoading[actorSlot]) return;
+                ActorIsLoading[actorSlot] = true;
+
+                var characters = Files.Instance.GetLoadedCharacters();
+                Actor chara = characters.FirstOrDefault(x => !Actors.Contains(x));
+
+                if (chara != null)
+                {
+                    SetActor(characters[0], actorSlot);
+                }
+                else
+                {
+                    //Select a character based on idx. This way we dont populate the scene with multiple Gokus.
+                    int charId = 0;
+
+                    switch (actorSlot)
+                    {
+                        case 1: //Victim
+                            charId = 16;
+                            break;
+                    }
+
+                    try
+                    {
+                        //Load character
+                        Actor defaultActor = await Files.Instance.AsyncLoadCharacter(charId, 0, true);
+                        SetActor(defaultActor, actorSlot);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Add("Actor Set Error: " + ex.Message, ex.ToString(), LogType.Error);
+                    }
+                }
             }
+
+            ActorIsLoading[actorSlot] = false;
         }
 
         public static bool CharacterExists(int index)
@@ -636,10 +674,10 @@ namespace XenoKit.Engine
         /// <summary>
         /// Plays an animation with default settings.
         /// </summary>
-        public static void PlayAnimation(EAN_File eanFile, int eanIndex, int charIndex, bool forceAutoPlay)
+        public static async void PlayAnimation(EAN_File eanFile, int eanIndex, int charIndex, bool forceAutoPlay)
         {
             ResetSceneCheck();
-            EnsureActorIsSet(charIndex);
+            await AsyncEnsureActorIsSet(charIndex);
 
             Actors[charIndex].AnimationPlayer.PlayPrimaryAnimation(eanFile, eanIndex, 0, ushort.MaxValue, 1, 0, 0, false, 1f, true);
 
@@ -647,10 +685,10 @@ namespace XenoKit.Engine
                 Viewport.Instance.IsPlaying = true;
         }
 
-        public static void PlayBacEntry(BAC_File bacFile, BAC_Entry bacEntry, Move move, int charIndex, bool resetPosition)
+        public static async void PlayBacEntry(BAC_File bacFile, BAC_Entry bacEntry, Move move, int charIndex, bool resetPosition)
         {
             ResetSceneCheck();
-            EnsureActorIsSet(charIndex);
+            await AsyncEnsureActorIsSet(charIndex);
             ResetState(true);
 
             if (resetPosition && !RetainActionMovement)
@@ -671,10 +709,10 @@ namespace XenoKit.Engine
         /// Plays a camera with default settings, focused on Actor[0].
         /// </summary>
         /// <param name="camera"></param>
-        public static void PlayCameraAnimation(EAN_File eanFile, EAN_Animation camera)
+        public static async void PlayCameraAnimation(EAN_File eanFile, EAN_Animation camera)
         {
             ResetSceneCheck();
-            EnsureActorIsSet(0);
+            await AsyncEnsureActorIsSet(0);
             Viewport.Instance.Camera.PlayCameraAnimation(eanFile, camera, null, Actors[0], 0, false, false);
 
             if (AutoPlay)
