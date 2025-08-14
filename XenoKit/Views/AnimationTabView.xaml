@@ -226,7 +226,7 @@
             </Grid>
         </Grid>
 
-        <Grid Grid.Row="4" Margin="0, 2" Visibility="Collapsed">
+        <Grid Grid.Row="4" Margin="0, 2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="*"/>
@@ -343,8 +343,10 @@
 
         </Grid>
 
-        <Grid Grid.Row="4" Margin="0, 2" Visibility="Visible">
+        <!-- 
+        <Grid Grid.Row="4" Margin="0, 2">
             <anim:AnimationEditor CurrentAnimation="{Binding ElementName=UserControl, Path=AnimFile.Animations[0]}"/>
         </Grid>
+        -->
     </Grid>
 </UserControl>
