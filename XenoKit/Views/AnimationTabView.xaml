@@ -84,6 +84,19 @@
                     </Button>
                     <TextBlock Text="Delete" HorizontalAlignment="Center" FontSize="8"/>
                 </StackPanel>
+                <Separator Visibility="{Binding ElementName=UserControl, Path=FaceToolVisiblity}" Margin="0,5" />
+                <!-- Currently this menu is only useful for face EANs, so it will be hidden for everything else. -->
+                <StackPanel VerticalAlignment="Center" Visibility="{Binding ElementName=UserControl, Path=FaceToolVisiblity}" >
+                    <Button HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="25" Height="25" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True">
+                        <iconPacks:Material Kind="Tools" Width="13" Height="13"/>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Fix Interpolation Issues" Command="{Binding FixInterpolationCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <TextBlock Text="Tools" HorizontalAlignment="Center" FontSize="8"/>
+                </StackPanel>
             </StackPanel>
 
             <DataGrid Grid.Column="1" x:Name="animListBox" MouseDoubleClick="AnimListBox_MouseDoubleClick" SelectedItem="{Binding ElementName=UserControl, Path=SelectedAnimation}" ItemsSource="{Binding ElementName=UserControl, Path=SelectedEanFile.Animations.Binding}"  VerticalAlignment="Stretch" HorizontalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False" SelectionChanged="AnimListBox_SelectionChanged" Style="{DynamicResource MahApps.Styles.DataGrid.Azure}" Margin="5, 0">
