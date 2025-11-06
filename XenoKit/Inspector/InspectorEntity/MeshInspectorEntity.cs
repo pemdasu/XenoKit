@@ -247,7 +247,7 @@ namespace XenoKit.Inspector.InspectorEntities
             {
                 shader = RenderSystem.ShadowModel;
             }
-            else if(ShaderType == ShaderType.Chara)
+            else if(!normalPass && ShaderType == ShaderType.Chara)
             {
                 shader = RenderSystem.ShadowModel_W;
             }
