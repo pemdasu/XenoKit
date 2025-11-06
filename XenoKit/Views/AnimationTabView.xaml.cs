@@ -46,12 +46,12 @@ namespace XenoKit.Controls
         {
             get
             {
-                Xv2File<EAN_File> eanFile = files.SelectedItem?.SelectedEanFile;
-                return eanFile != null
-                    ? eanFile.DisplayName == "Face"
-                        ? Visibility.Visible
-                        : Visibility.Collapsed
-                    : Visibility.Collapsed;
+                string path = InspectorMode.Instance?.ActiveEanFile?.Path ?? string.Empty;
+                Xv2File<EAN_File> eanFile = (files.SelectedItem != null) ? files.SelectedItem.SelectedEanFile : null;
+
+                bool isFaceEan = (eanFile != null && eanFile.DisplayName == "Face") || (!string.IsNullOrEmpty(path) && path.ToLower().Contains(".fce"));
+
+                return isFaceEan ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
