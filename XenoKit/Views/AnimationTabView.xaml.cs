@@ -512,6 +512,7 @@ namespace XenoKit.Controls
             SceneManager.AnimationDataChanged += SceneManager_AnimationDataChanged;
             SceneManager.PlayStateChanged += SceneManager_PlayStateChanged;
             InspectorMode.Instance.PropertyChanged += Instance_PropertyChanged;
+            SceneManager.EditorTabChanged += SceneManager_EditorTabChanged;
 
             //Load colors for keyframe values
             AccentBrush = (Brush)UserControl.FindResource("accentBrush");
@@ -532,6 +533,7 @@ namespace XenoKit.Controls
             if(Mode == AnimationTabViewMode.Inspector && e.PropertyName == nameof(InspectorMode.ActiveEanFile))
             {
                 NotifyPropertyChanged(nameof(SelectedEanFile));
+                NotifyPropertyChanged(nameof(FaceToolVisiblity));
             }
         }
 
@@ -1552,6 +1554,10 @@ namespace XenoKit.Controls
             NotifyPropertyChanged(nameof(PosBrush));
             NotifyPropertyChanged(nameof(RotBrush));
             NotifyPropertyChanged(nameof(ScaleBrush));
+        }
+        private void SceneManager_EditorTabChanged(object sender, EventArgs e)
+        {
+            NotifyPropertyChanged(nameof(FaceToolVisiblity));
         }
         #endregion
 
