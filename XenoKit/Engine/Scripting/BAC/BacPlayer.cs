@@ -161,6 +161,9 @@ namespace XenoKit.Engine.Scripting.BAC
                             case BAC_Type0.EanTypeEnum.Character:
                             case BAC_Type0.EanTypeEnum.Common:
                             case BAC_Type0.EanTypeEnum.MCM_DBA:
+                            case BAC_Type0.EanTypeEnum.MCM_TTL:
+                            case BAC_Type0.EanTypeEnum.MCM_TU6:
+                            case BAC_Type0.EanTypeEnum.MCM_TU13_5:
                             case BAC_Type0.EanTypeEnum.Skill:
                                 character.AnimationPlayer.PlayPrimaryAnimation(eanFile, animation.EanIndex, animation.StartFrame, animation.EndFrame, animation.BlendWeight, animation.BlendWeightFrameStep, animation.AnimFlags, true, animation.TimeScale, false, true);
                                 character.AnimationTimeScale = animation.TimeScale;

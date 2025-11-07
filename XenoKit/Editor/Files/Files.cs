@@ -547,10 +547,13 @@ namespace XenoKit.Editor
 
                 tasks.Add(Task.Run(() =>
                 {
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame("chara/CMN/MCM.DBA.ean"), file.Instance.GetAbsolutePath("chara/CMN/MCM.DBA.ean"), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_DBA, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_TAL_EAN), file.Instance.GetAbsolutePath(xv2.CMN_TAL_EAN), false, null, false, xv2.MoveFileTypes.TAL_EAN, (int)BAC_Type0.EanTypeEnum.CommonTail, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_DBA_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_DBA_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_DBA, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TTL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TTL_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TTL, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TU6_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU6_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU6, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TU13_5_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU13_5_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU13_5, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_TAL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_TAL_EAN_PATH), false, null, false, xv2.MoveFileTypes.TAL_EAN, (int)BAC_Type0.EanTypeEnum.CommonTail, true, xv2.MoveType.Common));
 
-                    move.Files.CamEanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame("chara/CMN/MCM.cam.ean"), file.Instance.GetAbsolutePath("chara/CMN/MCM.cam.ean"), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.MCM, true, xv2.MoveType.Common));
+                    move.Files.CamEanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.MCM, true, xv2.MoveType.Common));
 
                     move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_DBA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_DBA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 1, true, xv2.MoveType.Common));
                     move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_QEA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_QEA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 2, true, xv2.MoveType.Common));
@@ -934,6 +937,9 @@ namespace XenoKit.Editor
             {
                 case BAC_Type0.EanTypeEnum.Common:
                 case BAC_Type0.EanTypeEnum.MCM_DBA:
+                case BAC_Type0.EanTypeEnum.MCM_TTL:
+                case BAC_Type0.EanTypeEnum.MCM_TU6:
+                case BAC_Type0.EanTypeEnum.MCM_TU13_5:
                     return Instance.GetCmnMove().Files.EanFile.FirstOrDefault(x => x.Costumes.Contains((int)eanType))?.File;
                 case BAC_Type0.EanTypeEnum.Character:
                     if (move == null) return character?.Moveset.Files.GetEanFile(character.ShortName, charaUnique);
