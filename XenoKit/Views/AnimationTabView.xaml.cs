@@ -40,23 +40,6 @@ namespace XenoKit.Controls
         }
         #endregion
 
-        #region Properties
-
-        public Visibility FaceToolVisiblity
-        {
-            get
-            {
-                string path = InspectorMode.Instance?.ActiveEanFile?.Path ?? string.Empty;
-                Xv2File<EAN_File> eanFile = (files.SelectedItem != null) ? files.SelectedItem.SelectedEanFile : null;
-
-                bool isFaceEan = (eanFile != null && eanFile.DisplayName == "Face") || (!string.IsNullOrEmpty(path) && path.ToLower().Contains(".fce"));
-
-                return isFaceEan ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-
-        #endregion
-
 
         public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
             "Mode", typeof(AnimationTabViewMode), typeof(AnimationTabView), new PropertyMetadata(ModeChangedCallback));
@@ -452,6 +435,25 @@ namespace XenoKit.Controls
 
                 //Default
                 return BackgroundBrush;
+            }
+        }
+        
+        public Visibility FaceToolVisiblity
+        {
+            get
+            {
+                if (Mode == AnimationTabViewMode.Inspector && InspectorMode.Instance.ActiveEanFile != null)
+                {
+                    //Viewer Mode
+                    string path = InspectorMode.Instance.ActiveEanFile.Path ?? string.Empty;
+                    return path.ToLower().Contains(".fce") ? Visibility.Visible : Visibility.Collapsed;
+                }
+                else if (Mode == AnimationTabViewMode.Actor && files?.SelectedItem?.SelectedEanFile != null)
+                {
+                    return files.SelectedItem.SelectedEanFile.DisplayName == "Face" ? Visibility.Visible : Visibility.Collapsed;
+                }
+
+                return Visibility.Collapsed;
             }
         }
 
@@ -1555,6 +1557,7 @@ namespace XenoKit.Controls
             NotifyPropertyChanged(nameof(RotBrush));
             NotifyPropertyChanged(nameof(ScaleBrush));
         }
+        
         private void SceneManager_EditorTabChanged(object sender, EventArgs e)
         {
             NotifyPropertyChanged(nameof(FaceToolVisiblity));
