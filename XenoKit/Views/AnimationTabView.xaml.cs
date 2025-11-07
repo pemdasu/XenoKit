@@ -40,6 +40,24 @@ namespace XenoKit.Controls
         }
         #endregion
 
+        #region Properties
+
+        public Visibility FaceToolVisiblity
+        {
+            get
+            {
+                string path = InspectorMode.Instance?.ActiveEanFile?.Path ?? string.Empty;
+                Xv2File<EAN_File> eanFile = (files.SelectedItem != null) ? files.SelectedItem.SelectedEanFile : null;
+
+                bool isFaceEan = (eanFile != null && eanFile.DisplayName == "Face") || (!string.IsNullOrEmpty(path) && path.ToLower().Contains(".fce"));
+
+                return isFaceEan ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        #endregion
+
+
         public static readonly DependencyProperty ModeProperty = DependencyProperty.Register(
             "Mode", typeof(AnimationTabViewMode), typeof(AnimationTabView), new PropertyMetadata(ModeChangedCallback));
 
@@ -494,6 +512,7 @@ namespace XenoKit.Controls
             SceneManager.AnimationDataChanged += SceneManager_AnimationDataChanged;
             SceneManager.PlayStateChanged += SceneManager_PlayStateChanged;
             InspectorMode.Instance.PropertyChanged += Instance_PropertyChanged;
+            SceneManager.EditorTabChanged += SceneManager_EditorTabChanged;
 
             //Load colors for keyframe values
             AccentBrush = (Brush)UserControl.FindResource("accentBrush");
@@ -514,6 +533,7 @@ namespace XenoKit.Controls
             if(Mode == AnimationTabViewMode.Inspector && e.PropertyName == nameof(InspectorMode.ActiveEanFile))
             {
                 NotifyPropertyChanged(nameof(SelectedEanFile));
+                NotifyPropertyChanged(nameof(FaceToolVisiblity));
             }
         }
 
@@ -1131,6 +1151,61 @@ namespace XenoKit.Controls
 
         #endregion
 
+
+
+        #region ToolsCommand
+        public RelayCommand FixInterpolationCommand => new RelayCommand(FixInterpolation);
+        private async void FixInterpolation()
+        {
+            MessageDialogResult result = await DialogCoordinator.Instance.ShowMessageAsync(
+                this,
+                "Fix Face Interpolation",
+                "This will attempt to fix face interpolation issues by adding \"dummy\" components to every face animation on every bone that is missing certain components.\n\nDo you want to continue?",
+                MessageDialogStyle.AffirmativeAndNegative,
+                DialogSettings.Default
+            );
+
+            if (result != MessageDialogResult.Affirmative)
+            {
+                return;
+            }
+
+            if (SelectedEanFile == null)
+            {
+                return;
+            }
+
+            var originalSelectedBone = SelectedBone;
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (EAN_Animation animation in SelectedEanFile.Animations) // iterate all animations
+            {
+                foreach (EAN_Node node in animation.Nodes) // get all nodes/bones in this animation
+                {
+                    SelectedBone = node; // temporarily set for AddBoneComponent
+                    List<string> missingComponents = AddBoneComponent;
+                    if (missingComponents == null || missingComponents.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (string component in missingComponents)
+                    {
+                        if (Enum.TryParse(component, out EAN_AnimationComponent.ComponentType type))
+                        {
+                            _ = node.GetComponent(type, true, undos);
+                        }
+                    }
+                }
+            }
+
+            SelectedBone = originalSelectedBone; // restore original selectedBone
+
+            UndoManager.Instance.AddCompositeUndo(undos, "Fix Face Interpolation", UndoGroup.Animation);
+            SceneManager.InvokeAnimationDataChangedEvent();
+        }
+        #endregion
+
         #region KeyframeCommands
         public RelayCommand CopyKeyframeCommand => new RelayCommand(CopyKeyframe, IsKeyframeSelected);
         private void CopyKeyframe()
@@ -1480,6 +1555,10 @@ namespace XenoKit.Controls
             NotifyPropertyChanged(nameof(RotBrush));
             NotifyPropertyChanged(nameof(ScaleBrush));
         }
+        private void SceneManager_EditorTabChanged(object sender, EventArgs e)
+        {
+            NotifyPropertyChanged(nameof(FaceToolVisiblity));
+        }
         #endregion
 
         private List<string> GetSelectedBoneNames()
@@ -1499,6 +1578,7 @@ namespace XenoKit.Controls
         private void filesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             NotifyPropertyChanged(nameof(SelectedEanFile));
+            NotifyPropertyChanged(nameof(FaceToolVisiblity));
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
