@@ -14,7 +14,6 @@ using EEPK_Organiser.Forms;
 using EEPK_Organiser.View;
 using GalaSoft.MvvmLight.CommandWpf;
 using XenoKit.Engine;
-using Microsoft.Xna.Framework;
 using XenoKit.Engine.Animation;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
@@ -302,8 +301,6 @@ namespace XenoKit.Views
                 if (_currentScale.X != value)
                 {
                     _currentScale.X = value;
-                    if (!DelayedTransformTimer.IsEnabled)
-                        DelayedTransformTimer.Start();
                 }
             }
         }
@@ -315,8 +312,6 @@ namespace XenoKit.Views
                 if (_currentScale.Y != value)
                 {
                     _currentScale.Y = value;
-                    if (!DelayedTransformTimer.IsEnabled)
-                        DelayedTransformTimer.Start();
                 }
             }
         }
@@ -328,8 +323,6 @@ namespace XenoKit.Views
                 if (_currentScale.Z != value)
                 {
                     _currentScale.Z = value;
-                    if (!DelayedTransformTimer.IsEnabled)
-                        DelayedTransformTimer.Start();
                 }
             }
         }
@@ -356,8 +349,8 @@ namespace XenoKit.Views
             DelayedTransformTimer = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(500) };
             DelayedTransformTimer.Tick += (s, e) =>
             {
-                DelayedTransformTimer.Stop();
                 DoDirectTransform();
+                DelayedTransformTimer.Stop();
             };
 
             InitializeComponent();
@@ -589,7 +582,7 @@ namespace XenoKit.Views
 
                 ModelTransformOperation.ApplyTransformation(submeshes, ModelScene.GetSourceModel());
 
-                //UpdateTransformValues();
+                UpdateTransformValues();
             }
         }
 
@@ -769,8 +762,9 @@ namespace XenoKit.Views
                 Viewport.Instance.Camera.LookAt(ModelScene.SelectedBoundingBox);
             }
         }
-
-
+        
+        public RelayCommand ApplyScaleCommand => new RelayCommand(DoDirectTransform, () => _currentScale != SimdVector3.One);
+        
         private bool CanPasteTexture()
         {
             return Clipboard.ContainsData(ClipboardConstants.EmdTextureSampler) && (SelectedSubmesh != null || SelectedTexture != null || EMO_SelectedSubmesh != null);
@@ -943,5 +937,10 @@ namespace XenoKit.Views
             }
         }
         #endregion
+
+        private void treeView_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            DelayedSelectedEventTimer.Start();
+        }
     }
 }

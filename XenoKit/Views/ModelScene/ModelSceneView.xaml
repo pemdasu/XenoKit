@@ -40,7 +40,7 @@
 
         <TreeView x:Name="treeView" lbUtils:TreeViewMultipleSelectionAttached.IsMultipleSelection="True" lbUtils:TreeViewMultipleSelectionAttached.SelectedItems="{Binding ElementName=UserControl, Path=ModelScene.SelectedItems}"
                   Margin="5" Grid.Row="1" ItemsSource="{Binding ElementName=UserControl, Path=EmdFile.Models.Binding}" SelectedItemChanged="TreeView_SelectedItemChanged" 
-                  BorderBrush="{DynamicResource MahApps.Brushes.Accent3}" BorderThickness="1" Visibility="{Binding ElementName=UserControl, Path=EmdNskVisibility}">
+                  BorderBrush="{DynamicResource MahApps.Brushes.Accent3}" BorderThickness="1" Visibility="{Binding ElementName=UserControl, Path=EmdNskVisibility}" PreviewMouseDown="treeView_PreviewMouseDown">
             <TreeView.Resources>
                 <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                     <Style.Triggers>
@@ -324,7 +324,7 @@
 
                     </Grid>
 
-                    <TextBlock Text="Scale" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Scale" FontWeight="Bold" HorizontalAlignment="Center" />
                     <Grid Margin="3,10,0,0" Width="335" HorizontalAlignment="Left">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="21"/>
@@ -333,6 +333,7 @@
                             <ColumnDefinition Width="62"/>
                             <ColumnDefinition Width="21"/>
                             <ColumnDefinition Width="62"/>
+                            <ColumnDefinition Width="90"/>
                         </Grid.ColumnDefinitions>
                         <Label Grid.Column="0" Content="X"/>
                         <Controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleX, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
@@ -343,6 +344,7 @@
                         <Label Grid.Column="4" Content="Z"/>
                         <Controls:NumericUpDown Grid.Column="5" StringFormat="0.00" Interval="0.05" Value="{Binding ElementName=UserControl, Path=ScaleZ, UpdateSourceTrigger=PropertyChanged}" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True" />
 
+                        <Button Grid.Column="6" Content="Apply Scale" Margin="10, 0" Command="{Binding ElementName=UserControl, Path=ApplyScaleCommand}"/>
                     </Grid>
 
 

@@ -637,7 +637,7 @@ namespace XenoKit.Engine.Gizmo
                                             {
                                                 _tDelta = _intersectPosition - _lastIntersectionPosition;
                                             }
-                                            delta = new Vector3(-_tDelta.X, _tDelta.X, _tDelta.X);
+                                            delta = new Vector3(_tDelta.X, _tDelta.X, _tDelta.X);
                                         }
                                     }
                                     break;
