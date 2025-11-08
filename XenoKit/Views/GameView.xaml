@@ -46,13 +46,13 @@
                     </Separator.RenderTransform>
                 </Separator>
 
-                <Button x:Name="translateButton" IsEnabled="{Binding ElementName=UserControl, Path=TranslateAllowed}" ToolTip="Use the translate transform tool.&#x0a;&#x0a;Hotkey: R" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="0">
+                <Button x:Name="translateButton" IsEnabled="{Binding ElementName=UserControl, Path=TranslateAllowed}" ToolTip="Use the translate transform tool.&#x0a;&#x0a;Hotkey: T" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="0">
                     <iconPacks:PackIconLucide Kind="Move3d" />
                 </Button>
-                <Button x:Name="rotateButton" IsEnabled="{Binding ElementName=UserControl, Path=RotateAllowed}" ToolTip="Use the rotate transform tool.&#x0a;&#x0a;Hotkey: T" Margin="5,0,0,0" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="1">
+                <Button x:Name="rotateButton" IsEnabled="{Binding ElementName=UserControl, Path=RotateAllowed}" ToolTip="Use the rotate transform tool.&#x0a;&#x0a;Hotkey: R" Margin="5,0,0,0" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="1">
                     <iconPacks:PackIconLucide Kind="Rotate3d" />
                 </Button>
-                <Button x:Name="scaleButton" IsEnabled="{Binding ElementName=UserControl, Path=ScaleAllowed}" ToolTip="Use the scale transform tool.&#x0a;&#x0a;Hotkey: Y" Margin="5,0,0,0" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="2">
+                <Button x:Name="scaleButton" IsEnabled="{Binding ElementName=UserControl, Path=ScaleAllowed}" ToolTip="Use the scale transform tool.&#x0a;&#x0a;Hotkey: G" Margin="5,0,0,0" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="2">
                     <iconPacks:PackIconLucide Kind="Scale3d" />
                 </Button>
                 <Button x:Name="noneButton" ToolTip="Disable transform tool.&#x0a;&#x0a;Hotkey: U or ESC" Margin="5,0,0,0" HorizontalAlignment="Left" Width="25" Style="{DynamicResource MahApps.Styles.Button.Circle}" Height="25" Command="{Binding ElementName=UserControl, Path=TransformGizmoChangeCommand}" CommandParameter="3">
