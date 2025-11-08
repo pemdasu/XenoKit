@@ -1,5 +1,6 @@
 ﻿using LB_Common.Numbers;
 using Microsoft.Xna.Framework;
+using System;
 using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC.Simulation;
@@ -166,7 +167,7 @@ namespace XenoKit.Engine.Scripting.BAC
                             case BAC_Type0.EanTypeEnum.MCM_TU13_5:
                             case BAC_Type0.EanTypeEnum.Skill:
                                 character.AnimationPlayer.PlayPrimaryAnimation(eanFile, animation.EanIndex, animation.StartFrame, animation.EndFrame, animation.BlendWeight, animation.BlendWeightFrameStep, animation.AnimFlags, true, animation.TimeScale, false, true);
-                                character.AnimationTimeScale = animation.TimeScale;
+                                character.AnimationTimeScale = Math.Abs(animation.TimeScale);
 
                                 if (animation.StartFrame != 0 && _refFrame == 0f) //On first frame, skipping to startFrame on animations is allowed
                                 {
@@ -236,7 +237,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 //TimeScale
                 if (type is BAC_Type4 timeScale)
                 {
-                    character.SetBacTimeScale(timeScale.TimeScale, false);
+                    character.SetBacTimeScale(Math.Abs(timeScale.TimeScale), false);
                 }
 
                 //Effect
