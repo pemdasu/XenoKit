@@ -90,9 +90,6 @@ namespace XenoKit.Engine.Gizmo
         public bool PrecisionModeEnabled;
         protected const float PRECISION_MODE_SCALE = 0.1f;
 
-        private string _inputText = string.Empty;
-        private float _inputAmount = float.PositiveInfinity;
-        private bool _hasInput = false;
         #endregion
 
         #region BoundingBoxes
@@ -207,7 +204,6 @@ namespace XenoKit.Engine.Gizmo
 
         public GizmoBase()
         {
-            Viewport.Instance.TextInput += Instance_TextInput;
             GeometryXYZ = new Sphere(XYZ_RADIUS * 2f, true);
 
             _geometryXyzEffect = new BasicEffect(GraphicsDevice) { VertexColorEnabled = true };
@@ -293,25 +289,6 @@ namespace XenoKit.Engine.Gizmo
                 throw new ArgumentException("GizmoBase: Translate, Rotate and Scale are all not allowed on derived class.");
         }
 
-        private void Instance_TextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
-        {
-            if(CanHaveTextInput() && e.Text.IsFloat())
-            {
-                string str = _inputText + e.Text;
-
-                if (str.IsFloat())
-                {
-                    _inputText = str;
-                    _hasInput = float.TryParse(_inputText, out float value);
-
-                    if (_hasInput)
-                    {
-                        _inputAmount = value;
-                    }
-                }
-            }
-        }
-
         public void SetCallback(Action callbackOnBegin, Action callbackOnComplete)
         {
             CallbackOnBegin = callbackOnBegin;
@@ -320,10 +297,6 @@ namespace XenoKit.Engine.Gizmo
 
         public void Enable()
         {
-            _inputText = string.Empty;
-            _hasInput = false;
-            _inputAmount = 0;
-
             CurrentGizmo.SetCurrentGizmo(this);
 
             if (!IsVisible && IsContextValid())
@@ -352,10 +325,6 @@ namespace XenoKit.Engine.Gizmo
 
         private void CancelOperation()
         {
-            _inputText = string.Empty;
-            _hasInput = false;
-            _inputAmount = 0;
-
             if (TransformOperation != null)
             {
                 if (!TransformOperation.IsFinished)
@@ -501,8 +470,6 @@ namespace XenoKit.Engine.Gizmo
             {
                 GeometryXYZ.Draw(_gizmoWorld, Viewport.Instance.Camera.ViewMatrix, Viewport.Instance.Camera.ProjectionMatrix, ActiveAxis == GizmoAxis.XYZ ? Color.Yellow : Color.White);
             }
-
-            DrawInputAmount();
         }
         
         public override void Update()
@@ -755,22 +722,6 @@ namespace XenoKit.Engine.Gizmo
             ApplyColor(ActiveAxis, _highlightColor);
         }
 
-        private void DrawInputAmount()
-        {
-            if(CanHaveTextInput() && _hasInput)
-            {
-                Viewport.Instance.TextRenderer.DrawOnScreenText(_inputText, new Vector2(Viewport.Instance.RenderSystem.CurrentRT_Width / 2f, Viewport.Instance.RenderSystem.CurrentRT_Height / 2f), Color.Green, true, true);
-            }
-            else
-            {
-                _hasInput = false;
-                _inputAmount = 0;
-
-                if(!string.IsNullOrWhiteSpace(_inputText))
-                    _inputText = string.Empty;
-            }
-        }
-
         private bool CanHaveTextInput()
         {
             if (!IsVisible || ViewportInstance.IsFullScreen) return false;
@@ -863,15 +814,15 @@ namespace XenoKit.Engine.Gizmo
 
         protected GizmoMode GetGizmoMode()
         {
-            if (Input.IsKeyDown(Keys.R) && AllowTranslate)
+            if (Input.IsKeyDown(Keys.T) && AllowTranslate)
             {
                 return GizmoMode.Translate;
             }
-            else if (Input.IsKeyDown(Keys.T) && AllowRotation)
+            else if (Input.IsKeyDown(Keys.R) && AllowRotation)
             {
                 return GizmoMode.Rotate;
             }
-            else if (Input.IsKeyDown(Keys.Y) && AllowScale)
+            else if (Input.IsKeyDown(Keys.G) && AllowScale)
             {
                 return GizmoMode.Scale;
             }
