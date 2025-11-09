@@ -1758,7 +1758,7 @@ namespace XenoKit.Engine.Model
 
             for(int i = 0; i < materials.Length; i++)
             {
-                if (materials[i].Material.Name == matName)
+                if (materials[i].Material.Name.Equals(matName, StringComparison.OrdinalIgnoreCase))
                 {
                     MaterialIndex = i;
                     break;
