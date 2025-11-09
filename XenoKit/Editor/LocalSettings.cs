@@ -33,6 +33,9 @@ namespace XenoKit.Editor
 
         [CustomSerialize]
         [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public bool UseWireframeMissingMaterial { get; set; } = true;
+        [CustomSerialize]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
         public bool EnableFog { get; set; } = true;
 
         [CustomSerialize]

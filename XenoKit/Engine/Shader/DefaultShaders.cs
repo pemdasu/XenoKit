@@ -1,4 +1,5 @@
 ﻿using System;
+using XenoKit.Editor;
 using Xv2CoreLib.EMM;
 
 namespace XenoKit.Engine.Shader
@@ -36,6 +37,9 @@ namespace XenoKit.Engine.Shader
             //Skinned default shader for characters/stages/emos
             EmmMaterial normalMat = material.Copy();
             normalMat.ShaderProgram = "VertexColor_W";
+            if (!LocalSettings.Instance.UseWireframeMissingMaterial)
+                normalMat.DecompiledParameters.ForceWireframeMode = false;
+
             VertexColor_W = new Xv2ShaderEffect(normalMat, ShaderType.Chara);
 
             //No wireframe
