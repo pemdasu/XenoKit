@@ -28,6 +28,7 @@ namespace XenoKit.Editor
         public Visibility HitboxVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility ProjectileVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility CameraVisibility { get; private set; } = Visibility.Collapsed;
+        public Visibility FpfVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility SystemVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility CacVisibility { get; private set; } = Visibility.Collapsed;
 
@@ -75,6 +76,7 @@ namespace XenoKit.Editor
                 if(type == OutlinerItemType.Character)
                 {
                     BcsVisibility = Visibility.Visible;
+                    FpfVisibility = Visibility.Visible;
                     VoxVisibility = Visibility.Visible;
                     SystemVisibility = Visibility.Visible;
                 }
