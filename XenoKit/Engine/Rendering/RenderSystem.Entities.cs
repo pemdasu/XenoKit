@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -86,9 +86,12 @@ namespace XenoKit.Engine.Rendering
         {
             if (entitiesToRemove.Count > 0)
             {
-                foreach (RenderObject entity in entitiesToRemove)
+                HashSet<RenderObject> removeSet = new HashSet<RenderObject>(entitiesToRemove);
+
+                for (int i = entities.Count - 1; i >= 0; i--)
                 {
-                    entities.Remove(entity);
+                    if (removeSet.Contains(entities[i]))
+                        entities.RemoveAt(i);
                 }
 
                 entitiesToRemove.Clear();
@@ -107,7 +110,7 @@ namespace XenoKit.Engine.Rendering
 
             for (int i = entities.Count - 1; i >= 0; i--)
             {
-                if (entities[i].IsDestroyed)
+                if (entities[i] == null || entities[i].IsDestroyed)
                 {
                     entities.RemoveAt(i);
                 }
@@ -131,7 +134,7 @@ namespace XenoKit.Engine.Rendering
                         lod.SetAsReflectionMesh(true);
                     }
 
-                    QueueRenderEntityAdd(Reflections, ReflectionsToAdd, entity);
+                    QueueRenderEntityAdd(Reflections, ReflectionsToAdd, ReflectionsToRemove, entity);
                 }
             }
         }
@@ -169,14 +172,14 @@ namespace XenoKit.Engine.Rendering
             switch (entity.EngineObjectType)
             {
                 case EngineObjectTypeEnum.Actor:
-                    QueueRenderEntityAdd(Characters, CharasToAdd, entity);
+                    QueueRenderEntityAdd(Characters, CharasToAdd, CharasToRemove, entity);
                     break;
                 case EngineObjectTypeEnum.Stage:
-                    QueueRenderEntityAdd(Stages, StagesToAdd, entity);
+                    QueueRenderEntityAdd(Stages, StagesToAdd, StagesToRemove, entity);
                     break;
                 case EngineObjectTypeEnum.VFX:
                 case EngineObjectTypeEnum.Model: //Currently Xv2Submesh is only used in this case for an EMO. If that ever changes, this will also need to be changed
-                    QueueRenderEntityAdd(Effects, EffectsToAdd, entity);
+                    QueueRenderEntityAdd(Effects, EffectsToAdd, EffectsToRemove, entity);
                     break;
                 default:
                     Log.Add($"RenderSystem: Cannot add EntityType {entity.EngineObjectType}!", LogType.Debug);
@@ -244,8 +247,11 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        private static void QueueRenderEntityAdd(List<RenderObject> entities, List<RenderObject> entitiesToAdd, RenderObject entity)
+        private static void QueueRenderEntityAdd(List<RenderObject> entities, List<RenderObject> entitiesToAdd, List<RenderObject> entitiesToRemove, RenderObject entity)
         {
+            //Re-adding an entity cancels a removal that hasn't been applied yet.
+            entitiesToRemove.Remove(entity);
+
             if (!entities.Contains(entity) && !entitiesToAdd.Contains(entity))
                 entitiesToAdd.Add(entity);
         }

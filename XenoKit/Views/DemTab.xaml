@@ -1,0 +1,101 @@
+<UserControl x:Class="XenoKit.Controls.DemTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="600" Name="UserControl">
+    <Grid Controls:ControlsHelper.ContentCharacterCasing="Normal">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="310*"/>
+            <RowDefinition Height="3"/>
+            <RowDefinition Height="200*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Controls:MetroTabControl Margin="5,0,5,5"
+                                      FontSize="12"
+                                      Style="{DynamicResource UnderlinedTabControl}"
+                                      BorderThickness="0"
+                                      Controls:ControlsHelper.ContentCharacterCasing="Normal">
+                <Controls:MetroTabItem Header="Header" Controls:HeaderedControlHelper.HeaderFontSize="12">
+                    <DataGrid ItemsSource="{Binding ElementName=UserControl, Path=HeaderRows}"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False"
+                              Style="{DynamicResource MahApps.Styles.DataGrid.Azure}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Field" Width="*" Binding="{Binding Name}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Value" Width="3*" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Controls:MetroTabItem>
+                <Controls:MetroTabItem Header="Actors" Controls:HeaderedControlHelper.HeaderFontSize="12">
+                    <DataGrid ItemsSource="{Binding ElementName=UserControl, Path=ActorRows}"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False"
+                              Style="{DynamicResource MahApps.Styles.DataGrid.Azure}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Actor" Width="80" Binding="{Binding Index}" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Character" Width="*" Binding="{Binding Character, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Header="Costume" Width="100" Binding="{Binding Costume, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Header="EAN" Width="2*" Binding="{Binding EanFile, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Controls:MetroTabItem>
+            </Controls:MetroTabControl>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.4*" MinWidth="75" MaxWidth="280"/>
+                <ColumnDefinition Width="3"/>
+                <ColumnDefinition Width="1.2*" MinWidth="350"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <DataGrid x:Name="cutDataGrid" Grid.Row="1" Margin="5" SelectedItem="{Binding ElementName=UserControl, Path=SelectedCut}" ItemsSource="{Binding ElementName=UserControl, Path=Cuts}"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False"
+                      IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Cut" Width="*" Binding="{Binding Index}"/>
+                    <DataGridTextColumn Header="Start" Width="*" Binding="{Binding StartTime}"/>
+                    <DataGridTextColumn Header="Events" Width="*" Binding="{Binding EventCount}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left" Height="50" Margin="10,9,0,0" VerticalAlignment="Top">
+                <TextBlock Text="Cuts" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <GridSplitter Grid.Row="0" Grid.RowSpan="2" HorizontalAlignment="Stretch" Background="{DynamicResource MahApps.Brushes.Accent}" Grid.Column="1"/>
+
+            <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Left" Height="50" Margin="10,9,0,0" VerticalAlignment="Top">
+                <TextBlock Text="Events" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <DataGrid x:Name="eventDataGrid" Grid.Row="1" Grid.Column="2" Margin="5" SelectedItem="{Binding ElementName=UserControl, Path=SelectedEvent}" ItemsSource="{Binding ElementName=UserControl, Path=Events}"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False"
+                      IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Time" Width="Auto" Binding="{Binding Time}"/>
+                    <DataGridTextColumn Header="Type" Width="*" Binding="{Binding TypeName}"/>
+                    <DataGridTextColumn Header="Detail" Width="2*" Binding="{Binding Detail}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <GridSplitter Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" Background="{DynamicResource MahApps.Brushes.Accent}"/>
+
+        <DataGrid Grid.Row="3" Margin="5" ItemsSource="{Binding ElementName=UserControl, Path=SelectedEventProperties}"
+                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CanUserAddRows="False" CanUserDeleteRows="False" AutoGenerateColumns="False"
+                  IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Field" Width="*" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="Value" Width="3*" Binding="{Binding Value}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

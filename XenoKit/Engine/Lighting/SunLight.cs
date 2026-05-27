@@ -9,6 +9,8 @@ namespace XenoKit.Engine.Lighting
 {
     public class SunLight : EngineObject
     {
+        private SimdVector3? directionOverride;
+
         public SimdVector3 Direction { get; private set; }
 
         private Matrix4x4 LightViewMatrix { get; set; }
@@ -41,11 +43,37 @@ namespace XenoKit.Engine.Lighting
             //UpdateLight();
         }
 
+        public void SetDirectionOverride(SimdVector3 direction)
+        {
+            directionOverride = direction;
+            UpdateLight();
+        }
+
+        public void ClearDirectionOverride()
+        {
+            directionOverride = null;
+            UpdateLight();
+        }
+
         private void UpdateLight()
         {
-            Direction = new SimdVector3(ViewportInstance.CurrentStage.CurrentSpm.ShadowDirX, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirY, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirZ);
+            if (directionOverride.HasValue)
+            {
+                Direction = directionOverride.Value;
+            }
+            else
+            {
+                if (ViewportInstance?.CurrentStage?.CurrentSpm == null)
+                {
+                    return;
+                }
+
+                Direction = new SimdVector3(ViewportInstance.CurrentStage.CurrentSpm.ShadowDirX, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirY, ViewportInstance.CurrentStage.CurrentSpm.ShadowDirZ);
+            }
+
+            SimdVector3 lightViewDirection = Direction.LengthSquared() > 0f ? Direction : new SimdVector3(0f, -1f, 0f);
             //LightViewMatrix = Matrix.CreateLookAt(position, position + direction, Vector3.Up);
-            LightViewMatrix = CreateDirectionalLightView(Direction, SimdVector3.Zero, 100f);
+            LightViewMatrix = CreateDirectionalLightView(lightViewDirection, SimdVector3.Zero, 100f);
 
             float width = 500;
             float height = 500;

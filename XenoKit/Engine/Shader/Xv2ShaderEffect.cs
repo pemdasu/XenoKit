@@ -800,7 +800,7 @@ namespace XenoKit.Engine.Shader
                     }
                     else
                     {
-                        g_vLightVec0_VS?.SetValue(Viewport.Instance.LightSource.GetLightDirection(WVP));
+                        g_vLightVec0_VS?.SetValue(GetActorLightDirection());
                     }
                     break;
                 case ShaderParameter.LightVec0_PS:
@@ -810,7 +810,7 @@ namespace XenoKit.Engine.Shader
                     }
                     else
                     {
-                        g_vLightVec0_PS?.SetValue(Viewport.Instance.LightSource.GetLightDirection(WVP));
+                        g_vLightVec0_PS?.SetValue(GetActorLightDirection());
                     }
                     break;
                 case ShaderParameter.UserFlag0_VS:
@@ -845,6 +845,18 @@ namespace XenoKit.Engine.Shader
         public void SetGlareOutputAllowed(bool allowed)
         {
             glareOutputAllowed = allowed;
+        }
+
+        private Vector4 GetActorLightDirection()
+        {
+            SimdVector3? actorLightDirection = null;
+
+            if (ActorSlot >= 0 && ActorSlot < SceneManager.Actors.Length)
+            {
+                actorLightDirection = SceneManager.Actors[ActorSlot]?.LightDirectionOverride;
+            }
+
+            return Viewport.Instance.LightSource.GetLightDirection(WVP, actorLightDirection);
         }
 
         /// <summary>

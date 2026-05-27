@@ -404,6 +404,11 @@ namespace XenoKit.Engine.Animation
 
         public void ScdUpdate(Xv2Skeleton parentSkeleton, int[] boneIndices)
         {
+            ScdUpdate(parentSkeleton, boneIndices, null);
+        }
+
+        public void ScdUpdate(Xv2Skeleton parentSkeleton, int[] boneIndices, string attachBoneName)
+        {
             if (parentSkeleton != null && boneIndices != null)
             {
                 //Check for an mismatch between the cached bone indices and the actual bone count
@@ -423,22 +428,31 @@ namespace XenoKit.Engine.Animation
                     ScdBoneCountMismatch = false;
                 }
 
-                //Create skinning matrix from animation data of parent skeleton
+                int attachBoneIndex = parentSkeleton.GetBoneIndex(attachBoneName);
+
+                Matrix4x4 attachBoneMatrix = attachBoneIndex != -1 ? parentSkeleton.Bones[attachBoneIndex].AbsoluteAnimationMatrix : Matrix4x4.Identity;
+
+                //Create absolute matrices from the animated parent skeleton.
                 for (int i = 0; i < boneIndices.Length; i++)
                 {
                     if (boneIndices[i] != -1)
                     {
-                        Bones[i].SkinningMatrix = Bones[i].InverseBindPoseMatrix * parentSkeleton.Bones[boneIndices[i]].AbsoluteAnimationMatrix;
+                        Bones[i].AbsoluteAnimationMatrix = parentSkeleton.Bones[boneIndices[i]].AbsoluteAnimationMatrix;
                     }
-                }
-
-                //Set SCD bones to use the parent bone skinning matrix. 
-                for (int i = 0; i < Bones.Length; i++)
-                {
-                    if (boneIndices[i] == -1 && Bones[i].Parent != null)
+                    else if (Bones[i].Parent != null)
                     {
-                        Bones[i].SkinningMatrix = Bones[i].Parent.SkinningMatrix;
+                        Bones[i].AbsoluteAnimationMatrix = Bones[i].RelativeMatrix * Bones[i].Parent.AbsoluteAnimationMatrix;
                     }
+                    else if (attachBoneIndex != -1)
+                    {
+                        Bones[i].AbsoluteAnimationMatrix = Bones[i].RelativeMatrix * attachBoneMatrix;
+                    }
+                    else
+                    {
+                        Bones[i].AbsoluteAnimationMatrix = Bones[i].RelativeMatrix;
+                    }
+
+                    Bones[i].SkinningMatrix = Bones[i].InverseBindPoseMatrix * Bones[i].AbsoluteAnimationMatrix;
                 }
             }
         }

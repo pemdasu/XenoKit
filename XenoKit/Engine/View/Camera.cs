@@ -134,7 +134,7 @@ namespace XenoKit.Engine.View
 
         public void ProcessCameraFrame()
         {
-            float _drawFrame = (CurrentFrame <= cameraInstance.Animation.FrameCount) ? CurrentFrame : cameraInstance.Animation.FrameCount - 1;
+            float _drawFrame = Math.Min(CurrentFrame, cameraInstance.Animation.FrameCount - 1);
 
             //If current frame is greater than animation duration, just leave the last frame playing
             var pos = cameraInstance.Animation.GetNode("Node").GetComponent(EAN_AnimationComponent.ComponentType.Position);
@@ -157,6 +157,11 @@ namespace XenoKit.Engine.View
             {
                 CameraState.FieldOfView = EAN_File.DefaultFoV;
                 CameraState.Roll = 0f;
+            }
+
+            if (cameraInstance.UseRawKeyframes)
+            {
+                return;
             }
 
             //Bone Focus
@@ -208,6 +213,10 @@ namespace XenoKit.Engine.View
                 cameraInstance.CurrentFrame += cameraInstance.Actor.ActiveTimeScale;
 
             }
+            else if (cameraInstance != null && cameraInstance.UseRawKeyframes)
+            {
+                cameraInstance.CurrentFrame++;
+            }
         }
 
         public void RestoreCameraState(bool removeBackup = true)
@@ -234,6 +243,19 @@ namespace XenoKit.Engine.View
             cameraInstance = new CameraAnimInstance(eanFile, camAnim, bacCamEntry, autoTerminate, targetCharaIndex, actor);
 
             //Render first frame if not auto playing
+            if (!ViewportInstance.IsPlaying && alwaysShowFirstFrame)
+                UpdateCameraAnimation(false);
+        }
+
+        public void PlayRawCameraAnimation(EAN_File eanFile, EAN_Animation camAnim, bool autoTerminate, bool alwaysShowFirstFrame = true)
+        {
+            if (camAnim == null) return;
+
+            if (SettingsManager.Instance.Settings.XenoKit_PreserveCameraState && BackupCameraState == null)
+                BackupCameraState = CameraState.Copy();
+
+            cameraInstance = new CameraAnimInstance(eanFile, camAnim, null, autoTerminate, -1, null, true);
+
             if (!ViewportInstance.IsPlaying && alwaysShowFirstFrame)
                 UpdateCameraAnimation(false);
         }

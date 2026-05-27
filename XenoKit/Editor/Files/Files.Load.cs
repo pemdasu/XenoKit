@@ -40,12 +40,13 @@ namespace XenoKit.Editor
             bool error = false;
             foreach (string drop in paths)
             {
-                switch (Path.GetExtension(drop))
+                switch (Path.GetExtension(drop).ToLowerInvariant())
                 {
                     case ".ean":
                     case ".acb":
                     case ".eepk":
                     case ".vfxpackage":
+                    case ".dem":
                         ManualLoad(drop);
                         break;
                     case ".nsk":

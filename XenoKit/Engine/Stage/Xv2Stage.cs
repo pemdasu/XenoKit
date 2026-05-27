@@ -91,16 +91,16 @@ namespace XenoKit.Engine.Stage
             }
 
             //Load spm
-            SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame($"stage/{StageDefEntry.DIR}/{StageDefEntry.STR4}.spm", false, false);
+            SpmFile = LoadSpmFile($"stage/{StageDefEntry.DIR}/{StageDefEntry.STR4}.spm");
 
             //Some stages (such as BFwis) have an incorrect DIR value set for some reason. In this case, we can try using STR4 as the DIR to find the spm
             if (SpmFile == null)
-                SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame($"stage/{StageDefEntry.STR4}/{StageDefEntry.STR4}.spm", false, false);
+                SpmFile = LoadSpmFile($"stage/{StageDefEntry.STR4}/{StageDefEntry.STR4}.spm");
 
             if (SpmFile == null)
             {
-                Log.Add($"No .spm file could be found for stage {StageDefEntry.CODE}.", LogType.Error);
-                return;
+                SpmFile = LoadDefaultSpmFile();
+                Log.Add($"Stage load: using default lighting because no usable .spm file could be loaded for stage {StageDefEntry.CODE}.", LogType.Info);
             }
 
             UpdateStageLighting();
@@ -186,6 +186,23 @@ namespace XenoKit.Engine.Stage
             */
         }
 
+        private SPM_File LoadSpmFile(string path)
+        {
+            try
+            {
+                return (SPM_File)FileManager.Instance.GetParsedFileFromGame(path, false, false);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static SPM_File LoadDefaultSpmFile()
+        {
+            return (SPM_File)FileManager.Instance.GetParsedFileFromGame("stage/BFten/BFten.spm");
+        }
+
         public void DrawReflection()
         {
             foreach (StageObject obj in Objects)
@@ -247,6 +264,8 @@ namespace XenoKit.Engine.Stage
 
         public void SetActiveStage()
         {
+            Viewport.Instance?.ShaderManager?.SetStageLightingEnvironment(GetStageLightingCodes());
+
             if(EnvTexture != null)
                 ShaderManager.SetSceneCubeMap(EnvTexture);
 
@@ -264,12 +283,20 @@ namespace XenoKit.Engine.Stage
             var stage = new Xv2Stage()
             {
                 IsDefaultStage = true,
-                SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame("stage/BFten/BFten.spm")
+                SpmFile = LoadDefaultSpmFile()
             };
 
             stage.UpdateStageLighting();
 
             return stage;
+        }
+
+        private IEnumerable<string> GetStageLightingCodes()
+        {
+            yield return StageDefEntry?.CODE;
+            yield return StageDefEntry?.EVE;
+            yield return StageDefEntry?.DIR;
+            yield return StageDefEntry?.STR4;
         }
     
         private List<CollisionMesh> GetAllCollisionMeshes()

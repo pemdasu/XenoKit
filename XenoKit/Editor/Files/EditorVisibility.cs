@@ -13,7 +13,7 @@ namespace XenoKit.Editor
         public Visibility IsMoveset { get { return (type == OutlinerItemType.Moveset) ? Visibility.Visible : Visibility.Collapsed; } }
         public Visibility IsCharacter { get { return (type == OutlinerItemType.Character || type == OutlinerItemType.CaC) ? Visibility.Visible : Visibility.Collapsed; } }
         public Visibility IsCommon { get { return (type == OutlinerItemType.CMN) ? Visibility.Visible : Visibility.Collapsed; } }
-        public Visibility IsManual { get { return (type == OutlinerItemType.EAN || type == OutlinerItemType.CAM || type == OutlinerItemType.EEPK || type == OutlinerItemType.ACB) ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility IsManual { get { return (type == OutlinerItemType.EAN || type == OutlinerItemType.CAM || type == OutlinerItemType.EEPK || type == OutlinerItemType.ACB || type == OutlinerItemType.DEM) ? Visibility.Visible : Visibility.Collapsed; } }
         public Visibility IsInspector => type == OutlinerItemType.Inspector ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility UseSecondSeperator => type == OutlinerItemType.Inspector ? Visibility.Collapsed : Visibility.Visible;
@@ -30,6 +30,8 @@ namespace XenoKit.Editor
         public Visibility FpfVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility SystemVisibility { get; private set; } = Visibility.Collapsed;
         public Visibility CacVisibility { get; private set; } = Visibility.Collapsed;
+        public Visibility BacActionVisibility => type == OutlinerItemType.DEM ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility DemActionVisibility => type == OutlinerItemType.DEM ? Visibility.Visible : Visibility.Collapsed;
 
         //SubTabs:
         public Visibility SeVisibility { get; private set; } = Visibility.Collapsed;
@@ -106,6 +108,14 @@ namespace XenoKit.Editor
             {
                 CameraVisibility = Visibility.Visible;
             }
+            else if (type == OutlinerItemType.DEM)
+            {
+                AnimationVisibility = Visibility.Visible;
+                ActionVisibility = Visibility.Visible;
+                CameraVisibility = Visibility.Visible;
+                EffectVisibility = Visibility.Visible;
+            }
+
             SystemVisibility = Visibility.Collapsed;
         }
 

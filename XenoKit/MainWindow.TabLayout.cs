@@ -41,7 +41,14 @@ namespace XenoKit
             //Auto play bac entry if nothing is active
             if (SceneManager.CurrentSceneState == EditorTabs.Action)
             {
-                bacControlView.AutoPlayBacEntry();
+                if (Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM)
+                {
+                    demControlView.AutoPlayDem();
+                }
+                else
+                {
+                    bacControlView.AutoPlayBacEntry();
+                }
             }
 
             if (!changed) return;

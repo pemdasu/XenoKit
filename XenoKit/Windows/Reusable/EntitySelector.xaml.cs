@@ -118,6 +118,8 @@ namespace XenoKit.Windows
 
                 if (item is Xv2CodedItem coded && coded.Code != null && coded.Code.ToLower().Contains(searchParam)) return true;
 
+                if (item.DisplayID != null && item.DisplayID.ToLower().Contains(searchParam)) return true;
+
                 int num;
                 if (int.TryParse(searchParam, out num))
                 {
@@ -152,6 +154,14 @@ namespace XenoKit.Windows
             NotifyPropertyChanged(nameof(BooleanParameterName));
             NotifyPropertyChanged(nameof(BooleanParameterToolTip));
             checkbox.Visibility = Visibility.Visible;
+        }
+
+        public void ShowImageColumn(string header)
+        {
+            previewColumn.Header = header;
+            previewColumn.Visibility = Visibility.Visible;
+            // listBox and searchBox stretch to the window, so only the window needs widening.
+            Width = 520;
         }
     }
 }

@@ -415,7 +415,7 @@ namespace XenoKit.Engine.Animation
             SimdVector3 ean_initialBoneScale = new SimdVector3(transform.ScaleX, transform.ScaleY, transform.ScaleZ) * transform.ScaleW;
 
             //Scale animations to fit current actor size
-            if (!animation.EanFile.IsCharaUnique && animNodeIndex == animation.b_C_Pelvis_Index && Character != null)
+            if (!SceneManager.IsDemPreview && !animation.EanFile.IsCharaUnique && animNodeIndex == animation.b_C_Pelvis_Index && Character != null)
             {
                 ean_initialBonePosition.Y -= (Character.CharacterData.BcsFile.File.F_48[0] - 1f) / 2f;
             }

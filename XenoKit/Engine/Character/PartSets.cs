@@ -1273,7 +1273,7 @@ namespace XenoKit.Engine
 
         public void UpdatePhysicsPart()
         {
-            Skeleton?.ScdUpdate(chara.Skeleton, SkeletoBoneIndices);
+            Skeleton?.ScdUpdate(chara.Skeleton, SkeletoBoneIndices, physicsPart?.BoneToAttach);
         }
 
         public void ApplyFpfPreviewToPhysicsParts(FPF_File fpfFile, FpfPoseMatrix poseMatrices, FpfPoseMatrix skinOffsetMatrices, FpfSkinOffsetMode skinOffsetMode, HashSet<int> usedEntries)

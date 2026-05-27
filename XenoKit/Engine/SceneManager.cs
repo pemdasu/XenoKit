@@ -112,9 +112,10 @@ namespace XenoKit.Engine
             Viewport.Instance?.RenderSystem.SetRenderScene(null);
 
             //Set default actor values
-            ActorsEnable[0] = true;
-            ActorsEnable[1] = false;
-            ActorsEnable[2] = false;
+            for (int i = 0; i < ActorsEnable.Length; i++)
+            {
+                ActorsEnable[i] = i == 0;
+            }
 
             if(mainTabIdx >= (int)MainEditorTabs.DynamicTab)
             {
@@ -237,7 +238,7 @@ namespace XenoKit.Engine
 
             }
 
-            if (CurrentSceneState == EditorTabs.Action || CurrentSceneState == EditorTabs.Projectile)
+            if ((CurrentSceneState == EditorTabs.Action || CurrentSceneState == EditorTabs.Projectile) && Files.Instance.SelectedItem?.Type != OutlinerItem.OutlinerItemType.DEM)
             {
                 await AsyncEnsureActorIsSet(0);
 
@@ -361,13 +362,13 @@ namespace XenoKit.Engine
         #endregion
 
         #region Actors
-        public const int NumActors = 3;
+        public const int NumActors = 16;
         /// <summary>
         /// All characters active in the current scene. (0 = Primary, 1 = Victim, 2 = Partner)
         /// </summary>
         public readonly static Actor[] Actors = new Actor[NumActors];
 
-        public readonly static bool[] ActorsEnable = new bool[3] { true, true, false };
+        public readonly static bool[] ActorsEnable = Enumerable.Range(0, NumActors).Select(index => index < 2).ToArray();
         private readonly static bool[] ActorIsLoading = new bool[NumActors];
 
 
@@ -378,6 +379,11 @@ namespace XenoKit.Engine
         public static void EnsureActorIsSet(int actorSlot = 0)
         {
             if (actorSlot >= Actors.Length) throw new InvalidOperationException($"SceneManager.EnsureActorIsSet: idx {actorSlot} is greater than the maximum amount of Actors.");
+
+            if (Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM)
+            {
+                return;
+            }
 
             if (Actors[actorSlot] == null)
             {
@@ -420,6 +426,11 @@ namespace XenoKit.Engine
         public static async Task AsyncEnsureActorIsSet(int actorSlot = 0)
         {
             if (actorSlot >= Actors.Length) throw new InvalidOperationException($"SceneManager.AsyncEnsureActorIsSet: idx {actorSlot} is greater than the maximum amount of Actors.");
+
+            if (Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM)
+            {
+                return;
+            }
             
             if (Actors[actorSlot] == null)
             {
@@ -489,7 +500,7 @@ namespace XenoKit.Engine
             {
                 if (Actors[i] == character)
                 {
-                    if(i == 0 && CurrentSceneState == EditorTabs.Action)
+                    if(i == 0 && CurrentSceneState == EditorTabs.Action && !IsDemPreview)
                     {
                         Log.Add("Cannot change this actor while on the Action tab.", LogType.Error);
                         return;
@@ -513,7 +524,7 @@ namespace XenoKit.Engine
 
             Log.Add($"{character.Name} set as the {GetActorName(actorSlot)} actor.");
 
-            if (actorSlot == 1)
+            if (actorSlot == 1 && !IsDemPreview)
             {
                 VictimEnabled = true;
             }
@@ -553,6 +564,11 @@ namespace XenoKit.Engine
 
         private static string GetActorName(int charaIdx)
         {
+            if (IsDemPreview)
+            {
+                return $"DEM {charaIdx}";
+            }
+
             switch (charaIdx)
             {
                 case 0:
@@ -741,6 +757,8 @@ namespace XenoKit.Engine
             if (tabs == null || CurrentDynamicTab != DynamicTabs.None) return false;
             return tabs.Contains(CurrentSceneState);
         }
+
+        public static bool IsDemPreview => IsOnTab(EditorTabs.Action) && Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM;
         #endregion
 
         #region CameraControl

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using XenoKit.Editor;
@@ -215,7 +216,8 @@ namespace XenoKit.Engine.Scripting.BAC
 
                     if (anim != null && BAC_Type0.IsFullBodyAnimation(animationBacType.EanType))
                     {
-                        animTypeDuration = anim.FrameCount;
+                        int endFrame = Math.Max(0, anim.FrameCount - 1);
+                        animTypeDuration = animationBacType.StartTime == 0 ? endFrame : Math.Max(0, endFrame - animationBacType.StartFrame);
                     }
                 }
             }

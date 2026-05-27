@@ -18,6 +18,8 @@ namespace XenoKit.Engine.View
         public Matrix4x4 ViewProjectionMatrix { get; private set; }
         public BoundingFrustum Frustum { get; protected set; } = new BoundingFrustum(Matrix.Identity);
         public virtual CameraState CameraState { get; protected set; } = new CameraState();
+        public float? NearClipOverride { get; private set; }
+        public float? FarClipOverride { get; private set; }
 
         private bool IsReflectionView = false;
 
@@ -352,12 +354,24 @@ namespace XenoKit.Engine.View
             RecalculateMatrices();
         }
 
+        public void SetClipOverride(float? nearClip, float? farClip)
+        {
+            NearClipOverride = nearClip;
+            FarClipOverride = farClip;
+        }
+
+        public void ClearClipOverride()
+        {
+            NearClipOverride = null;
+            FarClipOverride = null;
+        }
+
         public void RecalculateMatrices()
         {
             //Projection Matrix
             float fieldOfViewRadians = (float)(Math.PI / 180 * CameraState.FieldOfView);
-            float nearClipPlane = ViewportInstance.CurrentStage.NearClip;
-            float farClipPlane = ViewportInstance.CurrentStage.FarClip;
+            float nearClipPlane = NearClipOverride ?? ViewportInstance.CurrentStage.NearClip;
+            float farClipPlane = FarClipOverride ?? ViewportInstance.CurrentStage.FarClip;
             float aspectRatio = GraphicsDevice.Viewport.Width / (float)GraphicsDevice.Viewport.Height;
 
             ProjectionMatrix = Matrix4x4.CreatePerspectiveFieldOfView(fieldOfViewRadians, aspectRatio, nearClipPlane, farClipPlane);

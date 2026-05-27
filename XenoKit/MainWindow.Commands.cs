@@ -18,6 +18,7 @@ namespace XenoKit
         public RelayCommand LoadEvasiveSkillCommand => new RelayCommand(LoadEvasiveSkill);
         public RelayCommand LoadBlastSkillCommand => new RelayCommand(LoadBlastSkill);
         public RelayCommand LoadAwokenSkillCommand => new RelayCommand(LoadAwokenSkill);
+        public RelayCommand LoadDemoCommand => new RelayCommand(LoadDemo);
         public RelayCommand LoadMovesetCommand => new RelayCommand(LoadMoveset);
         public RelayCommand LoadCharacterCommand => new RelayCommand(LoadCharacter);
         public RelayCommand LoadCacCommand => new RelayCommand(LoadCac);
@@ -48,6 +49,11 @@ namespace XenoKit
         private void LoadAwokenSkill()
         {
             Files.Instance.AsyncLoadSkill(Xv2CoreLib.CUS.CUS_File.SkillType.Awoken);
+        }
+
+        private void LoadDemo()
+        {
+            Files.Instance.AsyncLoadDemo();
         }
 
         private void LoadMoveset()

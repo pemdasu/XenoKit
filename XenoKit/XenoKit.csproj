@@ -913,6 +913,9 @@
     <Compile Include="Views\FpfTabView.xaml.cs">
       <DependentUpon>FpfTabView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\DemTab.xaml.cs">
+      <DependentUpon>DemTab.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\AnimationTabView.xaml.cs">
       <DependentUpon>AnimationTabView.xaml</DependentUpon>
     </Compile>
@@ -1015,6 +1018,7 @@
     <Compile Include="Editor\Files\Files.Save.cs" />
     <Compile Include="Editor\Files\Files.Lookup.cs" />
     <Compile Include="Editor\Files\Files.Outliner.cs" />
+    <Compile Include="Editor\Files\Files.Dem.cs" />
     <Compile Include="Editor\Files\OutlinerItem.SelectedFiles.cs" />
     <Compile Include="Engine\Rendering\RenderSystem.Draw.cs" />
     <Compile Include="Engine\Rendering\RenderSystem.Entities.cs" />
@@ -1522,6 +1526,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\FpfTabView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\DemTab.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

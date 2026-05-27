@@ -45,6 +45,7 @@
                         <MenuItem Header="Evasive Skill" Command="{Binding LoadEvasiveSkillCommand}"/>
                         <MenuItem Header="Blast Skill" Command="{Binding LoadBlastSkillCommand}"/>
                         <MenuItem Header="Awoken Skill" Command="{Binding LoadAwokenSkillCommand}"/>
+                        <MenuItem Header="Demo" Command="{Binding LoadDemoCommand}"/>
                         <MenuItem Header="Stage" Command="{Binding LoadStageCommand}"/>
                     </MenuItem>
                     <MenuItem Header="Load CaC" Command="{Binding LoadCacCommand}"/>
@@ -147,7 +148,8 @@
             </Controls:MetroTabItem>
             <Controls:MetroTabItem Header="Action" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.ActionVisibility}">
                 <Grid>
-                    <_controls:BacTab x:Name="bacControlView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    <_controls:BacTab x:Name="bacControlView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.BacActionVisibility}"/>
+                    <_controls:DemTab x:Name="demControlView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.DemActionVisibility}"/>
                 </Grid>
             </Controls:MetroTabItem>
             <Controls:MetroTabItem x:Name="stateTab" Header="State" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.StateVisibility}">

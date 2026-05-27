@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using XenoKit.Editor;
 using XenoKit.Engine;
 using XenoKit.Engine.Gizmo;
 using XenoKit.Engine.Model;
@@ -55,6 +56,11 @@ namespace XenoKit.Controls
                     case EditorTabs.Camera:
                         return (monoGame.Camera.cameraInstance != null) ? $"{(int)MonoGame.Camera.cameraInstance.CurrentFrame}/{MonoGame.Camera.cameraInstance.CurrentAnimDuration}" : "--/--";
                     case EditorTabs.Action:
+                        if (IsDemAction)
+                        {
+                            return DemTab.ActiveDemTab != null ? $"{DemTab.ActiveDemTab.CurrentPreviewFrame}/{DemTab.ActiveDemTab.MaxPreviewFrame}" : "--/--";
+                        }
+
                         return (SceneManager.Actors[0] != null) ? $"{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame}/{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration}" : "--/--";
                     case EditorTabs.Projectile:
                         return $"{BsaEffectPreviewController.Instance.CurrentFrame}/{BsaEffectPreviewController.Instance.Duration}";
@@ -121,6 +127,11 @@ namespace XenoKit.Controls
                     case EditorTabs.Camera:
                         return (monoGame.Camera.cameraInstance != null) ? MonoGame.Camera.cameraInstance.CurrentAnimDuration - 1 : 0;
                     case EditorTabs.Action:
+                        if (IsDemAction)
+                        {
+                            return DemTab.ActiveDemTab?.MaxPreviewFrame ?? 0;
+                        }
+
                         return (SceneManager.Actors[0] != null) ? SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration : 0;
                     case EditorTabs.Projectile:
                         return BsaEffectPreviewController.Instance.Duration;
@@ -144,10 +155,15 @@ namespace XenoKit.Controls
                     case EditorTabs.Camera:
                         return (monoGame.Camera.cameraInstance != null) ? (int)MonoGame.Camera.cameraInstance.CurrentFrame : 0;
                     case EditorTabs.Action:
-                            if(SceneManager.Actors[0] != null)
-                            {
-                                return DelayedSeekFrame != -1 ? DelayedSeekFrame : SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame;
-                            }
+                        if (IsDemAction)
+                        {
+                            return DelayedSeekFrame != -1 ? DelayedSeekFrame : DemTab.ActiveDemTab?.CurrentPreviewFrame ?? 0;
+                        }
+
+                        if(SceneManager.Actors[0] != null)
+                        {
+                            return DelayedSeekFrame != -1 ? DelayedSeekFrame : SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame;
+                        }
                         return 0;
                     case EditorTabs.Projectile:
                         return BsaEffectPreviewController.Instance.CurrentFrame;
@@ -370,6 +386,10 @@ namespace XenoKit.Controls
                 if (SettingsManager.settings.XenoKit_VfxSimulation != value)
                 {
                     SettingsManager.settings.XenoKit_VfxSimulation = value;
+                    if (!value)
+                    {
+                        Viewport.Instance?.VfxManager.StopEffects();
+                    }
                     SettingsManager.Instance.SaveSettings();
                 }
             }
@@ -412,6 +432,7 @@ namespace XenoKit.Controls
         public bool ScaleAllowed => CurrentGizmo.AllowScale && CurrentGizmo.Current?.IsContextValid() == true;
 
         public Visibility ModelEditorVisibility => SceneManager.CurrentDynamicTab == DynamicTabs.ModelScene ? Visibility.Visible : Visibility.Collapsed;
+        private bool IsDemAction => SceneManager.CurrentSceneState == EditorTabs.Action && Files.Instance.SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM;
         #endregion
 
         public GameView()
@@ -447,12 +468,19 @@ namespace XenoKit.Controls
 
         private void DelayedUpdate(object sender, EventArgs e)
         {
-            if(DelayedSeekFrame != -1 && SceneManager.Actors[0] != null)
+            if(DelayedSeekFrame != -1)
             {
                 switch (SceneManager.CurrentSceneState)
                 {
                     case EditorTabs.Action:
-                        SceneManager.Actors[0].ActionControl.BacPlayer.Seek(CurrentFrame);
+                        if (IsDemAction)
+                        {
+                            DemTab.ActiveDemTab?.SeekTimeline(CurrentFrame);
+                        }
+                        else if (SceneManager.Actors[0] != null)
+                        {
+                            SceneManager.Actors[0].ActionControl.BacPlayer.Seek(CurrentFrame);
+                        }
                         break;
                 }
 
@@ -537,14 +565,30 @@ namespace XenoKit.Controls
         private void SeekNextFrame()
         {
             SceneManager.InvokeSeekOccurredEvent();
-            MonoGame.SeekNextFrame();
+
+            if (IsDemAction)
+            {
+                DemTab.ActiveDemTab?.SeekNextFrame();
+            }
+            else
+            {
+                MonoGame.SeekNextFrame();
+            }
         }
 
         public RelayCommand SeekPrevCommand => new RelayCommand(SeekPrevFrame, CanSeek);
         private void SeekPrevFrame()
         {
             SceneManager.InvokeSeekOccurredEvent();
-            MonoGame.SeekPrevFrame();
+
+            if (IsDemAction)
+            {
+                DemTab.ActiveDemTab?.SeekPrevFrame();
+            }
+            else
+            {
+                MonoGame.SeekPrevFrame();
+            }
         }
 
         private bool CanSeek()
@@ -625,13 +669,27 @@ namespace XenoKit.Controls
             }
             else
             {
-                SceneManager.Play();
+                if (IsDemAction)
+                {
+                    DemTab.ActiveDemTab?.PlayTimeline();
+                }
+                else
+                {
+                    SceneManager.Play();
+                }
             }
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
         {
-            SceneManager.Stop();
+            if (IsDemAction)
+            {
+                DemTab.ActiveDemTab?.StopTimeline();
+            }
+            else
+            {
+                SceneManager.Stop();
+            }
         }
 
         private void ResetCamera_Click(object sender, RoutedEventArgs e)

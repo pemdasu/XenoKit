@@ -20,11 +20,12 @@ namespace XenoKit.Engine
         //TODO: Clean this mess up!
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Actor;
 
-        public int Team => ActorSlot == 1 ? 1 : 0;
+        public int Team => ActorSlot == 1 && !SceneManager.IsDemPreview ? 1 : 0;
         public int ActorSlot = 0;
         public CharaPartSet PartSet;
         public int ForceDytOverride = -1;
         public bool IsVisible = true;
+        public bool ShowModel = true;
         public FPF_File FpfPreviewFile = null;
         public string FpfPreviewPath = null;
         public FpfPoseMatrix FpfPreviewPoseMatrix = FpfPoseMatrix.AbsolutePoseTransform;
@@ -41,7 +42,7 @@ namespace XenoKit.Engine
         {
             get
             {
-                return (SceneManager.CurrentSceneState == EditorTabs.Action) ? BacTimeScale * AnimationTimeScale * BdmTimeScale : 1f;
+                    return (SceneManager.CurrentSceneState == EditorTabs.Action && !SceneManager.IsDemPreview) ? BacTimeScale * AnimationTimeScale * BdmTimeScale : 1f;
             }
         }
 
@@ -120,6 +121,7 @@ namespace XenoKit.Engine
         public float[] EyeIrisLeft_UV { get; set; } = new float[4];
         public float[] EyeIrisRight_UV { get; set; } = new float[4];
         public bool BacEyeMovementUsed = false;
+        public SimdVector3? LightDirectionOverride { get; set; }
 
         public Actor(Xv2Character character, int initialPartSet = 0)
         {
@@ -171,7 +173,7 @@ namespace XenoKit.Engine
 
             switch (ActorSlot)
             {
-                case 1:
+                case 1 when !SceneManager.IsDemPreview:
                     pos = new SimdVector3(0, 0, -SceneManager.VictimDistance);
                     rotation = SceneManager.VictimIsFacingPrimary ? Matrix4x4.CreateRotationY(MathHelper.Pi) : Matrix4x4.Identity;
                     break;
@@ -189,12 +191,14 @@ namespace XenoKit.Engine
         public void ResetState(bool keepAnimation = false)
         {
             ShaderParameters.ShaderPath = ActorShaderPath.Default;
+            LightDirectionOverride = null;
+            ShowModel = true;
             BdmTimeScaleDuration = 0;
             BdmTimeScale = 1f;
             BacTimeScale = 1f;
             Controller.ResetState(keepAnimation);
 
-            bool retainActionPosition = SceneManager.RetainActionMovement && SceneManager.IsOnTab(EditorTabs.Action);
+            bool retainActionPosition = SceneManager.RetainActionMovement && SceneManager.IsOnTab(EditorTabs.Action) && !SceneManager.IsDemPreview;
 
             //In some cases we might not want to reset animations, such as Animation > Camera (and vice versa) tab changes.
             //TODO: Check for a better place to put this. Dont want UI related stuff mixed in here
@@ -213,29 +217,50 @@ namespace XenoKit.Engine
         public override void Update()
         {
             DrawThisFrame = true;
-            IsVisible = true;
             HitboxEnabled = true;
+            bool isDemPreview = SceneManager.IsDemPreview;
+
+            if (!isDemPreview)
+            {
+                IsVisible = true;
+                ShowModel = true;
+            }
 
             //Reset Eye positions to their defaults
             EyeIrisLeft_UV[0] = EyeIrisLeft_UV[1] = EyeIrisRight_UV[0] = EyeIrisRight_UV[1] = 0;
             BacEyeMovementUsed = false;
 
-            //Disable the ActorController for the main actor, and enable it for the victim
-            //Will need to adjust this when adding BDM preview support
-            if(ActorSlot == 0 && Controller.State != ActorState.Null)
+            if (isDemPreview)
             {
-                Controller.State = ActorState.Null;
+                if (Controller.State != ActorState.Null)
+                {
+                    Controller.State = ActorState.Null;
+                }
+
+                ActionControl.ClearBacPlayer();
             }
-            else if(ActorSlot == 1 && Controller.State == ActorState.Null)
+            else
             {
-                Controller.State = ActorState.Idle;
+                //Disable the ActorController for the main actor, and enable it for the victim
+                //Will need to adjust this when adding BDM preview support
+                if(ActorSlot == 0 && Controller.State != ActorState.Null)
+                {
+                    Controller.State = ActorState.Null;
+                }
+                else if(ActorSlot == 1 && Controller.State == ActorState.Null)
+                {
+                    Controller.State = ActorState.Idle;
+                }
             }
 
             if (ViewportInstance.IsPlaying)
                 UpdateBdmTimeScale();
 
-            Controller.Update();
-            ActionControl.Update();
+            if (!isDemPreview)
+            {
+                Controller.Update();
+                ActionControl.Update();
+            }
 
             if (AnimationPlayer != null && Skeleton != null)
                 AnimationPlayer.Update(Matrix4x4.Identity);
@@ -274,13 +299,23 @@ namespace XenoKit.Engine
             }
 #endif
             HitboxEnabled = true;
+            bool isDemPreview = SceneManager.IsDemPreview;
 
             UpdateBdmTimeScale();
-            Controller.Simulate();
 
-            if (ActorSlot != 0)
+            if (isDemPreview)
             {
-                ActionControl.Update();
+                Controller.State = ActorState.Null;
+                ActionControl.ClearBacPlayer();
+            }
+            else
+            {
+                Controller.Simulate();
+
+                if (ActorSlot != 0)
+                {
+                    ActionControl.Update();
+                }
             }
 
             if (AnimationPlayer != null && Skeleton != null)
@@ -306,7 +341,10 @@ namespace XenoKit.Engine
             if(RenderSystem.CurrentDrawPass == Rendering.DrawPass.Opaque)
                 ActionControl.Draw();
 
-            PartSet.Draw();
+            if (ShowModel)
+            {
+                PartSet.Draw();
+            }
 
             if(RenderSystem.CurrentDrawPass == Rendering.DrawPass.Opaque)
             {
@@ -321,6 +359,7 @@ namespace XenoKit.Engine
         public override void DrawPass(bool normalPass)
         {
             if (!ViewportInstance.RenderCharacters || !IsVisible) return;
+            if (!ShowModel) return;
             PartSet.DrawSimple(normalPass);
         }
 

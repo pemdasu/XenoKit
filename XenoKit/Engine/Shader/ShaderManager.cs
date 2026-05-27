@@ -44,9 +44,11 @@ namespace XenoKit.Engine.Shader
         private const int SamplerAlphaDepth = 10;
         private const int SamplerCurrentScene = 11;
         private const int SamplerSmallScene = 12;
+        private const int SamplerStageLighting = 15;
 
         private Texture2D NoRimLightTexture;
         private TextureCube Texture_SamplerCubeMap; //Cubemap for current stage, located in data/stage/{stage}/{stage}_ENV.emb. For now just load a default one.
+        private Texture2D Texture_SamplerStageLighting;
 
         //File watch
         private FileSystemWatcher extShaderWatcher;
@@ -703,19 +705,9 @@ namespace XenoKit.Engine.Shader
                     case 15:
                         //Stage lighting
                         {
-                            Texture2D texture;
-
-                            if (SettingsManager.Instance.Settings.XenoKit_RimLightingEnabled)
-                            {
-                                EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFpot.emb", false); //ToP
-                                //EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFtwf.emb", false); //Future In Ruins
-                                //EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFten.emb", false); //World Tournament
-                                texture = TextureLoader.ConvertToTexture2D(lightingEmb.Entry[0], GetTextureName(slot), Viewport.Instance.GraphicsDevice);
-                            }
-                            else
-                            {
-                                texture = NoRimLightTexture;
-                            }
+                            Texture2D texture = SettingsManager.Instance.Settings.XenoKit_RimLightingEnabled
+                                ? Texture_SamplerStageLighting ?? NoRimLightTexture
+                                : NoRimLightTexture;
 
                             sampler = new GlobalSampler(slot,
                                                         texture,
@@ -784,8 +776,85 @@ namespace XenoKit.Engine.Shader
 
         public void ClearGlobalSampler(int slot)
         {
-            GlobalSamplers[slot]?.Texture?.Dispose();
+            if (slot == SamplerStageLighting && GlobalSamplers[slot]?.Texture == Texture_SamplerStageLighting)
+            {
+                Texture_SamplerStageLighting = null;
+            }
+
+            if (GlobalSamplers[slot]?.Texture != NoRimLightTexture)
+            {
+                GlobalSamplers[slot]?.Texture?.Dispose();
+            }
+
             GlobalSamplers[slot] = null;
+        }
+
+        public void SetStageLightingEnvironment(IEnumerable<string> stageCodes)
+        {
+            Texture2D texture = null;
+
+            if (SettingsManager.Instance.Settings.XenoKit_RimLightingEnabled)
+            {
+                foreach (string stageCode in GetStageLightingCodes(stageCodes))
+                {
+                    string path = $"lighting/environment/{stageCode}.emb";
+
+                    try
+                    {
+                        EMB_File lightingEmb = FileManager.Instance.GetParsedFileFromGame(path, false, false) as EMB_File;
+
+                        if (lightingEmb?.Entry?.Count > 0)
+                        {
+                            texture = TextureLoader.ConvertToTexture2D(lightingEmb.Entry[0], GetTextureName(SamplerStageLighting), Viewport.Instance.GraphicsDevice);
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Add($"Stage lighting: could not load \"{path}\". {ex.Message}", LogType.Warning);
+                    }
+                }
+            }
+
+            Texture2D oldTexture = Texture_SamplerStageLighting;
+            Texture_SamplerStageLighting = texture;
+
+            GlobalSampler sampler = GlobalSamplers[SamplerStageLighting];
+
+            if (sampler != null)
+            {
+                sampler.UpdateTexture(Texture_SamplerStageLighting ?? NoRimLightTexture);
+            }
+
+            if (oldTexture != null && oldTexture != Texture_SamplerStageLighting)
+            {
+                oldTexture.Dispose();
+            }
+        }
+
+        private static IEnumerable<string> GetStageLightingCodes(IEnumerable<string> stageCodes)
+        {
+            if (stageCodes == null)
+            {
+                yield break;
+            }
+
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string stageCode in stageCodes)
+            {
+                if (string.IsNullOrWhiteSpace(stageCode))
+                {
+                    continue;
+                }
+
+                string trimmedCode = stageCode.Trim();
+
+                if (seen.Add(trimmedCode))
+                {
+                    yield return trimmedCode;
+                }
+            }
         }
 
         public void SetSceneCubeMap(TextureCube textureCube)

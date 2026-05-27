@@ -21,6 +21,7 @@ namespace XenoKit.Engine.View
         public readonly EAN_Animation Animation;
         public readonly CameraTarget cameraTarget;
         public readonly BacCameraSettings bacCameraSettings;
+        public readonly bool UseRawKeyframes;
 
         public Actor Actor;
 
@@ -46,13 +47,14 @@ namespace XenoKit.Engine.View
             }
         }
 
-        public CameraAnimInstance(EAN_File eanFile, EAN_Animation anim, BAC_Type10 bacCamEntry, bool autoTerminate, int targetCharacterIndex, Actor actor)
+        public CameraAnimInstance(EAN_File eanFile, EAN_Animation anim, BAC_Type10 bacCamEntry, bool autoTerminate, int targetCharacterIndex, Actor actor, bool useRawKeyframes = false)
         {
             EanFile = eanFile;
             AutoTerminate = autoTerminate;
             Animation = anim;
-            StartFrame = (bacCamEntry != null) ? bacCamEntry.StartFrame : 0;
-            EndFrame = (bacCamEntry != null) ? bacCamEntry.StartFrame + bacCamEntry.Duration - 1 : anim.FrameCount - 1;
+            UseRawKeyframes = useRawKeyframes;
+            StartFrame = (bacCamEntry != null) ? bacCamEntry.StartTime + bacCamEntry.StartFrame : 0;
+            EndFrame = (bacCamEntry != null) ? StartFrame + bacCamEntry.Duration - 1 : anim.FrameCount - 1;
             _currentFrame = StartFrame;
             hasBacData = bacCamEntry != null;
             Actor = actor;

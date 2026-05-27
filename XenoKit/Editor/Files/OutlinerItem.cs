@@ -10,12 +10,14 @@ using XenoKit.Engine;
 using Xv2CoreLib.EffectContainer;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using XenoKit.Engine.Model;
 using XenoKit.Editor.Data;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BCM;
 using Xv2CoreLib.BSA;
 using XenoKit.Engine.Stage;
+using Xv2CoreLib.DEM;
 
 namespace XenoKit.Editor
 {
@@ -48,7 +50,8 @@ namespace XenoKit.Editor
             ACB,
             EEPK,
             EAN,
-            CAM
+            CAM,
+            DEM
         }
 
         public string ID => GetUniqueID();
@@ -137,6 +140,10 @@ namespace XenoKit.Editor
                     Type = OutlinerItemType.EEPK;
                     ManualFiles = ManualFiles.LoadEepk(path);
                     break;
+                case ".dem":
+                    Type = OutlinerItemType.DEM;
+                    ManualFiles = ManualFiles.LoadDem(path);
+                    break;
                 default:
                     throw new InvalidDataException($"OutlinerItem: The filetype of \"{path}\" is unsupported.");
             }
@@ -150,6 +157,16 @@ namespace XenoKit.Editor
         {
             this.move = move;
             SetSelectedItems();
+        }
+
+        public OutlinerItem(ManualFiles manualFiles, OutlinerItemType type, bool onlyLoadFromCpk)
+        {
+            Type = type;
+            ManualFiles = manualFiles;
+            IsManualLoaded = true;
+            OnlyLoadFromCPK = onlyLoadFromCpk;
+            SetSelectedItems();
+            Visibilities = new EditorVisibility(type);
         }
 
         public OutlinerItem(Actor chara, bool readOnly, OutlinerItemType type) : this(readOnly, type, chara?.CharacterData?.OnlyLoadFromCPK == true)
@@ -425,6 +442,10 @@ namespace XenoKit.Editor
 
         //All moveset/skill related files:
         public Move Move { get; set; }
+        public DEM_File DemFile { get; set; }
+        public string DemPath { get; set; }
+        private string DemLooseRoot { get; set; }
+        private bool DemOnlyLoadFromCpk { get; set; }
 
 
         private ManualFiles(Xv2Character chara, string name)
@@ -445,17 +466,6 @@ namespace XenoKit.Editor
             Xv2File<EAN_File> file = new Xv2File<EAN_File>(EAN_File.Load(path), path, true);
             Xv2MoveFiles move = new Xv2MoveFiles();
             move.EanFile.Add(file);
-
-            //temp dem hack
-            foreach(var anim in file.File.Animations)
-            {
-                var node = anim.GetNode("b_C_Base");
-
-                if(node != null)
-                {
-                    node.RemoveComponent(EAN_AnimationComponent.ComponentType.Position);
-                }
-            }
 
             return new ManualFiles(move, Path.GetFileName(path));
         }
@@ -488,11 +498,277 @@ namespace XenoKit.Editor
 
             return new ManualFiles(move, Path.GetFileName(path));
         }
+
+        public static ManualFiles LoadDem(string path)
+        {
+            DEM_File demFile = new Xv2CoreLib.DEM.Parser(path, false).demFile;
+            string looseRoot = GetLooseRoot(path);
+
+            return LoadDemFiles(demFile, Path.GetFileName(path), path, looseRoot, false);
+        }
+
+        public static ManualFiles LoadDemFromGame(string relativePath, string name, bool onlyLoadFromCpk)
+        {
+            DEM_File demFile = file.Instance.GetParsedFileFromGame(relativePath, onlyLoadFromCpk, true, true) as DEM_File;
+
+            if (demFile == null)
+            {
+                throw new InvalidDataException($"DEM load: could not parse \"{relativePath}\".");
+            }
+
+            return LoadDemFiles(demFile, name, file.Instance.GetAbsolutePath(relativePath), null, onlyLoadFromCpk);
+        }
+
+        private static ManualFiles LoadDemFiles(DEM_File demFile, string name, string demPath, string looseRoot, bool onlyLoadFromCpk)
+        {
+            Xv2MoveFiles move = new Xv2MoveFiles();
+
+            if (!IsEmptyReference(demFile.Settings?.Str_00))
+            {
+                Xv2File<EAN_File> cameraFile = LoadEanReference(demFile.Settings.Str_00, looseRoot, "CAM", true, onlyLoadFromCpk);
+
+                if (cameraFile != null)
+                {
+                    move.CamEanFile.Add(cameraFile);
+                }
+            }
+
+            if (demFile.Settings?.Characters != null)
+            {
+                foreach (Xv2CoreLib.DEM.Character actor in demFile.Settings.Characters)
+                {
+                    if (IsEmptyReference(actor.Str_16))
+                    {
+                        continue;
+                    }
+
+                    Xv2File<EAN_File> eanFile = LoadEanReference(actor.Str_16, looseRoot, actor.Str_00, false, onlyLoadFromCpk);
+
+                    if (eanFile != null)
+                    {
+                        move.EanFile.Add(eanFile);
+                    }
+                }
+            }
+
+            string effectReference = GetDemEffectReference(demFile, demPath);
+
+            if (!IsEmptyReference(effectReference))
+            {
+                Xv2File<EffectContainerFile> eepkFile = LoadEepkReference(effectReference, looseRoot, onlyLoadFromCpk, HasDemEffects(demFile));
+
+                if (eepkFile != null)
+                {
+                    move.EepkFile = eepkFile;
+                }
+            }
+
+            ManualFiles files = new ManualFiles(move, name);
+            files.DemFile = demFile;
+            files.DemPath = demPath;
+            files.DemLooseRoot = looseRoot;
+            files.DemOnlyLoadFromCpk = onlyLoadFromCpk;
+            Log.Add($"Loaded DEM \"{name}\" with {move.EanFile.Count} animation file(s), {move.CamEanFile.Count} camera file(s), and {move.EepkFiles.Count} effect file(s).");
+            return files;
+        }
+
+        public Xv2File<EffectContainerFile> GetOrLoadDemEffectEepk()
+        {
+            if (Move?.Files?.EepkFile != null)
+            {
+                return Move.Files.EepkFile;
+            }
+
+            string effectReference = GetDemEffectReference(DemFile, DemPath);
+
+            if (IsEmptyReference(effectReference))
+            {
+                return null;
+            }
+
+            Xv2File<EffectContainerFile> eepkFile = LoadEepkReference(effectReference, DemLooseRoot, DemOnlyLoadFromCpk, HasDemEffects(DemFile));
+
+            if (eepkFile != null)
+            {
+                Move.Files.EepkFile = eepkFile;
+            }
+
+            return eepkFile;
+        }
+
+        public Xv2File<EAN_File> GetOrLoadDemActorEan(int actorIndex)
+        {
+            Xv2CoreLib.DEM.Character actor = DemFile?.Settings?.Characters?.ElementAtOrDefault(actorIndex);
+
+            if (actor == null || IsEmptyReference(actor.Str_16))
+            {
+                return null;
+            }
+
+            string relativePath = GetReferencePath(actor.Str_16, ".ean").Replace('/', Path.DirectorySeparatorChar);
+            Xv2File<EAN_File> eanFile = Move?.Files?.EanFile?.FirstOrDefault(file =>
+                file.CharaCode == actor.Str_00 &&
+                file.Path?.Replace('/', Path.DirectorySeparatorChar).EndsWith(relativePath, StringComparison.OrdinalIgnoreCase) == true);
+
+            if (eanFile != null)
+            {
+                return eanFile;
+            }
+
+            eanFile = LoadEanReference(actor.Str_16, DemLooseRoot, actor.Str_00, false, DemOnlyLoadFromCpk);
+
+            if (eanFile != null)
+            {
+                Move.Files.EanFile.Add(eanFile);
+            }
+
+            return eanFile;
+        }
+
+        private static Xv2File<EAN_File> LoadEanReference(string reference, string looseRoot, string charaCode, bool isCamera, bool onlyLoadFromCpk)
+        {
+            string relativePath = GetReferencePath(reference, ".ean");
+            string loosePath = looseRoot != null ? GetLoosePath(looseRoot, relativePath) : null;
+            EAN_File eanFile = null;
+            string filePath = null;
+
+            if (loosePath != null && File.Exists(loosePath))
+            {
+                eanFile = EAN_File.Load(loosePath, true);
+                filePath = loosePath;
+            }
+            else
+            {
+                eanFile = file.Instance.GetParsedFileFromGame(relativePath, onlyLoadFromCpk, false) as EAN_File;
+                filePath = file.Instance.GetAbsolutePath(relativePath);
+            }
+
+            if (eanFile == null)
+            {
+                Log.Add($"DEM load: could not find referenced EAN \"{relativePath}\".", LogType.Warning);
+                return null;
+            }
+
+            return new Xv2File<EAN_File>(eanFile, filePath, true, charaCode, false, isCamera ? xv2.MoveFileTypes.CAM_EAN : xv2.MoveFileTypes.EAN, 0, false, xv2.MoveType.Skill);
+        }
+
+        private static Xv2File<EffectContainerFile> LoadEepkReference(string reference, string looseRoot, bool onlyLoadFromCpk, bool logMissingFile = true)
+        {
+            string fileName = Path.GetFileNameWithoutExtension(reference);
+            string relativePath = reference.Contains("/") || reference.Contains("\\")
+                ? GetReferencePath(reference, ".eepk")
+                : GetReferencePath($"vfx/demo/{fileName}/{fileName}", ".eepk");
+            string loosePath = looseRoot != null ? GetLoosePath(looseRoot, relativePath) : null;
+            EffectContainerFile eepkFile = null;
+            string filePath = null;
+
+            if (loosePath != null && File.Exists(loosePath))
+            {
+                try
+                {
+                    eepkFile = EffectContainerFile.Load(loosePath);
+                    filePath = loosePath;
+                }
+                catch (Exception ex)
+                {
+                    Log.Add($"DEM load: could not load referenced EEPK \"{loosePath}\". {ex.Message}", LogType.Warning);
+                    return null;
+                }
+            }
+            else
+            {
+                try
+                {
+                    eepkFile = file.Instance.GetParsedFileFromGame(relativePath, onlyLoadFromCpk, false) as EffectContainerFile;
+                    filePath = file.Instance.GetAbsolutePath(relativePath);
+                }
+                catch (Exception ex)
+                {
+                    Log.Add($"DEM load: could not load referenced EEPK \"{relativePath}\". {ex.Message}", LogType.Warning);
+                    return null;
+                }
+            }
+
+            if (eepkFile == null)
+            {
+                if (logMissingFile)
+                {
+                    Log.Add($"DEM load: could not find referenced EEPK \"{relativePath}\".", LogType.Warning);
+                }
+
+                return null;
+            }
+
+            return new Xv2File<EffectContainerFile>(eepkFile, filePath, true, null, false, xv2.MoveFileTypes.EEPK, 0, false, xv2.MoveType.Skill);
+        }
+
+        private static string GetDemEffectReference(DEM_File demFile, string demPath)
+        {
+            if (!IsEmptyReference(demFile?.Settings?.Str_48))
+            {
+                return demFile.Settings.Str_48;
+            }
+
+            return Path.GetFileNameWithoutExtension(demPath);
+        }
+
+        private static bool HasDemEffects(DEM_File demFile)
+        {
+            return demFile?.Section2Entries?.Any(cut =>
+                cut?.SubEntries?.Any(demEvent => demEvent?.I_04 == DEM_Type.DemoDataTypes.Effect) == true) == true;
+        }
+
+        private static string GetReferencePath(string reference, string extension)
+        {
+            string path = reference.Replace('\\', '/');
+            return path.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? path : $"{path}{extension}";
+        }
+
+        private static string GetLoosePath(string looseRoot, string relativePath)
+        {
+            return Path.Combine(looseRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        private static string GetLooseRoot(string path)
+        {
+            DirectoryInfo directory = new DirectoryInfo(Path.GetDirectoryName(path));
+
+            while (directory != null)
+            {
+                if (directory.Name.Equals("demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return directory.Parent?.FullName ?? Path.GetDirectoryName(path);
+                }
+
+                directory = directory.Parent;
+            }
+
+            return Path.GetDirectoryName(path);
+        }
+
+        private static bool IsEmptyReference(string reference)
+        {
+            return string.IsNullOrWhiteSpace(reference) ||
+                   reference.Equals("NULL", StringComparison.OrdinalIgnoreCase) ||
+                   reference.Equals("-noload", StringComparison.OrdinalIgnoreCase);
+        }
         #endregion
 
         #region Save
         public void Save()
         {
+            if (DemFile != null)
+            {
+                if (DemPath == null)
+                {
+                    Log.Add($"Unable to save DEM \"{Name}\" because it has no file path.", LogType.Warning);
+                    return;
+                }
+
+                DemFile.Save(DemPath);
+                Log.Add($"\"{DemPath}\" saved!", LogType.Info);
+            }
+
             if(Move?.Files?.EanFile?.Count > 0)
             {
                 foreach (var file in Move.Files.EanFile)

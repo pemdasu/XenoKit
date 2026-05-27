@@ -23,6 +23,7 @@ namespace XenoKit.Engine.Vfx
             switch (SceneManager.CurrentSceneState)
             {
                 case EditorTabs.Effect:
+                case EditorTabs.Action:
                     Effect?.Update();
                     break;
                 default:

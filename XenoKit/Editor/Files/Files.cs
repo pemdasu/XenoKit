@@ -191,6 +191,11 @@ namespace XenoKit.Editor
         {
             NotifyPropertyChanged(nameof(SaveContextMenuString));
             NotifyPropertyChanged(nameof(SaveCurrentMenuString));
+
+            if (SelectedItem?.Type == OutlinerItem.OutlinerItemType.DEM)
+            {
+                SetActiveDemStage(SelectedItem.ManualFiles?.DemFile, 0);
+            }
         }
 
         #region Load

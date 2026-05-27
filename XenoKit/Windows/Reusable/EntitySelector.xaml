@@ -18,7 +18,14 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTextColumn Header="ID" Binding="{Binding ID}" IsReadOnly="True" Width="40*"/>
+                <DataGridTemplateColumn x:Name="previewColumn" Header="Image" Width="70" IsReadOnly="True" Visibility="Collapsed">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Image Source="{Binding PreviewImage}" Width="56" Height="56" Stretch="UniformToFill"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="ID" Binding="{Binding DisplayID}" IsReadOnly="True" Width="40*"/>
                 <DataGridTextColumn x:Name="codeColumn" Header="Code" Binding="{Binding Code}" IsReadOnly="True" Width="45*"/>
                 <DataGridTemplateColumn Header="Name" Width="150*">
                     <DataGridTemplateColumn.CellTemplate>
@@ -42,7 +49,7 @@
 
         <Button Content="Ok" HorizontalAlignment="Center" Margin="0,483,0,0" VerticalAlignment="Top" Width="76" Command="{Binding ElementName=Window, Path=SelectItemCommand}"/>
         <CheckBox x:Name="checkbox" ToolTip="{Binding ElementName=Window, Path=BooleanParameterToolTip}" IsChecked="{Binding ElementName=Window, Path=BooleanParameter}" FontWeight="SemiBold" Content="{Binding ElementName=Window, Path=BooleanParameterName}" HorizontalAlignment="Center" Margin="0,459,0,0" VerticalAlignment="Top" Width="152" Visibility="Collapsed"/>
-        <TextBox Text="{Binding ElementName=Window, Path=SearchFilter, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource MahApps.Styles.TextBox.Search}" Controls:TextBoxHelper.Watermark="Search..." Controls:TextBoxHelper.ButtonCommand="{Binding ElementName=Window, Path=ClearSearchCommand}" Controls:TextBoxHelper.ClearTextButton="True" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Height="23" Margin="50,425,50,0" VerticalAlignment="Top" TextWrapping="Wrap" />
+        <TextBox x:Name="searchBox" Text="{Binding ElementName=Window, Path=SearchFilter, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource MahApps.Styles.TextBox.Search}" Controls:TextBoxHelper.Watermark="Search..." Controls:TextBoxHelper.ButtonCommand="{Binding ElementName=Window, Path=ClearSearchCommand}" Controls:TextBoxHelper.ClearTextButton="True" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Height="23" Margin="50,425,50,0" VerticalAlignment="Top" TextWrapping="Wrap" />
 
     </Grid>
 </Controls:MetroWindow>

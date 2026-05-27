@@ -230,7 +230,7 @@ namespace XenoKit.Engine
                 for (int i = 0; i < SceneManager.Actors.Length; i++)
                 {
                     //Skip updating the victim actor if it is disabled. This will also cause it to not be rendered as well.
-                    if (i == 1 && !SceneManager.VictimEnabled) continue;
+                    if (i == 1 && !SceneManager.VictimEnabled && !SceneManager.IsDemPreview) continue;
 
                     if (SceneManager.ActorsEnable[i] && SceneManager.Actors[i] != null)
                     {

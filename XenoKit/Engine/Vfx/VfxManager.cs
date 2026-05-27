@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC;
@@ -25,6 +27,11 @@ namespace XenoKit.Engine.Vfx
 
         private List<VfxEffect> NewEffects = new List<VfxEffect>();
 
+        // Effects load off-thread, so the MAX_EFFECTS check counts in-flight loads too.
+        private int pendingEffectLoads;
+        // Bumped by StopEffects so loads started before the stop are discarded when they finish.
+        private int effectGeneration;
+
         /// <summary>
         /// Force effects to fully update on the next cycle, even if its via Simulate().
         /// </summary>
@@ -32,49 +39,81 @@ namespace XenoKit.Engine.Vfx
 
 
         #region PlayAndStop
-        public async void PlayEffect(Effect effect, Actor actor)
+        public void PlayEffect(Effect effect, Actor actor)
         {
-            if (Effects.Count >= MAX_EFFECTS)
+            PlayEffect(effect, actor, Matrix4x4.Identity);
+        }
+
+        public async void PlayEffect(Effect effect, Actor actor, Matrix4x4 world)
+        {
+            if (effect == null || actor == null) return;
+
+            if (!TryReserveEffectSlot())
             {
                 Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
                 return;
             }
 
-            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity));
+            int generation = effectGeneration;
+
+            try
+            {
+                await Task.Run(() => AddEffect(actor, effect, world, generation));
+            }
+            catch (Exception ex)
+            {
+                Log.Add($"VfxManager.PlayEffect: could not play effect. {ex.Message}", LogType.Warning);
+            }
+            finally
+            {
+                ReleaseEffectSlot();
+            }
         }
 
         public async void PlayEffect(BAC_Type8 bacEffect, BacEntryInstance bacInstance, Actor actor)
         {
-            if (Effects.Count >= MAX_EFFECTS)
+            if (!TryReserveEffectSlot())
             {
                 Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
                 return;
             }
 
-            int skillId = bacEffect.UseSkillId == BAC_Type8.UseSkillIdEnum.True ? bacEffect.SkillID : 0;
-
-            EffectContainerFile eepk = Files.Instance.GetEepkFile(bacEffect.EepkType, (ushort)skillId, bacInstance.SkillMove, bacInstance.User, true);
-
-            if (eepk != null)
+            try
             {
-                Effect eepkEffect = eepk.GetEffect(bacEffect.EffectID);
+                int generation = effectGeneration;
+                int skillId = bacEffect.UseSkillId == BAC_Type8.UseSkillIdEnum.True ? bacEffect.SkillID : 0;
 
-                if (eepkEffect != null)
+                EffectContainerFile eepk = Files.Instance.GetEepkFile(bacEffect.EepkType, (ushort)skillId, bacInstance.SkillMove, bacInstance.User, true);
+
+                if (eepk != null)
                 {
-                    //Get spawn position from declared bone and position on the bac entry
-                    Matrix4x4 spawnPosition = Matrix4x4.Identity;
+                    Effect eepkEffect = eepk.GetEffect(bacEffect.EffectID);
 
-                    if(actor != null && (int)bacEffect.BoneLink < 25)
+                    if (eepkEffect != null)
                     {
-                        spawnPosition = actor.GetAbsoluteBoneMatrix(actor.Skeleton.BAC_BoneIndices[(int)bacEffect.BoneLink]) * Matrix4x4.CreateTranslation(new SimdVector3(bacEffect.PositionX, bacEffect.PositionY, bacEffect.PositionZ));
-                    }
+                        //Get spawn position from declared bone and position on the bac entry
+                        Matrix4x4 spawnPosition = Matrix4x4.Identity;
 
-                    await Task.Run(() => AddEffect(bacInstance.User, eepkEffect, spawnPosition));
+                        if (actor != null && (int)bacEffect.BoneLink < 25)
+                        {
+                            spawnPosition = actor.GetAbsoluteBoneMatrix(actor.Skeleton.BAC_BoneIndices[(int)bacEffect.BoneLink]) * Matrix4x4.CreateTranslation(new SimdVector3(bacEffect.PositionX, bacEffect.PositionY, bacEffect.PositionZ));
+                        }
+
+                        await Task.Run(() => AddEffect(bacInstance.User, eepkEffect, spawnPosition, generation));
+                    }
+                    else
+                    {
+                        Log.Add($"No effect at ID {bacEffect.EffectID} could be found in EEPK {bacEffect.EepkType}.");
+                    }
                 }
-                else
-                {
-                    Log.Add($"No effect at ID {bacEffect.EffectID} could be found in EEPK {bacEffect.EepkType}.");
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Add($"VfxManager.PlayEffect: could not play effect. {ex.Message}", LogType.Warning);
+            }
+            finally
+            {
+                ReleaseEffectSlot();
             }
         }
 
@@ -87,88 +126,150 @@ namespace XenoKit.Engine.Vfx
 
         public async void PlayEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world)
         {
-            if (Effects.Count >= MAX_EFFECTS)
+            if (!TryReserveEffectSlot())
             {
                 Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
                 return;
             }
 
-            EffectContainerFile eepk = Files.Instance.GetEepkFile((BAC_Type8.EepkTypeEnum)bsaEffect.EepkType, bsaEffect.SkillID, move, actor, true);
-
-            if (eepk != null)
+            try
             {
-                Effect eepkEffect = eepk.GetEffect(bsaEffect.EffectID);
+                int generation = effectGeneration;
 
-                if (eepkEffect != null)
+                EffectContainerFile eepk = Files.Instance.GetEepkFile((BAC_Type8.EepkTypeEnum)bsaEffect.EepkType, bsaEffect.SkillID, move, actor, true);
+
+                if (eepk != null)
                 {
-                    Matrix4x4 spawnPosition = world * Matrix4x4.CreateTranslation(new SimdVector3(bsaEffect.F_12, bsaEffect.F_16, bsaEffect.F_20));
-                    await Task.Run(() => AddEffect(actor, eepkEffect, spawnPosition));
+                    Effect eepkEffect = eepk.GetEffect(bsaEffect.EffectID);
+
+                    if (eepkEffect != null)
+                    {
+                        Matrix4x4 spawnPosition = world * Matrix4x4.CreateTranslation(new SimdVector3(bsaEffect.F_12, bsaEffect.F_16, bsaEffect.F_20));
+                        await Task.Run(() => AddEffect(actor, eepkEffect, spawnPosition, generation));
+                    }
+                    else
+                    {
+                        Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
+                    }
                 }
-                else
-                {
-                    Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Add($"VfxManager.PlayEffect: could not play effect. {ex.Message}", LogType.Warning);
+            }
+            finally
+            {
+                ReleaseEffectSlot();
             }
         }
 
         public VfxEffect PlayProjectileEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world)
         {
-            if (Effects.Count >= MAX_EFFECTS)
+            if (!TryReserveEffectSlot())
             {
                 Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
                 return null;
             }
 
-            EffectContainerFile eepk = Files.Instance.GetEepkFile((BAC_Type8.EepkTypeEnum)bsaEffect.EepkType, bsaEffect.SkillID, move, actor, true);
-
-            if (eepk != null)
+            try
             {
-                Effect eepkEffect = eepk.GetEffect(bsaEffect.EffectID);
+                EffectContainerFile eepk = Files.Instance.GetEepkFile((BAC_Type8.EepkTypeEnum)bsaEffect.EepkType, bsaEffect.SkillID, move, actor, true);
 
-                if (eepkEffect != null)
+                if (eepk != null)
                 {
-                    return AddEffect(actor, eepkEffect, world, true);
+                    Effect eepkEffect = eepk.GetEffect(bsaEffect.EffectID);
+
+                    if (eepkEffect != null)
+                    {
+                        return AddEffect(actor, eepkEffect, world, effectGeneration, true);
+                    }
+
+                    Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
                 }
 
-                Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
+                return null;
             }
-
-            return null;
+            finally
+            {
+                ReleaseEffectSlot();
+            }
         }
 
         private async void PlayEffect(BAC_Type8.EepkTypeEnum eepkType, ushort skillId, short effectId, DamageManager bdmInstance)
         {
-            if (Effects.Count >= MAX_EFFECTS)
+            if (!TryReserveEffectSlot())
             {
                 Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
                 return;
             }
 
-            if (effectId == -1) return;
-
-            EffectContainerFile eepk = Files.Instance.GetEepkFile(eepkType, skillId, bdmInstance.Move, bdmInstance.Victim, true);
-
-            if (eepk != null)
+            if (effectId == -1)
             {
-                Effect eepkEffect = eepk.GetEffect(effectId);
+                ReleaseEffectSlot();
+                return;
+            }
 
-                if (eepkEffect != null)
+            try
+            {
+                int generation = effectGeneration;
+
+                EffectContainerFile eepk = Files.Instance.GetEepkFile(eepkType, skillId, bdmInstance.Move, bdmInstance.Victim, true);
+
+                if (eepk != null)
                 {
-                    await Task.Run(() => AddEffect(bdmInstance.Victim, eepkEffect, bdmInstance.HitPosition));
+                    Effect eepkEffect = eepk.GetEffect(effectId);
+
+                    if (eepkEffect != null)
+                    {
+                        await Task.Run(() => AddEffect(bdmInstance.Victim, eepkEffect, bdmInstance.HitPosition, generation));
+                    }
+                    else
+                    {
+                        Log.Add($"No effect at ID {effectId} could be found in EEPK {eepkType}.");
+                    }
                 }
-                else
-                {
-                    Log.Add($"No effect at ID {effectId} could be found in EEPK {eepkType}.");
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Add($"VfxManager.PlayEffect: could not play effect. {ex.Message}", LogType.Warning);
+            }
+            finally
+            {
+                ReleaseEffectSlot();
             }
         }
 
-        private VfxEffect AddEffect(Actor actor, Effect effect, Matrix4x4 world, bool spawnedByProjectile = false)
+        private bool TryReserveEffectSlot()
+        {
+            lock (Effects)
+            {
+                if (Effects.Count + NewEffects.Count + pendingEffectLoads >= MAX_EFFECTS)
+                {
+                    return false;
+                }
+
+                pendingEffectLoads++;
+                return true;
+            }
+        }
+
+        private void ReleaseEffectSlot()
+        {
+            Interlocked.Decrement(ref pendingEffectLoads);
+        }
+
+        private VfxEffect AddEffect(Actor actor, Effect effect, Matrix4x4 world, int generation, bool spawnedByProjectile = false)
         {
             VfxEffect vfxEffect = new VfxEffect(actor, effect, world, spawnedByProjectile);
 
             lock (Effects)
             {
+                if (generation != effectGeneration)
+                {
+                    vfxEffect.Dispose();
+                    return null;
+                }
+
                 NewEffects.Add(vfxEffect);
             }
 
@@ -222,6 +323,8 @@ namespace XenoKit.Engine.Vfx
 
         public void StopEffects()
         {
+            Interlocked.Increment(ref effectGeneration);
+
             lock (Effects)
             {
                 foreach (VfxEffect effect in Effects)
@@ -254,9 +357,11 @@ namespace XenoKit.Engine.Vfx
         {
             lock (Effects)
             {
-                Effects.AddRange(NewEffects);
-                NewEffects.Clear();
-
+                if (NewEffects.Count > 0)
+                {
+                    Effects.AddRange(NewEffects);
+                    NewEffects.Clear();
+                }
 
                 for (int i = Effects.Count - 1; i >= 0; i--)
                 {
