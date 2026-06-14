@@ -29,7 +29,7 @@ namespace XenoKit.Views
             {
                 List<Xv2File<BCM_File>> bcmFiles = new List<Xv2File<BCM_File>>();
                 if (files.SelectedMove?.Files?.BcmFile != null) bcmFiles.Add(files.SelectedMove.Files.BcmFile);
-                if (files.SelectedMove?.Files?.AfterBcmFile != null) bcmFiles.Add(files.SelectedMove.Files.AfterBcmFile);
+                if (HasPath(files.SelectedMove?.Files?.AfterBcmFile)) bcmFiles.Add(files.SelectedMove.Files.AfterBcmFile);
                 return bcmFiles;
             }
         }
@@ -125,6 +125,7 @@ namespace XenoKit.Views
         {
             if (e.PropertyName == nameof(Files.SelectedItem) || e.PropertyName == nameof(Files.SelectedMove))
             {
+                SelectCurrentMoveBcmFile();
                 SelectedEntry = null;
                 NotifyAll();
                 RefreshTree();
@@ -136,6 +137,22 @@ namespace XenoKit.Views
             SelectedEntry = null;
             NotifyPropertyChanged(nameof(SelectedBcmFileName));
             RefreshTree();
+        }
+
+        private void SelectCurrentMoveBcmFile()
+        {
+            if (files.SelectedItem == null)
+                return;
+
+            IList<Xv2File<BCM_File>> bcmFiles = BcmFiles;
+
+            if (files.SelectedItem.SelectedBcmFile == null || !bcmFiles.Contains(files.SelectedItem.SelectedBcmFile))
+                files.SelectedItem.SelectedBcmFile = bcmFiles.FirstOrDefault();
+        }
+
+        private static bool HasPath<T>(Xv2File<T> file) where T : class
+        {
+            return !string.IsNullOrWhiteSpace(file?.Path);
         }
 
         private void EntryEditor_EntryEdited(object sender, EventArgs e)
