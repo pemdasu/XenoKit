@@ -26,6 +26,7 @@ namespace XenoKit.Editor
 {
     public partial class Files
     {
+        private const string DemoFolderPath = "demo";
         private const string DemoMovieListPath = "system/demo_movie_list.dml";
         private const string DemoNameMsgPath = "msg/menu_quest_reception_en.msg";
         private const string DemoPreviewEmbPath = "ui/texture/DEMO.emb";
@@ -97,7 +98,7 @@ namespace XenoKit.Editor
 
             Dictionary<string, EmbEntry> previewEntries = GetDemoPreviewEntries();
 
-            return demoList.DML_Entries
+            List<DemoItem> demos = demoList.DML_Entries
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.DemoID) && !string.IsNullOrWhiteSpace(entry.DemoNameMsgID))
                 .Select(entry =>
                 {
@@ -106,9 +107,33 @@ namespace XenoKit.Editor
                     string relativePath = $"demo/{entry.DemoID}/{entry.DemoID}.dem";
                     previewEntries.TryGetValue(entry.DemoID, out EmbEntry previewEntry);
 
-                    return new DemoItem(entry, displayName, relativePath, previewEntry);
+                    return new DemoItem(entry, entry.DemoID, displayName, relativePath, previewEntry);
                 })
                 .ToList();
+
+            AddUnlistedDemos(demos, previewEntries);
+
+            return demos.OrderBy(demo => demo.ID).ThenBy(demo => demo.DemoID, StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        //demo_movie_list only covers a fraction of the .dem files the game ships, so pick up everything else under the demo folder.
+        private void AddUnlistedDemos(List<DemoItem> demos, Dictionary<string, EmbEntry> previewEntries)
+        {
+            HashSet<string> knownPaths = new HashSet<string>(demos.Select(demo => demo.RelativePath), StringComparer.OrdinalIgnoreCase);
+
+            foreach (string demPath in file.Instance.fileIO.GetFilesInDirectory(DemoFolderPath, ".dem", true))
+            {
+                string relativePath = Utils.SanitizePath(demPath);
+
+                if (knownPaths.Contains(relativePath)) continue;
+
+                knownPaths.Add(relativePath);
+
+                string demoId = Path.GetFileNameWithoutExtension(relativePath);
+                previewEntries.TryGetValue(demoId, out EmbEntry previewEntry);
+
+                demos.Add(new DemoItem(null, demoId, demoId, relativePath, previewEntry));
+            }
         }
 
         private Dictionary<string, EmbEntry> GetDemoPreviewEntries()
@@ -403,21 +428,28 @@ namespace XenoKit.Editor
     {
         private readonly EmbEntry previewEntry;
 
+        //Null for demos found by scanning the demo folder, which have no demo_movie_list entry.
         public DML_Entry DmlEntry { get; }
+        public string DemoID { get; }
         public string RelativePath { get; }
         public ImageSource PreviewImage => previewEntry?.Texture;
-        public override string DisplayID => DmlEntry.DemoID;
+        public override string DisplayID => DemoID;
 
-        public DemoItem(DML_Entry dmlEntry, string name, string relativePath, EmbEntry previewEntry) : base(GetId(dmlEntry), name)
+        public DemoItem(DML_Entry dmlEntry, string demoId, string name, string relativePath, EmbEntry previewEntry) : base(GetId(dmlEntry, demoId), name)
         {
             DmlEntry = dmlEntry;
+            DemoID = demoId;
             RelativePath = relativePath;
             this.previewEntry = previewEntry;
         }
 
-        private static int GetId(DML_Entry dmlEntry)
+        private static int GetId(DML_Entry dmlEntry, string demoId)
         {
-            return int.TryParse(dmlEntry.Index, out int id) ? id : -1;
+            if (dmlEntry != null && int.TryParse(dmlEntry.Index, out int index)) return index;
+
+            //Folder-scanned demos sort by the digits in their code, e.g. DEM0042 -> 42.
+            string digits = new string(demoId.Where(char.IsDigit).ToArray());
+            return int.TryParse(digits, out int id) ? id : -1;
         }
     }
 }
