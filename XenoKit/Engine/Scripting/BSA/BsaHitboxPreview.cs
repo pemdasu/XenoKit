@@ -16,6 +16,7 @@ namespace XenoKit.Engine.Scripting.BSA
         private readonly Func<int> getFrame;
         private readonly Func<SimdVector3> getStartRelativeMovementDelta;
         private readonly HitboxVisual hitboxVisual;
+        private bool needsRebuild;
 
         public BsaHitboxPreview(BSA_Type3 hitbox, Func<Matrix4x4> getDrawMatrix, Func<int> getFrame, Func<SimdVector3> getStartRelativeMovementDelta)
         {
@@ -25,12 +26,23 @@ namespace XenoKit.Engine.Scripting.BSA
             this.getStartRelativeMovementDelta = getStartRelativeMovementDelta;
             hitboxVisual = new HitboxVisual(new Color(255, 255, 0, 64), Color.Yellow);
 
+            if (this.hitbox != null)
+                this.hitbox.PropertyChanged += Hitbox_PropertyChanged;
+
             UpdateHitbox();
         }
 
         public override void Update()
         {
-            UpdateHitbox();
+            //Distance relative geometry follows a moving endpoint, so it has to be rebuilt every frame.
+            //Everything else only changes when the user edits it.
+            if (needsRebuild || BsaHitboxGeometry.UsesDistanceRelativeGeometry(hitbox))
+                UpdateHitbox();
+        }
+
+        private void Hitbox_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            needsRebuild = true;
         }
 
         public override void Draw()
@@ -43,11 +55,15 @@ namespace XenoKit.Engine.Scripting.BSA
 
         public void Dispose()
         {
+            if (hitbox != null)
+                hitbox.PropertyChanged -= Hitbox_PropertyChanged;
+
             hitboxVisual.Dispose();
         }
 
         private void UpdateHitbox()
         {
+            needsRebuild = false;
             hitboxVisual.Clear();
 
             if (hitbox == null)
@@ -65,9 +81,9 @@ namespace XenoKit.Engine.Scripting.BSA
                     break;
                 case 2:
                     Vector3 halfExtents = new Vector3(
-                        hitbox.F_20,
-                        hitbox.F_24,
-                        hitbox.F_28);
+                        Math.Abs(hitbox.F_20),
+                        Math.Abs(hitbox.F_24),
+                        Math.Abs(hitbox.F_28));
                     hitboxVisual.SetBox(position, halfExtents);
                     break;
             }
@@ -100,7 +116,7 @@ namespace XenoKit.Engine.Scripting.BSA
             if (frame < hitbox.StartTime)
                 return false;
 
-            return hitbox.Duration == 0 || frame < (int)hitbox.StartTime + hitbox.Duration;
+            return (int)hitbox.StartTime + hitbox.Duration > frame;
         }
 
     }

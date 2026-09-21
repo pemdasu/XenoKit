@@ -85,32 +85,6 @@ namespace XenoKit.Engine.Vfx
             PlayEffect((BAC_Type8.EepkTypeEnum)bdmInstance.BdmSubEntry.Effect3_EepkType, bdmInstance.BdmSubEntry.Effect3_SkillID, bdmInstance.BdmSubEntry.Effect3_ID, bdmInstance);
         }
 
-        public async void PlayEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world)
-        {
-            if (Effects.Count >= MAX_EFFECTS)
-            {
-                Log.Add("Maximum amount of effects that can be active at the same time reached. Cannot start new ones.", LogType.Warning);
-                return;
-            }
-
-            EffectContainerFile eepk = Files.Instance.GetEepkFile((BAC_Type8.EepkTypeEnum)bsaEffect.EepkType, bsaEffect.SkillID, move, actor, true);
-
-            if (eepk != null)
-            {
-                Effect eepkEffect = eepk.GetEffect(bsaEffect.EffectID);
-
-                if (eepkEffect != null)
-                {
-                    Matrix4x4 spawnPosition = world * Matrix4x4.CreateTranslation(new SimdVector3(bsaEffect.F_12, bsaEffect.F_16, bsaEffect.F_20));
-                    await Task.Run(() => AddEffect(actor, eepkEffect, spawnPosition));
-                }
-                else
-                {
-                    Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
-                }
-            }
-        }
-
         public VfxEffect PlayProjectileEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world)
         {
             if (Effects.Count >= MAX_EFFECTS)
