@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
+using XenoKit.Engine.Vertex;
 using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
@@ -12,6 +13,7 @@ namespace XenoKit.Engine.Vfx.Particle
     public class ParticleMesh : ParticleEmissionBase
     {
         protected Xv2Submesh EmgSubmesh = null;
+        private VertexPositionNormalTextureBlend[] vertices;
         private bool ChildrenWarning = false;
 
         public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
@@ -39,19 +41,23 @@ namespace XenoKit.Engine.Vfx.Particle
             UpdateScale();
             UpdateColor();
 
+            if (vertices == null || vertices.Length != EmgSubmesh.Vertices.Length)
+                vertices = new VertexPositionNormalTextureBlend[EmgSubmesh.Vertices.Length];
+
             for (int i = 0; i < EmgSubmesh.Vertices.Length; i++)
             {
-                EmgSubmesh.Vertices[i].SetColor(PrimaryColor[2], PrimaryColor[1], PrimaryColor[0], PrimaryColor[3]); //Have to flip colors because they appear as BGRA in character vertex, which Xv2Submesh is using, but are RGBA for particles
+                vertices[i] = EmgSubmesh.Vertices[i];
+                vertices[i].SetColor(PrimaryColor[2], PrimaryColor[1], PrimaryColor[0], PrimaryColor[3]); // Particle shaders read RGBA from the model vertex's BGRA color slot.
 
                 if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
                 {
-                    EmgSubmesh.Vertices[i].Position.X = EmgSubmesh.Vertices[i].Position.X * ScaleBase;
-                    EmgSubmesh.Vertices[i].Position.Y = EmgSubmesh.Vertices[i].Position.Y * ScaleV;
-                    EmgSubmesh.Vertices[i].Position.Z = EmgSubmesh.Vertices[i].Position.Z * ScaleU;
+                    vertices[i].Position.X *= ScaleBase;
+                    vertices[i].Position.Y *= ScaleV;
+                    vertices[i].Position.Z *= ScaleU;
                 }
                 else
                 {
-                    EmgSubmesh.Vertices[i].Position = EmgSubmesh.Vertices[i].Position * ScaleBase;
+                    vertices[i].Position *= ScaleBase;
                 }
             }
         }
@@ -79,6 +85,8 @@ namespace XenoKit.Engine.Vfx.Particle
 
         public override void Draw()
         {
+            if (vertices == null || EmgSubmesh == null) return;
+
             if (!RenderSystem.CheckDrawPass(EmissionData.Material)) return;
 
             if (!ParticleSystem.DrawThisFrame) return;
@@ -104,7 +112,7 @@ namespace XenoKit.Engine.Vfx.Particle
                     EmissionData.Material.SetGlareOutputAllowed(!SourceEffectPart.NoGlare);
                     pass.Apply();
 
-                    GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, EmgSubmesh.Vertices, 0, EmgSubmesh.Vertices.Length, EmgSubmesh.Indices, 0, EmgSubmesh.Indices.Length / 3);
+                    GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices, 0, vertices.Length, EmgSubmesh.Indices, 0, EmgSubmesh.Indices.Length / 3);
                 }
             }
 

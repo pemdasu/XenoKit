@@ -150,14 +150,12 @@ namespace XenoKit.Engine.Vfx.Particle
 
         protected Matrix4x4 GetRotationAxisWorld(bool isRotPerSecond)
         {
-            Matrix4x4 attachBone = GetAttachmentBone();
             float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
 
             if (isRotPerSecond)
                 rotAmount /= 60f;
 
-            Matrix4x4.Decompose(Transform, out SimdVector3 scale, out _, out SimdVector3 translation);
-            Matrix4x4 world = Matrix4x4.CreateTranslation(translation) * Matrix4x4.CreateScale(scale) * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
+            Matrix4x4 world = GetParticlePositionWorld();
             SimdVector3 rotAxis;
 
             if ((Node.NodeFlags2 & NodeFlags2.RandomUpVector) == NodeFlags2.RandomUpVector)
@@ -181,6 +179,13 @@ namespace XenoKit.Engine.Vfx.Particle
         public Matrix4x4 GetParticleRotationAxisWorld(bool isRotPerSecond)
         {
             return GetRotationAxisWorld(isRotPerSecond);
+        }
+
+        protected Matrix4x4 GetParticlePositionWorld()
+        {
+            Matrix4x4.Decompose(Transform, out SimdVector3 scale, out _, out SimdVector3 translation);
+            return Matrix4x4.CreateTranslation(translation) * Matrix4x4.CreateScale(scale) *
+                   Matrix4x4.CreateScale(ParticleSystem.Scale) * GetAttachmentBone();
         }
 
         public Matrix4x4 GetParticleAttachmentBone()
