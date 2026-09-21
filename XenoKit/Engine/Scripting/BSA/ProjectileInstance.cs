@@ -57,6 +57,7 @@ namespace XenoKit.Engine.Scripting.BSA
         public bool IsFinished => currentFrame >= endFrame && childProjectiles.Count == 0;
         public Matrix4x4 Transform => transform;
         public float CurrentFrame => currentFrame;
+        public int EndFrame => endFrame;
 
         public ProjectileInstance(BacEntryInstance bacInstance, BAC_Type9 projectileType, BSA_Entry bsaEntry)
             : this(bacInstance, null, bacInstance?.User, GetSpawnActor(bacInstance, projectileType), bacInstance?.SkillMove, null, bsaEntry, projectileType, CreateSpawnTransform(bacInstance, projectileType), 0, true, BsaPassReason.Root)
@@ -858,7 +859,8 @@ namespace XenoKit.Engine.Scripting.BSA
             if (!TryGetPassEntry(entryId, out BSA_Entry entry))
                 return;
 
-            entry.InitializeIBsaTypes();
+            if (entry.IBsaTypes == null)
+                entry.InitializeIBsaTypes();
             childProjectiles.Add(new ProjectileInstance(bacInstance, this, actor, attachActor, move, bsaFile, entry, null, transform, passDepth + 1, allowBacConditionPassEntries, reason));
         }
 

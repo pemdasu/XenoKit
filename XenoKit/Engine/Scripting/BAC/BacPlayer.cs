@@ -295,7 +295,9 @@ namespace XenoKit.Engine.Scripting.BAC
 
                     if (bsaEntry != null)
                     {
-                        bsaEntry.InitializeIBsaTypes();
+                        //Only init when missing. Rebuilding discards unsaved edits, since IBsaTypes is derived from Type0-Type14.
+                        if (bsaEntry.IBsaTypes == null)
+                            bsaEntry.InitializeIBsaTypes();
                         BacEntryInstance.AddProjectile(projectile, bsaEntry, canLoop);
                     }
                     else
