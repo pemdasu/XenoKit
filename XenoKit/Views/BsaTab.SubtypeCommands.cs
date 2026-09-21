@@ -1,9 +1,11 @@
 ﻿using GalaSoft.MvvmLight.CommandWpf;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.ComponentModel;
 using System.Windows.Controls;
 using XenoKit.Editor;
+using XenoKit.ViewModel.BSA;
 using XenoKit.Windows;
 using Xv2CoreLib;
 using Xv2CoreLib.BSA;
@@ -110,17 +112,20 @@ namespace XenoKit.Views
 
             if (XenoKitClipboard.TryGetData(ClipboardConstants.BsaCollision_CopyItem, out BSA_Collision collision))
             {
-                SelectedEntry.SubEntries.CollisionEntries.Add(collision);
-                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Collision>(SelectedEntry.SubEntries.CollisionEntries, collision, "BSA Collision Paste"));
-                SelectSubtypeSource(collision);
+                //Copy, or pasting twice puts one shared instance in the list twice.
+                BSA_Collision collisionCopy = collision.Copy();
+                SelectedEntry.SubEntries.CollisionEntries.Add(collisionCopy);
+                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Collision>(SelectedEntry.SubEntries.CollisionEntries, collisionCopy, "BSA Collision Paste"));
+                SelectSubtypeSource(collisionCopy);
                 return;
             }
 
             if (XenoKitClipboard.TryGetData(ClipboardConstants.BsaExpiration_CopyItem, out BSA_Expiration expiration))
             {
-                SelectedEntry.SubEntries.ExpirationEntries.Add(expiration);
-                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expiration, "BSA Expiration Paste"));
-                SelectSubtypeSource(expiration);
+                BSA_Expiration expirationCopy = expiration.Copy();
+                SelectedEntry.SubEntries.ExpirationEntries.Add(expirationCopy);
+                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expirationCopy, "BSA Expiration Paste"));
+                SelectSubtypeSource(expirationCopy);
                 return;
             }
 
@@ -133,27 +138,38 @@ namespace XenoKit.Views
 
         private void DeleteSubtype()
         {
-            if (SelectedEntry == null || SelectedSubtypeSource == null) return;
+            if (SelectedEntry == null) return;
             InitSubEntries();
 
-            switch (SelectedSubtypeSource)
+            IList<object> sources = SelectedSubtypeSources;
+
+            if (sources.Count == 0) return;
+
+            List<IUndoRedo> undos = new List<IUndoRedo>();
+
+            foreach (object source in sources)
             {
-                case IBsaType type:
-                    UndoManager.Instance.AddUndo(new UndoableListRemove<IBsaType>(SelectedEntry.IBsaTypes, type, "BSA Subtype Delete"));
-                    SelectedEntry.IBsaTypes.Remove(type);
-                    break;
-                case BSA_Collision collision:
-                    UndoManager.Instance.AddUndo(new UndoableListRemove<BSA_Collision>(SelectedEntry.SubEntries.CollisionEntries, collision, "BSA Collision Delete"));
-                    SelectedEntry.SubEntries.CollisionEntries.Remove(collision);
-                    break;
-                case BSA_Expiration expiration:
-                    UndoManager.Instance.AddUndo(new UndoableListRemove<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expiration, "BSA Expiration Delete"));
-                    SelectedEntry.SubEntries.ExpirationEntries.Remove(expiration);
-                    break;
+                switch (source)
+                {
+                    case IBsaType type:
+                        undos.Add(new UndoableListRemove<IBsaType>(SelectedEntry.IBsaTypes, type));
+                        SelectedEntry.IBsaTypes.Remove(type);
+                        break;
+                    case BSA_Collision collision:
+                        undos.Add(new UndoableListRemove<BSA_Collision>(SelectedEntry.SubEntries.CollisionEntries, collision));
+                        SelectedEntry.SubEntries.CollisionEntries.Remove(collision);
+                        break;
+                    case BSA_Expiration expiration:
+                        undos.Add(new UndoableListRemove<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expiration));
+                        SelectedEntry.SubEntries.ExpirationEntries.Remove(expiration);
+                        break;
+                }
             }
 
+            UndoManager.Instance.AddCompositeUndo(undos, sources.Count > 1 ? "BSA Subtypes Delete" : "BSA Subtype Delete");
             SelectedSubtypeRow = null;
             RebuildSubtypeRows();
+            PlaySelectedEntryPreview();
         }
     }
 }

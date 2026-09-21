@@ -162,7 +162,7 @@ namespace XenoKit.Editor
                     else if (refType == ValueReference.InstanceRefType.Eepk)
                         valueRef.SetEnum(move.NumericSkillType);
                     else if (refType == ValueReference.InstanceRefType.SeAcb)
-                        valueRef.SetEnum((int)Xv2CoreLib.BAC.AcbType.Skill_SE);
+                        valueRef.SetEnum(GetAcbTypeValue(valueRef.Instance, Xv2CoreLib.BAC.AcbType.Skill_SE));
                     else if (refType == ValueReference.InstanceRefType.Ean)
                         valueRef.SetEnum((int)BAC_Type0.EanTypeEnum.Skill);
                     else if (refType == ValueReference.InstanceRefType.Cam)
@@ -175,7 +175,7 @@ namespace XenoKit.Editor
                     else if (refType == ValueReference.InstanceRefType.Eepk)
                         valueRef.SetEnum(move.NumericSkillType);
                     else if (refType == ValueReference.InstanceRefType.SeAcb)
-                        valueRef.SetEnum((int)Xv2CoreLib.BAC.AcbType.Character_SE);
+                        valueRef.SetEnum(GetAcbTypeValue(valueRef.Instance, Xv2CoreLib.BAC.AcbType.Character_SE));
                     else if (refType == ValueReference.InstanceRefType.Ean)
                         valueRef.SetEnum((int)BAC_Type0.EanTypeEnum.Character);
                     else if (refType == ValueReference.InstanceRefType.Cam)
@@ -186,6 +186,16 @@ namespace XenoKit.Editor
 
             //Remove Type references
             ValueRefs.RemoveAll(x => refs.Contains(x));
+        }
+
+        //BSA and BAC number AcbType differently, so a BSA sound needs the BSA value. BAC numbering writes
+        //values that BSA does not define, such as 10, straight to file.
+        private static int GetAcbTypeValue(object instance, Xv2CoreLib.BAC.AcbType bacAcbType)
+        {
+            if (instance is Xv2CoreLib.BSA.BSA_Type7 || instance is Xv2CoreLib.BSA.BSA_Expiration)
+                return (int)XenoKit.ViewModel.BSA.BsaType7ViewModel.GetBsaAcbType(bacAcbType);
+
+            return (int)bacAcbType;
         }
 
     }

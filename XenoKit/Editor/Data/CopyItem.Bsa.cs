@@ -39,6 +39,19 @@ namespace XenoKit.Editor
                 }
             }
 
+            //Collision Sound
+            if (bsaEntry.SubEntries?.ExpirationEntries != null)
+            {
+                foreach (var expiration in bsaEntry.SubEntries.ExpirationEntries)
+                {
+                    if (CopyCue(XenoKit.ViewModel.BSA.BsaType7ViewModel.GetBacAcbType(expiration.I_00), expiration.I_04, move))
+                    {
+                        ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_04), ValueReference.InstanceRefType.SeAcb));
+                        ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_00), ValueReference.InstanceRefType.SeAcb, ValueReference.Mode.Type));
+                    }
+                }
+            }
+
             //Types
             if (bsaEntry.IBsaTypes == null) return;
 
@@ -52,6 +65,8 @@ namespace XenoKit.Editor
                     CopyBsaType6References(type6, move);
                 else if (bsaType is BSA_Type7 type7)
                     CopyBsaType7References(type7, move);
+                else if (bsaType is BSA_Type12 type12)
+                    CopyBsaType12References(type12, move);
             }
         }
 
@@ -104,6 +119,16 @@ namespace XenoKit.Editor
             }
         }
 
+        private void CopyBsaType12References(BSA_Type12 bsaType, Move move)
+        {
+            //Nothing to copy: Type12 signals an existing skill, it does not spawn an effect. Only remap it when
+            //it points at the move that was copied. Any other skill it names is deliberate and must stay.
+            if (bsaType.SkillID != SkillID) return;
+
+            ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.EepkType), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.Type));
+            ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.SkillID), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.SkillId));
+        }
+
         private List<IUndoRedo> PasteBsaEntries(IList<BSA_Entry> bsaEntries, Move move, BSA_Entry bsaEntryToReplace = null)
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
@@ -131,14 +156,32 @@ namespace XenoKit.Editor
             }
             else
             {
+                BSA_File bsaFile = move.Files.BsaFile.File;
+
+                //Assign every new ID before copying anything. BSA entries chain to each other through
+                //Expires, the Impact fields and Type0. ReplaceIdReference writes into the clipboard objects,
+                //so the remap has to finish while those are still the objects the ValueRefs point at.
+                List<int> takenIds = bsaFile.BSA_Entries.Select(entry => entry.SortID).ToList();
+                List<int> newIds = new List<int>();
+
                 foreach (var bsaEntry in bsaEntries)
                 {
-                    //Copy first. Without the copy, a second paste of the same clipboard entry puts one shared instance in the file twice.
-                    BSA_Entry bsaEntryCopy = bsaEntry.Copy();
-                    int oldId = bsaEntryCopy.SortID;
-                    int newId = move.Files.BsaFile.File.AddEntry(bsaEntryCopy);
-                    ReplaceIdReference(ValueReference.InstanceRefType.Bsa, oldId, newId);
-                    undos.Add(new UndoableListAdd<BSA_Entry>(move.Files.BsaFile.File.BSA_Entries, bsaEntryCopy));
+                    int newId = 0;
+
+                    while (takenIds.Contains(newId))
+                        newId++;
+
+                    takenIds.Add(newId);
+                    newIds.Add(newId);
+                    ReplaceIdReference(ValueReference.InstanceRefType.Bsa, bsaEntry.SortID, newId);
+                }
+
+                for (int i = 0; i < bsaEntries.Count; i++)
+                {
+                    //Without the copy, a second paste of the same clipboard entry puts one shared instance in the file twice.
+                    BSA_Entry bsaEntryCopy = bsaEntries[i].Copy();
+                    bsaFile.AddEntry(newIds[i], bsaEntryCopy);
+                    undos.Add(new UndoableListAdd<BSA_Entry>(bsaFile.BSA_Entries, bsaEntryCopy));
                 }
             }
 
