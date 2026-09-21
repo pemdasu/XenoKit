@@ -441,6 +441,14 @@ namespace XenoKit.Controls
 
                 foreach(Item selectedItem in selector.SelectedItems)
                 {
+                    //AddEntry replaces an existing entry at this ID. The undo below only records an add, so the
+                    //replaced entry cannot be recovered. Skip it rather than overwrite the user's work.
+                    if (Files.Instance.SelectedItem.SelectedBacFile.File.BacEntries.Any(existing => existing.SortID == selectedItem.ID))
+                    {
+                        Log.Add($"Action Entry at ID {selectedItem.ID} already exists and was not overridden.", LogType.Warning);
+                        continue;
+                    }
+
                     BAC_Entry cmnEntry = files.GetCmnMove().Files.BacFile.File.GetEntry(selectedItem.ID);
                     BAC_Entry bacEntry = selector.BooleanParameter ? cmnEntry.Copy() : new BAC_Entry();
                     bacEntry.NewEntry = true;
