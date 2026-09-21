@@ -167,7 +167,7 @@ namespace XenoKit.Engine.Vfx.Shape
                 {
                     incompatibleMaterials.Add(drawMaterial);
                     string vertexInputs = vertexLayout == EffectShapeVertexLayout.EtrTrail
-                        ? "POSITION0, NORMAL0, COLOR0, TEXCOORD0"
+                        ? "POSITION0, NORMAL0, COLOR0, TEXCOORD0, TANGENT0"
                         : "POSITION0, COLOR0, TEXCOORD0, NORMAL0, TANGENT0";
                     Log.Add($"EffectShapeMesh: skipped drawing a trail/effect mesh because material '{drawMaterial.Material?.Name}' (shader '{drawMaterial.shaderProgram?.Name}') is not compatible with the effect vertex format. Shader needs [{GetShaderInputList(drawMaterial)}]; vertex provides [{vertexInputs}]. {ex.Message}", LogType.Warning);
                     return;

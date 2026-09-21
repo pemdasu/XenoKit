@@ -185,21 +185,22 @@ namespace XenoKit.Engine.Vfx.Shape
                     Vector2 uv = GetTbindGridUv(profiledSamples[0], row, rowIndex, rowCount, columnIndex, columnCount, uvScrollU, uvScrollV, uvStepU, uvStepV);
                     Color color = GetTbindColumnColor(row, columnIndex, columnCount);
                     SimdVector3 normal = GetTbindVertexNormal(row, rowFrames, rowIndex, autoOrientation);
+                    SimdVector3 tangent = GetTbindVertexTangent(row, rowFrames, rowIndex, autoOrientation);
 
                     if (usePathOffsetAsWidth && columnCount == 2)
                     {
                         SimdVector3 point = GetPathWidthPoint(shape[columnIndex], row.Scale, pathPoints[rowIndex], row.Transform);
-                        vertices[vertexIndex] = CreateTrailVertex(point, normal, color, uv.X, uv.Y);
+                        vertices[vertexIndex] = CreateTrailVertex(point, normal, tangent, color, uv.X, uv.Y);
                     }
                     else if (autoOrientation)
                     {
                         SimdVector3 point = GetAutoOrientedPoint(shape[columnIndex], row.Scale, columnIndex, columnCount, rowFrames[rowIndex]);
-                        vertices[vertexIndex] = CreateTrailVertex(point, normal, color, uv.X, uv.Y);
+                        vertices[vertexIndex] = CreateTrailVertex(point, normal, tangent, color, uv.X, uv.Y);
                     }
                     else
                     {
                         SimdVector3 point = SimdVector3.Transform(ToVector(Scale(shape[columnIndex], row.Scale)), row.Transform);
-                        vertices[vertexIndex] = CreateTrailVertex(point, normal, color, uv.X, uv.Y);
+                        vertices[vertexIndex] = CreateTrailVertex(point, normal, tangent, color, uv.X, uv.Y);
                     }
                 }
             }
@@ -227,11 +228,21 @@ namespace XenoKit.Engine.Vfx.Shape
             return TryNormalize(normal, out normal) ? normal : SimdVector3.UnitZ;
         }
 
-        private static VertexPositionNormalColorTexture CreateTrailVertex(SimdVector3 position, SimdVector3 normal, Color color, float u, float v)
+        private static SimdVector3 GetTbindVertexTangent(EffectShapeSegment row, TbindRowFrame[] rowFrames, int rowIndex, bool autoOrientation)
+        {
+            if (autoOrientation && rowFrames != null)
+                return rowFrames[rowIndex].WidthAxis;
+
+            SimdVector3 tangent = GetTransformDirection(row.Transform, SimdVector3.UnitX);
+            return TryNormalize(tangent, out tangent) ? tangent : SimdVector3.UnitX;
+        }
+
+        private static VertexPositionNormalColorTexture CreateTrailVertex(SimdVector3 position, SimdVector3 normal, SimdVector3 tangent, Color color, float u, float v)
         {
             return new VertexPositionNormalColorTexture(
                 new Vector3(position.X, position.Y, position.Z),
                 new Vector3(normal.X, normal.Y, normal.Z),
+                new Vector3(tangent.X, tangent.Y, tangent.Z),
                 new Vector2(u, v),
                 color);
         }
