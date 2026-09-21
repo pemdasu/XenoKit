@@ -4,8 +4,9 @@ using System.Runtime.InteropServices;
 
 namespace XenoKit.Engine.Vertex
 {
-    // Native ETR trail vertices use this 36-byte order.
-    [StructLayout(LayoutKind.Explicit, Size = 36)]
+    // Native ETR trail vertices use this 36-byte order. Tangent is appended after it because some trail shaders
+    // (T1_VFX_TRC_RI and friends) declare TANGENT0 and the draw is rejected outright without it.
+    [StructLayout(LayoutKind.Explicit, Size = 48)]
     public struct VertexPositionNormalColorTexture : IVertexType
     {
         [FieldOffset(0)]
@@ -26,13 +27,17 @@ namespace XenoKit.Engine.Vertex
         [FieldOffset(28)]
         public Vector2 TextureUV;
 
+        [FieldOffset(36)]
+        public Vector3 Tangent;
+
         public static readonly VertexDeclaration VertexDeclaration;
         VertexDeclaration IVertexType.VertexDeclaration => VertexDeclaration;
 
-        public VertexPositionNormalColorTexture(Vector3 position, Vector3 normal, Vector2 textureUV, Color color)
+        public VertexPositionNormalColorTexture(Vector3 position, Vector3 normal, Vector3 tangent, Vector2 textureUV, Color color)
         {
             Position = position;
             Normal = normal;
+            Tangent = tangent;
             TextureUV = textureUV;
             Color_R = color.R;
             Color_G = color.G;
@@ -48,6 +53,7 @@ namespace XenoKit.Engine.Vertex
                 new VertexElement(12, VertexElementFormat.Vector3, VertexElementUsage.Normal, 0),
                 new VertexElement(24, VertexElementFormat.Color, VertexElementUsage.Color, 0),
                 new VertexElement(28, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0),
+                new VertexElement(36, VertexElementFormat.Vector3, VertexElementUsage.Tangent, 0),
             };
 
             VertexDeclaration = new VertexDeclaration(elements);
