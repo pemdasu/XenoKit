@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,6 +28,9 @@ namespace XenoKit.Views
 
             if (SelectedSubtypeRow != null)
                 subtypeGrid.ScrollIntoView(SelectedSubtypeRow);
+
+            //Only the subtype commands call this method, so it restarts the preview on an edit, not on selection.
+            PlaySelectedEntryPreview();
         }
 
         private void PlaySelectedEntryPreview()
@@ -54,7 +58,7 @@ namespace XenoKit.Views
             if (file.BSA_Entries.Any(entry => entry.SortID == newId && !ReferenceEquals(entry, selectedEntry)))
             {
                 NotifyPropertyChanged(nameof(SelectedBsaID));
-                MessagePrompt.Show("ID Already Used", "The entered ID is already used by another BSA entry.", MessagePromptButtons.OK, MessagePromptIcon.Warning);
+                MessagePrompt.Show("The entered ID is already used by another BSA entry.", "ID Already Used", MessagePromptButtons.OK, MessagePromptIcon.Warning);
                 return;
             }
 
@@ -62,7 +66,9 @@ namespace XenoKit.Views
             UndoManager.Instance.AddUndo(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.SortID), selectedEntry, oldId, newId, "BSA Entry ID"));
             selectedEntry.SortID = newId;
             NotifyPropertyChanged(nameof(SelectedBsaID));
-            RefreshEntryList();
+
+            //A refresh from inside the cell edit commit throws, so let the edit finish first.
+            Dispatcher.BeginInvoke(new Action(RefreshEntryList));
         }
 
         private void EntryGrid_PreviewKeyDown(object sender, KeyEventArgs e)

@@ -36,6 +36,7 @@ namespace XenoKit.Views
         public ObservableCollection<BsaSubtypeRow> SubtypeRows { get; } = new ObservableCollection<BsaSubtypeRow>();
 
         private IList<BSA_Entry> SelectedEntries => entryGrid?.SelectedItems.Cast<BSA_Entry>().ToList() ?? new List<BSA_Entry>();
+        private IList<object> SelectedSubtypeSources => subtypeGrid?.SelectedItems.OfType<BsaSubtypeRow>().Select(row => row.Source).Where(source => source != null).Distinct().ToList() ?? new List<object>();
 
         public ListCollectionView ViewBsaEntries
         {

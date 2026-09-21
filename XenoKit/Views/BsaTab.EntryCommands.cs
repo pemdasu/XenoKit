@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Controls;
 using XenoKit.Editor;
+using XenoKit.Engine.Scripting.BSA;
 using XenoKit.Windows;
 using Xv2CoreLib;
 using Xv2CoreLib.BAC;
@@ -26,6 +27,27 @@ namespace XenoKit.Views
         public RelayCommand PasteReplaceEntryCommand => new RelayCommand(PasteReplaceEntry, CanPasteReplaceEntry);
         public RelayCommand DeleteEntryCommand => new RelayCommand(DeleteEntry, () => SelectedEntries.Count > 0);
         public RelayCommand ReindexCommand => new RelayCommand(ReindexEntries, IsBsaFileLoaded);
+        public RelayCommand RenameEntryCommand => new RelayCommand(RenameEntry, () => SelectedEntry != null);
+        public RelayCommand FocusSubtypeCommand => new RelayCommand(FocusSubtype, () => SelectedSubtypeRow?.Source is IBsaType);
+
+        private void RenameEntry()
+        {
+            userDefinedNameColumn.IsReadOnly = false;
+            entryGrid.CurrentColumn = userDefinedNameColumn;
+            entryGrid.BeginEdit();
+        }
+
+        private void EntryGrid_CellEditEnding(object sender, System.Windows.Controls.DataGridCellEditEndingEventArgs e)
+        {
+            if (e.Column == userDefinedNameColumn)
+                userDefinedNameColumn.IsReadOnly = true;
+        }
+
+        private void FocusSubtype()
+        {
+            if (SelectedSubtypeRow?.Source is IBsaType type)
+                BsaEffectPreviewController.Instance.Seek(type.StartTime);
+        }
 
         private void AddEntry()
         {
@@ -121,6 +143,9 @@ namespace XenoKit.Views
                 .ToList();
 
             if (entries.Count == 0) return;
+
+            //Stop first. Otherwise the viewport keeps a projectile alive for an entry that is about to be removed.
+            BsaEffectPreviewController.Instance.Stop();
 
             List<IUndoRedo> undos = new List<IUndoRedo>();
             foreach (BSA_Entry entry in entries)
