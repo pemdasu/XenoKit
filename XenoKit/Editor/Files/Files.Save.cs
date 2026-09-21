@@ -84,6 +84,8 @@ namespace XenoKit.Editor
                 await progressBarController.CloseAsync();
             }
 
+            //The cleanup runs here and not in the save methods, because those methods run on a background thread and this prompt needs the UI thread.
+            OutlinerItem.DeleteUnusedEepkFiles(item.GetMove()?.Files?.EepkFile?.File);
         }
 
         public void SaveAll()

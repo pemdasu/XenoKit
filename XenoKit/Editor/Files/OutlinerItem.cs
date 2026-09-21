@@ -11,6 +11,8 @@ using @file = Xv2CoreLib.FileManager;
 using XenoKit.Engine;
 using XenoKit.Editor.Data;
 using XenoKit.Engine.Stage;
+using Xv2CoreLib.Resource.App;
+using LB_Common.Forms;
 
 namespace XenoKit.Editor
 {
@@ -349,6 +351,7 @@ namespace XenoKit.Editor
                     {
                         SelectedEepk.File.ChangeFilePath(SelectedEepk.Path);
                         SelectedEepk.File.Save();
+                        DeleteUnusedEepkFiles(SelectedEepk.File);
                         CustomEntryNames.SaveNames(SelectedEepk.RelativePath, SelectedEepk.File);
                         pathSaved = SelectedEepk.Path;
                     }
@@ -409,6 +412,40 @@ namespace XenoKit.Editor
             return false;
         }
         #endregion
+
+        /// <summary>
+        /// Deletes any asset files that were loaded with the EEPK but are no longer in one of its asset containers. Call this directly after saving.
+        /// </summary>
+        internal static void DeleteUnusedEepkFiles(EffectContainerFile eepk)
+        {
+            if (eepk == null || SettingsManager.Instance.Settings.FileCleanUp_Ignore) return;
+
+            var unusedFiles = eepk.GetUnusedFilePaths();
+
+            if (unusedFiles.Count == 0) return;
+
+            if (SettingsManager.Instance.Settings.FileCleanUp_Prompt)
+            {
+                string fileList = string.Join(Environment.NewLine, unusedFiles);
+
+                if (MessagePrompt.Show("The files listed below are no longer in any of the asset containers. Do you want to also delete them from disk?", "Save",
+                    MessagePromptButtons.YesNo, MessagePromptIcon.Question, fileList) != MessagePromptResult.Yes)
+                    return;
+            }
+
+            foreach (string file in unusedFiles)
+            {
+                try
+                {
+                    if (File.Exists(file))
+                        File.Delete(file);
+                }
+                catch (Exception ex)
+                {
+                    Log.Add($"Could not delete the unused effect file \"{file}\": {ex.Message}", LogType.Warning);
+                }
+            }
+        }
     }
 
     public class ManualFiles
@@ -509,6 +546,7 @@ namespace XenoKit.Editor
             if(Move?.Files?.EepkFile != null)
             {
                 Move.Files.EepkFile.File.Save();
+                OutlinerItem.DeleteUnusedEepkFiles(Move.Files.EepkFile.File);
             }
         }
 
