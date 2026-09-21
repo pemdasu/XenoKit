@@ -23,6 +23,7 @@ namespace XenoKit.Views
         public RelayCommand DuplicateEntryCommand => new RelayCommand(DuplicateEntry, () => SelectedEntry != null);
         public RelayCommand CopyEntryCommand => new RelayCommand(CopyEntry, () => SelectedEntry != null && IsBsaCopyPasteAvailable());
         public RelayCommand PasteEntryCommand => new RelayCommand(PasteEntry, CanPasteEntry);
+        public RelayCommand PasteReplaceEntryCommand => new RelayCommand(PasteReplaceEntry, CanPasteReplaceEntry);
         public RelayCommand DeleteEntryCommand => new RelayCommand(DeleteEntry, () => SelectedEntries.Count > 0);
         public RelayCommand ReindexCommand => new RelayCommand(ReindexEntries, IsBsaFileLoaded);
 
@@ -95,6 +96,16 @@ namespace XenoKit.Views
             if (!XenoKitClipboard.TryGetData(ClipboardConstants.BsaEntry_CopyItem, out CopyItem copyItem)) return;
 
             new PasteCopyItem(copyItem, files.SelectedMove).ShowDialog();
+            RefreshEntryList();
+        }
+
+        private void PasteReplaceEntry()
+        {
+            if (files.SelectedMove == null || SelectedEntry == null) return;
+            if (!XenoKitClipboard.TryGetData(ClipboardConstants.BsaEntry_CopyItem, out CopyItem copyItem)) return;
+
+            new PasteCopyItem(copyItem, files.SelectedMove, SelectedEntry, true).ShowDialog();
+            ReloadSelectedEntry();
             RefreshEntryList();
         }
 
