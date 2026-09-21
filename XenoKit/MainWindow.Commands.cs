@@ -4,6 +4,7 @@ using MahApps.Metro.Controls.Dialogs;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using XenoKit.Editor;
 using XenoKit.Windows;
 using Xv2CoreLib;
@@ -70,15 +71,11 @@ namespace XenoKit
             }
 
             SAV_File savFile = SAV_File.Load(SettingsManager.settings.SaveFile, false);
-            List<Xv2Item> items = new List<Xv2Item>();
+            List<Item> items = Xenoverse2.Instance.GetCacList(savFile);
 
-            for (int i = 0; i < savFile.Characters.Count; i++)
-            {
-                if (!string.IsNullOrWhiteSpace(savFile.Characters[i].Name))
-                    items.Add(new Xv2Item(i, savFile.Characters[i].Name));
-            }
-
-            EntitySelector itemSelector = new EntitySelector(items, "CaC");
+            ItemSelector itemSelector = new ItemSelector(items, "CaC");
+            itemSelector.SetBitmapDisplaySettings(112, 112, 120);
+            itemSelector.SetColumnNames(preName: "Race");
             itemSelector.ShowDialog();
 
             if (itemSelector.SelectedItem != null)

@@ -127,7 +127,6 @@ namespace XenoKit.Editor
                     xv2.Instance.Init();
                 });
 
-
                 if (GetCmnMove() == null && !SettingsManager.settings.XenoKit_DelayLoadingCMN)
                 {
                     //By not awaiting it, we can just let the cmn files load in the background the not block the start up of XenoKit.

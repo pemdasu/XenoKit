@@ -3,8 +3,9 @@
     <ResourceDictionary>
       <converters:VisibilityToNullableBooleanConverter x:Key="visibilityConverter" />
       <converters:InverseVisibilityConverter x:Key="inverseVisibilityConverter" />
-      <converters:UInt16ToDoubleConverter x:Key="uint16Converter" />
-      <BitmapImage x:Key="gridlines" UriSource="Resources/transparent_checkerboard.png" />
+            <converters:UInt16ToDoubleConverter x:Key="uint16Converter" />
+            <converters:StringToIntParameterConverter x:Key="StringToIntConverter" />
+            <BitmapImage x:Key="gridlines" UriSource="Resources/transparent_checkerboard.png" />
       <Style x:Key="UnderlinedTabControl" TargetType="controls:MetroTabControl">
         <Setter Property="controls:TabControlHelper.UnderlinePlacement" Value="Top" />
         <Setter Property="controls:TabControlHelper.Underlined" Value="SelectedTabItem" />

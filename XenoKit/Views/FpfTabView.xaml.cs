@@ -1,3 +1,4 @@
+using LB_Common.Forms;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -185,7 +186,7 @@ namespace XenoKit.Controls
 
         private void LoadCharacterPoseButton_Click(object sender, RoutedEventArgs e)
         {
-            EntitySelector selector = new EntitySelector(xv2.Instance.GetCharacterList(), "Character");
+            ItemSelector selector = new ItemSelector(xv2.Instance.GetCharacterList(), "Character");
             selector.SetBooleanParameter("Only Load From CPK", "Ignore loose files and load directly from CPK.");
             selector.ShowDialog();
 
@@ -216,7 +217,7 @@ namespace XenoKit.Controls
             if (!(sender is MenuItem item) || !Enum.TryParse(item.Tag?.ToString(), out CUS_File.SkillType skillType))
                 return;
 
-            EntitySelector selector = new EntitySelector(xv2.Instance.GetSkillList(skillType), skillType.ToString());
+            ItemSelector selector = new ItemSelector(xv2.Instance.GetSkillList(skillType), skillType.ToString());
             selector.SetBooleanParameter("Only Load From CPK", "Ignore loose files and load directly from CPK.");
             selector.ShowDialog();
 

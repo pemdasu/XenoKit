@@ -67,8 +67,9 @@ namespace XenoKit.Editor
 
         public async void AsyncLoadSkill(CUS_File.SkillType skillType)
         {
-            List<Xv2Item> skills = xv2.Instance.GetSkillList(skillType);
-            EntitySelector selector = new EntitySelector(skills, skillType.ToString());
+            List<Item> skills = xv2.Instance.GetSkillList(skillType);
+            ItemSelector selector = new ItemSelector(skills, skillType.ToString());
+            selector.SetColumnNames(preName: "Code");
             selector.SetBooleanParameter("Only Load From CPK", "Ignore loose files and load directly from CPK.");
             selector.ShowDialog();
 
@@ -123,18 +124,14 @@ namespace XenoKit.Editor
         public async void AsyncLoadCharacter()
         {
             var characters = xv2.Instance.GetCharacterList();
-            EntitySelector charaSel = new EntitySelector(characters, "Character");
+            ItemSelector charaSel = new ItemSelector(characters, "Character");
+            charaSel.SetBitmapDisplaySettings(112, 112, 120);
+            charaSel.SetColumnNames(preName: "Code");
             charaSel.SetBooleanParameter("Only Load From CPK", "Ignore loose files and load directly from CPK.");
             charaSel.ShowDialog();
 
             if (charaSel.SelectedItem != null)
             {
-                //PartSetSelector partSel = new PartSetSelector(xv2.Instance.GetBcsFile(charaSel.SelectedItem.ID), Application.Current.MainWindow);
-                //partSel.ShowDialog();
-
-                //if (partSel.SelectedPartSet != null)
-                //    await AsyncLoadCharacter(charaSel.SelectedItem.ID, partSel.SelectedPartSet.ID);
-
                 BCS_File bcsFile = xv2.Instance.GetBcsFile(charaSel.SelectedItem.ID, charaSel.BooleanParameter);
                 _ = await AsyncLoadCharacter(charaSel.SelectedItem.ID, bcsFile.PartSets.Min(x => x.ID), false, -1, charaSel.BooleanParameter);
             }
@@ -196,7 +193,7 @@ namespace XenoKit.Editor
         public void LoadMoveset()
         {
             var movesets = xv2.Instance.GetCharacterList();
-            EntitySelector selector = new EntitySelector(movesets, "Moveset");
+            ItemSelector selector = new ItemSelector(movesets, "Moveset");
             selector.ShowDialog();
 
             if (selector.SelectedItem != null)
@@ -333,7 +330,10 @@ namespace XenoKit.Editor
         public async void AsyncLoadStage()
         {
             var stages = xv2.Instance.GetStageList();
-            EntitySelector stageSel = new EntitySelector(stages, "Stage");
+            ItemSelector stageSel = new ItemSelector(stages, "Stage");
+            stageSel.Width = 740;
+            stageSel.SetBitmapDisplaySettings(368, 92, 380);
+            stageSel.SetColumnNames(preName: "Code");
             stageSel.ShowDialog();
 
             if (stageSel.SelectedItem != null)

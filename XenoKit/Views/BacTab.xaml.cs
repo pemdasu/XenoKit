@@ -420,17 +420,17 @@ namespace XenoKit.Controls
         public RelayCommand OverrideCMNCommand => new RelayCommand(OverrideCMNBacEntry, IsBacFileLoaded);
         private void OverrideCMNBacEntry()
         {
-            List<Xv2Item> ids = new List<Xv2Item>();
+            List<Item> ids = new List<Item>();
 
             foreach(BAC_Entry bacEntry in files.GetCmnMove().Files.BacFile.File.BacEntries)
             {
                 if(files.SelectedMove.Files.BacFile.File.GetEntry(bacEntry.SortID) == null)
                 {
-                    ids.Add(new Xv2Item(bacEntry.SortID, bacEntry.UserDefinedName));
+                    ids.Add(new Item(bacEntry.SortID, bacEntry.UserDefinedName));
                 }
             }
 
-            EntitySelector selector = new EntitySelector(ids, "CMN Actions", true);
+            ItemSelector selector = new ItemSelector(ids, "CMN Actions", true);
             selector.SetBooleanParameter("Copy Entry", "Copy the original CMN entry to use as a base.");
             selector.ShowDialog();
 
@@ -439,7 +439,7 @@ namespace XenoKit.Controls
                 List<IUndoRedo> undos = new List<IUndoRedo>();
                 BAC_Entry bacEntryToFocus = null;
 
-                foreach(Xv2Item selectedItem in selector.SelectedItems)
+                foreach(Item selectedItem in selector.SelectedItems)
                 {
                     BAC_Entry cmnEntry = files.GetCmnMove().Files.BacFile.File.GetEntry(selectedItem.ID);
                     BAC_Entry bacEntry = selector.BooleanParameter ? cmnEntry.Copy() : new BAC_Entry();

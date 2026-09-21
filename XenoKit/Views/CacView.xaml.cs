@@ -1,4 +1,5 @@
 ﻿using GalaSoft.MvvmLight.CommandWpf;
+using LB_Common.Forms;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -63,22 +64,22 @@ namespace XenoKit.Views
             }
         }
 
-        public List<Xv2Item> Presets { get; set; }
+        public List<Item> Presets { get; set; }
 
         //Body Parts
-        public AsyncObservableCollection<Xv2Item> Hair { get; set; } //Head/Hair
-        public AsyncObservableCollection<Xv2Item> Eyes { get; set; }
-        public AsyncObservableCollection<Xv2Item> FaceForehead { get; set; } //Pupils
-        public AsyncObservableCollection<Xv2Item> Nose { get; set; }
-        public AsyncObservableCollection<Xv2Item> FaceBase { get; set; } //Mouth/Jaw
-        public AsyncObservableCollection<Xv2Item> Ears { get; set; }
+        public AsyncObservableCollection<Item> Hair { get; set; } //Head/Hair
+        public AsyncObservableCollection<Item> Eyes { get; set; }
+        public AsyncObservableCollection<Item> FaceForehead { get; set; } //Pupils
+        public AsyncObservableCollection<Item> Nose { get; set; }
+        public AsyncObservableCollection<Item> FaceBase { get; set; } //Mouth/Jaw
+        public AsyncObservableCollection<Item> Ears { get; set; }
 
         //Equipment
-        public AsyncObservableCollection<Xv2Item> Top { get; set; }
-        public AsyncObservableCollection<Xv2Item> Bottom { get; set; }
-        public AsyncObservableCollection<Xv2Item> Gloves { get; set; }
-        public AsyncObservableCollection<Xv2Item> Shoes { get; set; }
-        public AsyncObservableCollection<Xv2Item> Accessory { get; set; }
+        public AsyncObservableCollection<Item> Top { get; set; }
+        public AsyncObservableCollection<Item> Bottom { get; set; }
+        public AsyncObservableCollection<Item> Gloves { get; set; }
+        public AsyncObservableCollection<Item> Shoes { get; set; }
+        public AsyncObservableCollection<Item> Accessory { get; set; }
 
         //Colors
         public Brush Skin1 => CAC != null ? GetColorBrush(0, CAC.Appearence.I_36) : null;
@@ -141,22 +142,22 @@ namespace XenoKit.Views
 
         public CacView()
         {
-            Presets = new List<Xv2Item>();
-            Hair = new AsyncObservableCollection<Xv2Item>();
-            Eyes = new AsyncObservableCollection<Xv2Item>();
-            FaceForehead = new AsyncObservableCollection<Xv2Item>();
-            Nose = new AsyncObservableCollection<Xv2Item>();
-            FaceBase = new AsyncObservableCollection<Xv2Item>();
-            Ears = new AsyncObservableCollection<Xv2Item>();
-            Top = new AsyncObservableCollection<Xv2Item>();
-            Bottom = new AsyncObservableCollection<Xv2Item>();
-            Gloves = new AsyncObservableCollection<Xv2Item>();
-            Shoes = new AsyncObservableCollection<Xv2Item>();
-            Accessory = new AsyncObservableCollection<Xv2Item>();
+            Presets = new List<Item>();
+            Hair = new AsyncObservableCollection<Item>();
+            Eyes = new AsyncObservableCollection<Item>();
+            FaceForehead = new AsyncObservableCollection<Item>();
+            Nose = new AsyncObservableCollection<Item>();
+            FaceBase = new AsyncObservableCollection<Item>();
+            Ears = new AsyncObservableCollection<Item>();
+            Top = new AsyncObservableCollection<Item>();
+            Bottom = new AsyncObservableCollection<Item>();
+            Gloves = new AsyncObservableCollection<Item>();
+            Shoes = new AsyncObservableCollection<Item>();
+            Accessory = new AsyncObservableCollection<Item>();
 
             for(int i = 0; i < 8; i++)
             {
-                Presets.Add(new Xv2Item(i, i > 0 ? $"Preset {i}" : "Main"));
+                Presets.Add(new Item(i, i > 0 ? $"Preset {i}" : "Main"));
             }
 
             InitializeComponent();
@@ -210,22 +211,22 @@ namespace XenoKit.Views
                 if (partSet == null) continue;
 
                 if(partSet.Hair != null)
-                    Hair.Add(new Xv2Item(partSet.ID, $"Type {Hair.Count + 1}"));
+                    Hair.Add(new Item(partSet.ID, $"Type {Hair.Count + 1}"));
 
                 if (partSet.FaceEye != null)
-                    Eyes.Add(new Xv2Item(partSet.ID, $"Type {Eyes.Count + 1}"));
+                    Eyes.Add(new Item(partSet.ID, $"Type {Eyes.Count + 1}"));
 
                 if (partSet.FaceForehead != null)
-                    FaceForehead.Add(new Xv2Item(partSet.ID, $"Type {FaceForehead.Count + 1}"));
+                    FaceForehead.Add(new Item(partSet.ID, $"Type {FaceForehead.Count + 1}"));
 
                 if (partSet.FaceNose != null)
-                    Nose.Add(new Xv2Item(partSet.ID, $"Type {Nose.Count + 1}"));
+                    Nose.Add(new Item(partSet.ID, $"Type {Nose.Count + 1}"));
 
                 if (partSet.FaceBase != null)
-                    FaceBase.Add(new Xv2Item(partSet.ID, $"Type {FaceBase.Count + 1}"));
+                    FaceBase.Add(new Item(partSet.ID, $"Type {FaceBase.Count + 1}"));
 
                 if (partSet.FaceEar != null)
-                    Ears.Add(new Xv2Item(partSet.ID, $"Type {Ears.Count + 1}"));
+                    Ears.Add(new Item(partSet.ID, $"Type {Ears.Count + 1}"));
             }
 
             //Create equipment lists
