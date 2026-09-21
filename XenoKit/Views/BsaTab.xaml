@@ -39,8 +39,6 @@
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Controls:ControlsHelper.ContentCharacterCasing" Value="Normal"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource MahApps.Brushes.Accent3}"/>
-            <Setter Property="BorderThickness" Value="1"/>
         </Style>
     </UserControl.Resources>
 
@@ -112,6 +110,7 @@
                 <DataGrid.InputBindings>
                     <KeyBinding Key="C" Modifiers="Ctrl" Command="{Binding CopyEntryCommand}"/>
                     <KeyBinding Key="V" Modifiers="Ctrl" Command="{Binding PasteEntryCommand}"/>
+                    <KeyBinding Key="T" Modifiers="Ctrl" Command="{Binding PasteReplaceEntryCommand}"/>
                     <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding DuplicateEntryCommand}"/>
                     <KeyBinding Key="Delete" Command="{Binding DeleteEntryCommand}"/>
                 </DataGrid.InputBindings>
@@ -138,7 +137,8 @@
                         <MenuItem Header="Add At Specific ID" Command="{Binding AddEntryAtSpecificIdCommand}"/>
                         <Separator/>
                         <MenuItem Header="Copy" Command="{Binding CopyEntryCommand}"/>
-                        <MenuItem Header="Paste" Command="{Binding PasteEntryCommand}"/>
+                        <MenuItem Header="Paste (New)" Command="{Binding PasteEntryCommand}"/>
+                        <MenuItem Header="Paste (Replace)" Command="{Binding PasteReplaceEntryCommand}"/>
                         <MenuItem Header="Duplicate" Command="{Binding DuplicateEntryCommand}"/>
                         <MenuItem Header="Delete" Command="{Binding DeleteEntryCommand}"/>
                         <Separator/>

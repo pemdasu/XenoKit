@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Xv2CoreLib;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BSA;
 using Xv2CoreLib.Resource.UndoRedo;
@@ -102,16 +104,42 @@ namespace XenoKit.Editor
             }
         }
 
-        private List<IUndoRedo> PasteBsaEntries(IList<BSA_Entry> bsaEntries, Move move)
+        private List<IUndoRedo> PasteBsaEntries(IList<BSA_Entry> bsaEntries, Move move, BSA_Entry bsaEntryToReplace = null)
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            foreach (var bsaEntry in bsaEntries)
+            if (bsaEntryToReplace != null)
             {
-                int oldId = bsaEntry.SortID;
-                int newId = move.Files.BsaFile.File.AddEntry(bsaEntry);
-                ReplaceIdReference(ValueReference.InstanceRefType.Bsa, oldId, newId);
-                undos.Add(new UndoableListAdd<BSA_Entry>(move.Files.BsaFile.File.BSA_Entries, bsaEntry));
+                if (bsaEntries.Count == 0) return undos;
+
+                BSA_Entry source = bsaEntries[0].Copy();
+
+                //Replace the whole entry body. The target keeps its own ID and name so references to it stay valid.
+                undos.AddRange(Utils.CopyValues(bsaEntryToReplace, source, nameof(BSA_Entry.Index), nameof(BSA_Entry.SortID), nameof(BSA_Entry.UserDefinedName)));
+
+                undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.IBsaTypes), bsaEntryToReplace, bsaEntryToReplace.IBsaTypes, source.IBsaTypes));
+                bsaEntryToReplace.IBsaTypes = source.IBsaTypes;
+
+                undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.SubEntries), bsaEntryToReplace, bsaEntryToReplace.SubEntries, source.SubEntries));
+                bsaEntryToReplace.SubEntries = source.SubEntries;
+
+                undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.I_40), bsaEntryToReplace, bsaEntryToReplace.I_40, source.I_40));
+                bsaEntryToReplace.I_40 = source.I_40;
+
+                ObjectExtensions.NotifyPropsChanged(bsaEntryToReplace);
+                undos.Add(new UndoActionPropNotify(bsaEntryToReplace, true));
+            }
+            else
+            {
+                foreach (var bsaEntry in bsaEntries)
+                {
+                    //Copy first. Without the copy, a second paste of the same clipboard entry puts one shared instance in the file twice.
+                    BSA_Entry bsaEntryCopy = bsaEntry.Copy();
+                    int oldId = bsaEntryCopy.SortID;
+                    int newId = move.Files.BsaFile.File.AddEntry(bsaEntryCopy);
+                    ReplaceIdReference(ValueReference.InstanceRefType.Bsa, oldId, newId);
+                    undos.Add(new UndoableListAdd<BSA_Entry>(move.Files.BsaFile.File.BSA_Entries, bsaEntryCopy));
+                }
             }
 
             return undos;

@@ -56,10 +56,7 @@ namespace XenoKit.Views
                 if (selectedEntry == value) return;
 
                 selectedEntry = value;
-                InitSubEntries();
-                RebuildSubtypeRows();
-                SetEntryViewModel(selectedEntry != null ? new BsaEntryViewModel(selectedEntry) : null);
-                SelectedSubtypeRow = null;
+                ReloadSelectedEntry();
                 NotifyPropertyChanged(nameof(SelectedEntry));
                 NotifyPropertyChanged(nameof(SelectedBsaID));
                 PlaySelectedEntryPreview();

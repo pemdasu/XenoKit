@@ -52,7 +52,7 @@ namespace XenoKit.Editor
             return undos;
         }
 
-        public List<IUndoRedo> PasteIntoMove_Main(Move move, bool copyReferences, BAC_Entry bacEntryToReplace = null)
+        public List<IUndoRedo> PasteIntoMove_Main(Move move, bool copyReferences, BAC_Entry bacEntryToReplace = null, BSA_Entry bsaEntryToReplace = null)
         {
             if (entryType != EntryType.Main)
                 throw new InvalidOperationException($"{nameof(CopyItem)}.{nameof(PasteIntoMove_Main)}: function can only be called with entryType = Main!");
@@ -68,7 +68,7 @@ namespace XenoKit.Editor
             if(move.MoveGuid != MoveGuid)
                 undos.AddRange(PasteReferences(move, copyReferences));
 
-            undos.AddRange(PasteEntries(move, Primary, bacEntryToReplace));
+            undos.AddRange(PasteEntries(move, Primary, bacEntryToReplace, bsaEntryToReplace));
 
             return undos;
         }
@@ -94,7 +94,7 @@ namespace XenoKit.Editor
             return undos;
         }
 
-        private List<IUndoRedo> PasteEntries(Move move, CopyEntries entries, BAC_Entry bacEntryToReplace = null)
+        private List<IUndoRedo> PasteEntries(Move move, CopyEntries entries, BAC_Entry bacEntryToReplace = null, BSA_Entry bsaEntryToReplace = null)
         {
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
@@ -110,7 +110,7 @@ namespace XenoKit.Editor
                 undos.AddRange(PasteShotBdmEntries(entries.ShotBdmEntries, move));
 
                 //BSA
-                undos.AddRange(PasteBsaEntries(entries.BsaEntries, move));
+                undos.AddRange(PasteBsaEntries(entries.BsaEntries, move, bsaEntryToReplace));
             }
 
             //EEPK

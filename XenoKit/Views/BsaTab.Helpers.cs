@@ -99,6 +99,18 @@ namespace XenoKit.Views
         /// Value edits reach the grid through INotifyPropertyChanged on the models, so refreshing here
         /// would reset the grid selection and destroy an in-progress edit.
         /// </summary>
+        /// <summary>
+        /// Rebuilds everything derived from the selected entry. Also call this after replacing an entry's contents in place,
+        /// where the SelectedEntry setter short-circuits because the object reference did not change.
+        /// </summary>
+        private void ReloadSelectedEntry()
+        {
+            InitSubEntries();
+            RebuildSubtypeRows();
+            SetEntryViewModel(SelectedEntry != null ? new BsaEntryViewModel(SelectedEntry) : null);
+            SelectedSubtypeRow = null;
+        }
+
         private void RefreshEntryList()
         {
             ViewBsaEntries?.Refresh();
@@ -132,6 +144,11 @@ namespace XenoKit.Views
         private bool CanPasteEntry()
         {
             return IsBsaCopyPasteAvailable() && XenoKitClipboard.ContainsData(ClipboardConstants.BsaEntry_CopyItem);
+        }
+
+        private bool CanPasteReplaceEntry()
+        {
+            return CanPasteEntry() && SelectedEntry != null;
         }
 
         private bool CanPasteSubtype()

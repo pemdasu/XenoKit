@@ -18,6 +18,7 @@ namespace XenoKit.Windows
         private BAC_Entry bacEntry = null;
         private Xv2CoreLib.BSA.BSA_Entry bsaEntry = null;
         private bool isBacReplace = false;
+        private bool isBsaReplace = false;
 
         public string DataDescription { get { return copyItem.MainEntriesDetails(); } }
         public string ReferencesDescription { get { return copyItem.ReferencesDetails(); } }
@@ -51,6 +52,17 @@ namespace XenoKit.Windows
             }
         }
 
+        public PasteCopyItem(CopyItem copyItem, Move move, Xv2CoreLib.BSA.BSA_Entry bsaEntry, bool isBsaReplace)
+            : this(copyItem, move, bsaEntry)
+        {
+            this.isBsaReplace = isBsaReplace;
+
+            if (isBsaReplace)
+            {
+                Title = "Replace Entry";
+            }
+        }
+
         public PasteCopyItem(CopyItem copyItem, Move move, Xv2CoreLib.BSA.BSA_Entry bsaEntry)
         {
             PasteReferences = copyItem.MoveGuid != move.MoveGuid;
@@ -77,6 +89,10 @@ namespace XenoKit.Windows
             if (isBacReplace)
             {
                 undos = copyItem.PasteIntoMove_Main(move, PasteReferences, bacEntry);
+            }
+            else if (isBsaReplace)
+            {
+                undos = copyItem.PasteIntoMove_Main(move, PasteReferences, null, bsaEntry);
             }
             else if(copyItem.entryType == EntryType.Main)
             {
