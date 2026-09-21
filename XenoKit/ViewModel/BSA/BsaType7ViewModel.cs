@@ -55,6 +55,21 @@ namespace XenoKit.ViewModel.BSA
             }
         }
 
+        public static AcbType GetBsaAcbType(Xv2CoreLib.BAC.AcbType bacAcbType)
+        {
+            switch (bacAcbType)
+            {
+                case Xv2CoreLib.BAC.AcbType.Common_SE:
+                    return AcbType.Common_SE;
+                case Xv2CoreLib.BAC.AcbType.Character_SE:
+                    return AcbType.Chara_SE;
+                case Xv2CoreLib.BAC.AcbType.Skill_SE:
+                    return AcbType.Skill_SE;
+                default:
+                    return AcbType.Common_SE;
+            }
+        }
+
         public BsaType7ViewModel(BSA_Type7 type) : base(type)
         {
             sound = type;
