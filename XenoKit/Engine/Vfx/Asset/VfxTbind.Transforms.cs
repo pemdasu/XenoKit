@@ -40,7 +40,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 if (boneIdx != -1)
                     baseTransform = Actor.GetAbsoluteBoneMatrix(boneIdx);
             }
-            else if (EffectPart.AttachementType == EffectPart.Attachment.Bone && !UsesExternalSpawn() && !string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null)
+            else if (EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn() && !string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null)
             {
                 int boneIdx = Actor.Skeleton.GetBoneIndex(EffectPart.ESK, true);
 

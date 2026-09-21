@@ -365,9 +365,9 @@ namespace XenoKit.Views
 
                     if (!TabManager.FocusTab(modelScene))
                     {
-                        EMB_File embFile = (EMB_File)LoadFile(embPath);
-                        EMM_File emmFile = (EMM_File)LoadFile(emmPath);
-                        EMB_File dytFile = dytPath != null ? (EMB_File)LoadFile(dytPath) : null;
+                        EMB_File embFile = LoadFile<EMB_File>(embPath);
+                        EMM_File emmFile = LoadFile<EMM_File>(emmPath);
+                        EMB_File dytFile = dytPath != null ? LoadFile<EMB_File>(dytPath) : null;
                         modelScene.SetFiles(Engine.Shader.ShaderType.Chara, embFile, emmFile, dytFile, Character.EskFile.File);
                         modelScene.SetPaths(true, SelectedFile.RelativePath, embPath, emmPath, dytPath);
 
@@ -502,7 +502,7 @@ namespace XenoKit.Views
             }
         }
     
-        private object LoadFile(string path)
+        private T LoadFile<T>(string path) where T : class
         {
             if (string.IsNullOrWhiteSpace(path)) return null;
             var partSetEntry = Character.PartSetFiles.FirstOrDefault(x => $"chara/{Character.CmsEntry.ShortName}/{x.Name}" == path);
@@ -510,11 +510,11 @@ namespace XenoKit.Views
             if (partSetEntry != null)
             {
                 partSetEntry.Load();
-                return partSetEntry.File;
+                return partSetEntry.File as T;
             }
             else
             {
-                return FileManager.Instance.GetParsedFileFromGame(path);
+                return FileManager.Instance.LoadFile<T>(path);
             }
         }
     }

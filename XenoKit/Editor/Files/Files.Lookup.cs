@@ -300,7 +300,7 @@ namespace XenoKit.Editor
 
             try
             {
-                EffectContainerFile eepk = file.Instance.GetParsedFileFromGame(path, false, false) as EffectContainerFile;
+                EffectContainerFile eepk = file.Instance.LoadFile<EffectContainerFile>(path, false, false);
                 if (eepk != null)
                 {
                     stageEepkCache[path] = eepk;

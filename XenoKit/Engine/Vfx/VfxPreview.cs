@@ -72,7 +72,7 @@ namespace XenoKit.Engine.Vfx
                 Asset.Dispose();
 
             DefaultEffectPart.AssetRef = asset;
-            DefaultEffectPart.AssetType = asset.assetType;
+            DefaultEffectPart.AssetType = asset.AssetType;
             Asset = new VfxEffect(SceneManager.Actors[0], DefaultEffectPart);
         }
 

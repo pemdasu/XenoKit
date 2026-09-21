@@ -7,6 +7,7 @@ using XenoKit.Engine.Textures;
 using Xv2CoreLib;
 using Xv2CoreLib.EMA;
 using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMD;
 using Xv2CoreLib.EMM;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.NSK;
@@ -37,7 +38,7 @@ namespace XenoKit.Engine.Model
             string embPath = $"stage/{visual.EmbFile}";
             string emaPath = $"stage/{visual.EmaFile}";
 
-            EMB_File embFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(embPath);
+            EMB_File embFile = FileManager.Instance.LoadFile<EMB_File>(embPath);
             Textures = Xv2Texture.LoadTextureArray(embFile);
 
             foreach(var lod in visual.LODs)
@@ -47,8 +48,8 @@ namespace XenoKit.Engine.Model
 
                 if (!string.IsNullOrWhiteSpace(lod.NskFile))
                 {
-                    NSK_File nskFile = (NSK_File)FileManager.Instance.GetParsedFileFromGame(nskPath);
-                    EMM_File emmFile = (EMM_File)FileManager.Instance.GetParsedFileFromGame(emmPath);
+                    NSK_File nskFile = FileManager.Instance.LoadFile<NSK_File>(nskPath);
+                    EMM_File emmFile = FileManager.Instance.LoadFile<EMM_File>(emmPath);
 
                     Xv2ModelFile model = CompiledObjectManager.GetCompiledObject<Xv2ModelFile>(nskFile);
 

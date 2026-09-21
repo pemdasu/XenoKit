@@ -72,7 +72,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 }
             }
 
-            if (EffectPart.Deactivation == EffectPart.DeactivationMode.Never)
+            if (EffectPart.Deactivation == DeactivationMode.Never)
             {
                 if (IsTerminating && !anyActive && !anySamples)
                 {
@@ -199,7 +199,7 @@ namespace XenoKit.Engine.Vfx.Asset
             if (duration <= 0)
                 return nodeFrame;
 
-            if (EffectPart.Deactivation == EffectPart.DeactivationMode.LoopCancel)
+            if (EffectPart.Deactivation == DeactivationMode.LoopCancel)
                 return GetLoopCancelKeyframeTime(node, state, nodeFrame);
 
             return value.Loop ? WrapKeyframedTime(nodeFrame, duration) : nodeFrame;

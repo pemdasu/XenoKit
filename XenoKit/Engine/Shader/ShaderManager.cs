@@ -58,12 +58,12 @@ namespace XenoKit.Engine.Shader
 
         public ShaderManager()
         {
-            DefaultSdsFile = (SDS_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/technique_default_sds.emz", false, true);
-            AgeSdsFile = (SDS_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/technique_age_sds.emz", false, true);
-            AgeEmb_VS = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_age_vs.emz", false, true);
-            AgeEmb_PS = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_age_ps.emz", false, true);
-            DefaultEmb_VS = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_default_vs.emz", false, true);
-            DefaultEmb_PS = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_default_ps.emz", false, true);
+            DefaultSdsFile = FileManager.Instance.LoadFile<SDS_File>("adam_shader/technique_default_sds.emz", false, true);
+            AgeSdsFile = FileManager.Instance.LoadFile<SDS_File>("adam_shader/technique_age_sds.emz", false, true);
+            AgeEmb_VS = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_age_vs.emz", false, true);
+            AgeEmb_PS = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_age_ps.emz", false, true);
+            DefaultEmb_VS = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_default_vs.emz", false, true);
+            DefaultEmb_PS = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_default_ps.emz", false, true);
 
             NoRimLightTexture = new Texture2D(Viewport.Instance.GraphicsDevice, 128, 8);
 
@@ -397,42 +397,42 @@ namespace XenoKit.Engine.Shader
 
             if (defaultSdsDirty)
             {
-                SDS_File sds = (SDS_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/technique_default_sds.emz", false, true, true);
+                SDS_File sds = FileManager.Instance.LoadFile<SDS_File>("adam_shader/technique_default_sds.emz", false, true, true);
                 UpdateShaderSds(sds, DefaultSdsFile, sdsShadersModified);
                 defaultSdsDirty = false;
             }
 
             if (ageSdsDirty)
             {
-                SDS_File sds = (SDS_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/technique_age_sds.emz", false, true, true);
+                SDS_File sds = FileManager.Instance.LoadFile<SDS_File>("adam_shader/technique_age_sds.emz", false, true, true);
                 UpdateShaderSds(sds, AgeSdsFile, sdsShadersModified);
                 ageSdsDirty = false;
             }
 
             if (defaultPsEmbDirty)
             {
-                EMB_File emb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_default_ps.emz", false, true, true);
+                EMB_File emb = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_default_ps.emz", false, true, true);
                 UpdateShaderEmb(emb, DefaultEmb_PS, pixelShadersModified);
                 defaultPsEmbDirty = false;
             }
 
             if (defaultVsEmbDirty)
             {
-                EMB_File emb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_default_vs.emz", false, true, true);
+                EMB_File emb = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_default_vs.emz", false, true, true);
                 UpdateShaderEmb(emb, DefaultEmb_VS, vertexShadersModified);
                 defaultVsEmbDirty = false;
             }
 
             if (agePsEmbDirty)
             {
-                EMB_File emb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_age_ps.emz", false, true, true);
+                EMB_File emb = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_age_ps.emz", false, true, true);
                 UpdateShaderEmb(emb, AgeEmb_PS, pixelShadersModified);
                 agePsEmbDirty = false;
             }
 
             if (ageVsEmbDirty)
             {
-                EMB_File emb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("adam_shader/shader_age_vs.emz", false, true, true);
+                EMB_File emb = FileManager.Instance.LoadFile<EMB_File>("adam_shader/shader_age_vs.emz", false, true, true);
                 UpdateShaderEmb(emb, AgeEmb_VS, vertexShadersModified);
                 ageVsEmbDirty = false;
             }
@@ -683,7 +683,7 @@ namespace XenoKit.Engine.Shader
                     case 14:
                         //General lighting
                         {
-                            EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/cmn.emb", false);
+                            EMB_File lightingEmb = FileManager.Instance.LoadFile<EMB_File>("lighting/cmn.emb", false);
                             sampler = new GlobalSampler(slot,
                                                         TextureLoader.ConvertToTexture2D(lightingEmb.Entry[0], GetTextureName(slot), Viewport.Instance.GraphicsDevice),
                                                         new SamplerState()
@@ -708,9 +708,9 @@ namespace XenoKit.Engine.Shader
 
                             if (SettingsManager.Instance.Settings.XenoKit_RimLightingEnabled)
                             {
-                                EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFpot.emb", false); //ToP
-                                //EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFtwf.emb", false); //Future In Ruins
-                                //EMB_File lightingEmb = (EMB_File)FileManager.Instance.GetParsedFileFromGame("lighting/environment/BFten.emb", false); //World Tournament
+                                EMB_File lightingEmb = FileManager.Instance.LoadFile<EMB_File>("lighting/environment/BFpot.emb", false); //ToP
+                                //EMB_File lightingEmb = FileManager.Instance.GetParsedFileFromGame<EMB_File>("lighting/environment/BFtwf.emb", false); //Future In Ruins
+                                //EMB_File lightingEmb = FileManager.Instance.GetParsedFileFromGame<EMB_File>("lighting/environment/BFten.emb", false); //World Tournament
                                 texture = TextureLoader.ConvertToTexture2D(lightingEmb.Entry[0], GetTextureName(slot), Viewport.Instance.GraphicsDevice);
                             }
                             else
@@ -795,7 +795,7 @@ namespace XenoKit.Engine.Shader
             {
                 //EMB_File defaultEnv = FileManager.Instance.GetParsedFileFromGame("stage/BFhel/BFhelENV.emb") as EMB_File;
                 //EMB_File defaultEnv = FileManager.Instance.GetParsedFileFromGame("stage/BFtfl/BFtflENV.emb") as EMB_File;
-                EMB_File defaultEnv = FileManager.Instance.GetParsedFileFromGame("stage/BFtwn/BFtwnENV.emb") as EMB_File;
+                EMB_File defaultEnv = FileManager.Instance.LoadFile<EMB_File>("stage/BFtwn/BFtwnENV.emb");
                 textureCube = TextureLoader.ConvertToTextureCube(defaultEnv.Entry[0], GetTextureName(5), Viewport.Instance.GraphicsDevice);
             }
 

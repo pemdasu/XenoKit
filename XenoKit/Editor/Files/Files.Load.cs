@@ -232,34 +232,34 @@ namespace XenoKit.Editor
 
                 CmnBpeFile = BPE_File.Load(file.Instance.GetBytesFromGame("pe/cmn.bpe", false, true));
 
-                move.Files.BdmFile = new Xv2File<BDM_File>((BDM_File)file.Instance.GetParsedFileFromGame(xv2.CMN_BDM_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BDM_PATH), false, null, false, xv2.MoveFileTypes.BDM, 0, true, xv2.MoveType.Common);
-                move.Files.BsaFile = new Xv2File<BSA_File>((BSA_File)file.Instance.GetParsedFileFromGame(xv2.CMN_BSA_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BSA_PATH), false, null, false, xv2.MoveFileTypes.BSA, 0, true, xv2.MoveType.Common);
-                move.Files.ShotBdmFile = new Xv2File<BDM_File>((BDM_File)file.Instance.GetParsedFileFromGame(xv2.CMN_SHOT_BDM_PATH), file.Instance.GetAbsolutePath(xv2.CMN_SHOT_BDM_PATH), false, null, false, xv2.MoveFileTypes.SHOT_BDM, 0, true, xv2.MoveType.Common);
-                move.Files.SeAcbFile.Add(new Xv2File<ACB_Wrapper>((ACB_Wrapper)file.Instance.GetParsedFileFromGame(xv2.CMN_SE_ACB_PATH), file.Instance.GetAbsolutePath(xv2.CMN_SE_ACB_PATH), false, null, false, xv2.MoveFileTypes.SE_ACB, 0, true, xv2.MoveType.Common));
+                move.Files.BdmFile = new Xv2File<BDM_File>(file.Instance.LoadFile<BDM_File>(xv2.CMN_BDM_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BDM_PATH), false, null, false, xv2.MoveFileTypes.BDM, 0, true, xv2.MoveType.Common);
+                move.Files.BsaFile = new Xv2File<BSA_File>(file.Instance.LoadFile<BSA_File>(xv2.CMN_BSA_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BSA_PATH), false, null, false, xv2.MoveFileTypes.BSA, 0, true, xv2.MoveType.Common);
+                move.Files.ShotBdmFile = new Xv2File<BDM_File>(file.Instance.LoadFile<BDM_File>(xv2.CMN_SHOT_BDM_PATH), file.Instance.GetAbsolutePath(xv2.CMN_SHOT_BDM_PATH), false, null, false, xv2.MoveFileTypes.SHOT_BDM, 0, true, xv2.MoveType.Common);
+                move.Files.SeAcbFile.Add(new Xv2File<ACB_Wrapper>(file.Instance.LoadFile<ACB_Wrapper>(xv2.CMN_SE_ACB_PATH), file.Instance.GetAbsolutePath(xv2.CMN_SE_ACB_PATH), false, null, false, xv2.MoveFileTypes.SE_ACB, 0, true, xv2.MoveType.Common));
 
                 //Load CMN EANs
-                move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.Common, true, xv2.MoveType.Common));
+                move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.Common, true, xv2.MoveType.Common));
 
                 //Load CMN CAMs
-                move.Files.CamEanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.Common, true, xv2.MoveType.Common));
+                move.Files.CamEanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.Common, true, xv2.MoveType.Common));
 
                 //Load CMN BACs
-                move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 0, true, xv2.MoveType.Common));
+                move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 0, true, xv2.MoveType.Common));
                 BAC.AddDefaultMovesetNamesToBac(move.Files.BacFiles[0].File);
 
                 tasks.Add(Task.Run(() =>
                 {
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_DBA_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_DBA_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_DBA, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TTL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TTL_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TTL, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TU6_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU6_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU6, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_TU13_5_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU13_5_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU13_5, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_TAL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_TAL_EAN_PATH), false, null, false, xv2.MoveFileTypes.TAL_EAN, (int)BAC_Type0.EanTypeEnum.CommonTail, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_DBA_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_DBA_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_DBA, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TTL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TTL_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TTL, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TU6_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU6_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU6, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TU13_5_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU13_5_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU13_5, true, xv2.MoveType.Common));
+                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_TAL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_TAL_EAN_PATH), false, null, false, xv2.MoveFileTypes.TAL_EAN, (int)BAC_Type0.EanTypeEnum.CommonTail, true, xv2.MoveType.Common));
 
-                    move.Files.CamEanFile.Add(new Xv2File<EAN_File>((EAN_File)file.Instance.GetParsedFileFromGame(xv2.CMN_MCM_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.MCM, true, xv2.MoveType.Common));
+                    move.Files.CamEanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.MCM, true, xv2.MoveType.Common));
 
-                    move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_DBA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_DBA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 1, true, xv2.MoveType.Common));
-                    move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_QEA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_QEA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 2, true, xv2.MoveType.Common));
-                    move.Files.BacFiles.Add(new Xv2File<BAC_File>((BAC_File)file.Instance.GetParsedFileFromGame(xv2.CMN_M_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_M_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 3, true, xv2.MoveType.Common));
+                    move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_DBA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_DBA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 1, true, xv2.MoveType.Common));
+                    move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_QEA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_QEA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 2, true, xv2.MoveType.Common));
+                    move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_M_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_M_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 3, true, xv2.MoveType.Common));
 
                     move.Files.BacFiles[1].File.InitializeIBacTypes();
                     move.Files.BacFiles[2].File.InitializeIBacTypes();
@@ -274,12 +274,12 @@ namespace XenoKit.Editor
                     tasks.Add(Task.Run(() =>
                     {
                         string path = $"vfx/{commonEepk.FILE_PATH}";
-                        move.Files.EepkFiles.Add(new Xv2File<EffectContainerFile>((EffectContainerFile)file.Instance.GetParsedFileFromGame(path), file.Instance.GetAbsolutePath(path), false, null, false, xv2.MoveFileTypes.EEPK, commonEepk.ID, true, xv2.MoveType.Common));
+                        move.Files.EepkFiles.Add(new Xv2File<EffectContainerFile>(file.Instance.LoadFile<EffectContainerFile>(path), file.Instance.GetAbsolutePath(path), false, null, false, xv2.MoveFileTypes.EEPK, commonEepk.ID, true, xv2.MoveType.Common));
 
                     }));
 
                     //string path = $"vfx/{commonEepk.FILE_PATH}";
-                    //move.Files.EepkFiles.Add(new Xv2File<EffectContainerFile>((EffectContainerFile)file.Instance.GetParsedFileFromGame(path), file.Instance.GetAbsolutePath(path), false, null, false, xv2.MoveFileTypes.EEPK, commonEepk.ID, true, xv2.MoveType.Common));
+                    //move.Files.EepkFiles.Add(new Xv2File<EffectContainerFile>(file.Instance.GetParsedFileFromGame<EffectContainerFile>(path), file.Instance.GetAbsolutePath(path), false, null, false, xv2.MoveFileTypes.EEPK, commonEepk.ID, true, xv2.MoveType.Common));
                 }
 
                 move.Files.BacFiles[0].File.InitializeIBacTypes();

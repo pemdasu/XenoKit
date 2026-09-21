@@ -8,6 +8,7 @@ using XenoKit.Engine.Model;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib;
 using Xv2CoreLib.EMB_CLASS;
+using Xv2CoreLib.EMD;
 using Xv2CoreLib.Eternity;
 using Xv2CoreLib.FMP;
 using Xv2CoreLib.SPM;
@@ -82,7 +83,7 @@ namespace XenoKit.Engine.Stage
         private void LoadStage()
         {
             //Load fmp
-            FmpFile = (FMP_File)FileManager.Instance.GetParsedFileFromGame($"stage/{StageDefEntry.CODE}.map", false, false);
+            FmpFile = FileManager.Instance.LoadFile<FMP_File>($"stage/{StageDefEntry.CODE}.map", false, false);
 
             if(FmpFile == null)
             {
@@ -91,11 +92,11 @@ namespace XenoKit.Engine.Stage
             }
 
             //Load spm
-            SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame($"stage/{StageDefEntry.DIR}/{StageDefEntry.STR4}.spm", false, false);
+            SpmFile = FileManager.Instance.LoadFile<SPM_File>($"stage/{StageDefEntry.DIR}/{StageDefEntry.STR4}.spm", false, false);
 
             //Some stages (such as BFwis) have an incorrect DIR value set for some reason. In this case, we can try using STR4 as the DIR to find the spm
             if (SpmFile == null)
-                SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame($"stage/{StageDefEntry.STR4}/{StageDefEntry.STR4}.spm", false, false);
+                SpmFile = FileManager.Instance.LoadFile<SPM_File>($"stage/{StageDefEntry.STR4}/{StageDefEntry.STR4}.spm", false, false);
 
             if (SpmFile == null)
             {
@@ -141,7 +142,7 @@ namespace XenoKit.Engine.Stage
                         if (_object.Name == ENV_NAME)
                         {
                             string embPath = $"stage/{entity.Visual.EmbFile}";
-                            EMB_File embFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(embPath);
+                            EMB_File embFile = FileManager.Instance.LoadFile<EMB_File>(embPath);
                             EnvTexture = TextureLoader.ConvertToTextureCube(embFile.Entry[0], ShaderManager.GetTextureName(5), GraphicsDevice);
                         }
                         else
@@ -264,7 +265,7 @@ namespace XenoKit.Engine.Stage
             var stage = new Xv2Stage()
             {
                 IsDefaultStage = true,
-                SpmFile = (SPM_File)FileManager.Instance.GetParsedFileFromGame("stage/BFten/BFten.spm")
+                SpmFile = FileManager.Instance.LoadFile<SPM_File>("stage/BFten/BFten.spm")
             };
 
             stage.UpdateStageLighting();

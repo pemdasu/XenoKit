@@ -85,7 +85,7 @@ namespace XenoKit.Engine.Vfx.Asset
             RefreshRotation();
 
             //Set Transform to selected bone if on bone attachment, else use the StartingTransform (from BAC)
-            if (EffectPart.AttachementType == EffectPart.Attachment.Bone && !UsesExternalSpawn())
+            if (EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn())
             {
                 Transform = BoneIdx != -1 && Actor != null ? GetBoneAttachTransform() : Matrix4x4.Identity;
             }
@@ -113,11 +113,11 @@ namespace XenoKit.Engine.Vfx.Asset
         /// </summary>
         public virtual void Terminate()
         {
-            if (EffectPart.Deactivation == EffectPart.DeactivationMode.Immediate || (EffectPart.Deactivation == EffectPart.DeactivationMode.LoopCancel && !FinishAnimationBeforeTerminating))
+            if (EffectPart.Deactivation ==DeactivationMode.Immediate || (EffectPart.Deactivation == DeactivationMode.LoopCancel && !FinishAnimationBeforeTerminating))
             {
                 IsFinished = true;
             }
-            else if (EffectPart.Deactivation == EffectPart.DeactivationMode.LoopCancel)
+            else if (EffectPart.Deactivation == DeactivationMode.LoopCancel)
             {
                 IsTerminating = true;
             }
@@ -182,7 +182,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
             DrawThisFrame = true;
 
-            if(Actor != null && BoneIdx != -1 && EffectPart.AttachementType == EffectPart.Attachment.Bone && !UsesExternalSpawn())
+            if(Actor != null && BoneIdx != -1 && EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn())
             {
                 Matrix4x4 attachTransform = GetBoneAttachTransform();
                 Matrix4x4 offset = Matrix4x4.CreateTranslation(new SimdVector3(EffectPart.PositionX, EffectPart.PositionY, EffectPart.PositionZ));
@@ -251,8 +251,8 @@ namespace XenoKit.Engine.Vfx.Asset
 
         protected bool UsesExternalSpawn()
         {
-            return EffectPart.AttachementType == EffectPart.Attachment.External ||
-                   (EffectPart.AttachementType == EffectPart.Attachment.Bone && string.Equals(EffectPart.ESK, "TRS", StringComparison.OrdinalIgnoreCase)) ||
+            return EffectPart.AttachementType == Attachment.External ||
+                   (EffectPart.AttachementType == Attachment.Bone && string.Equals(EffectPart.ESK, "TRS", StringComparison.OrdinalIgnoreCase)) ||
                    (SpawnedByProjectile && string.IsNullOrWhiteSpace(EffectPart.ESK));
         }
 
@@ -374,7 +374,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
             Matrix4x4 transform = Transform;
 
-            if (EffectPart.AttachementType == EffectPart.Attachment.Camera)
+            if (EffectPart.AttachementType == Attachment.Camera)
             {
                 //Place transform directly in front of the camera
                 SimdVector3 direction = ViewportInstance.Camera.CameraState.TargetPosition - ViewportInstance.Camera.CameraState.Position;
@@ -386,12 +386,12 @@ namespace XenoKit.Engine.Vfx.Asset
 
             switch (EffectPart.Orientation)
             {
-                case EffectPart.OrientationType.None:
+                case OrientationType.None:
                     //Just uses position and no orientation
                     //The game seems to always rotate it by 90 degrees on Y for some reason
                     transform = Matrix4x4.CreateRotationY(MathHelper.PiOver2) * CurrentRotation * Matrix4x4.CreateTranslation(transform.Translation);
                     break;
-                case EffectPart.OrientationType.User:
+                case OrientationType.User:
                     if (Actor == null) return Transform;
                     //Effect Position/Rotation + Base Bone of actor, with an additional rotation based on EffectPart.Direction (I_06)
                     Matrix4x4 userMatrix = Matrix4x4.CreateTranslation(transform.Translation) * (Actor.Transform * MathHelpers.Invert(Matrix4x4.CreateTranslation(Actor.Transform.Translation)));
@@ -404,16 +404,16 @@ namespace XenoKit.Engine.Vfx.Asset
 
                     transform = CurrentRotation * userMatrix;
                     break;
-                case EffectPart.OrientationType.Camera:
+                case OrientationType.Camera:
                     //Effect Position + rotate to face camera.
                     transform = CurrentRotation * Matrix4x4.CreateBillboard(transform.Translation, Viewport.Instance.Camera.CameraState.Position, MathHelpers.Up, MathHelpers.Forward);
                     break;
-                case EffectPart.OrientationType.RotateMovement:
+                case OrientationType.RotateMovement:
                     //This rotates the effect by 45 degrees if there is active movement going on.
                     //transform = Matrix.CreateRotationX(MathHelper.PiOver4) * Transform;
                     transform = CurrentRotation * Transform;
                     break;
-                case EffectPart.OrientationType.AttachmentBone:
+                case OrientationType.AttachmentBone:
                 default:
                     //Use full rotation of the attachment bone
                     transform = CurrentRotation * Transform;

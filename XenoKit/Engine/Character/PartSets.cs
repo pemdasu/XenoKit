@@ -998,7 +998,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    EmdFile = (EMD_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    EmdFile = FileManager.Instance.LoadFile<EMD_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
             }
             else
@@ -1041,7 +1041,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    EmbFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    EmbFile = FileManager.Instance.LoadFile<EMB_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
 
                 if (EmbFile != null)
@@ -1083,7 +1083,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    DytFile = (EMB_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    DytFile = FileManager.Instance.LoadFile<EMB_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
 
                 if (DytFile != null)
@@ -1126,7 +1126,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    EmmFile = (EMM_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    EmmFile = FileManager.Instance.LoadFile<EMM_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
 
                 if(EmmFile != null)
@@ -1169,7 +1169,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    EanFile = (EAN_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    EanFile = FileManager.Instance.LoadFile<EAN_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
             }
 
@@ -1207,7 +1207,7 @@ namespace XenoKit.Engine
                 else
                 {
                     //This character doesn't own these files so we just load them directly.
-                    EskFile = (ESK_File)FileManager.Instance.GetParsedFileFromGame(path, chara.CharacterData.OnlyLoadFromCPK);
+                    EskFile = FileManager.Instance.LoadFile<ESK_File>(path, chara.CharacterData.OnlyLoadFromCPK);
                 }
             }
         }

@@ -813,18 +813,18 @@ namespace XenoKit.Controls
 
         private static ESK_File LoadSourceSkeletonForFpfTool(string sourceSkeletonPath)
         {
-            return file.Instance.GetParsedFileFromGame(sourceSkeletonPath, false, true, true) as ESK_File;
+            return file.Instance.LoadFile<ESK_File>(sourceSkeletonPath, false, true, true);
         }
 
         private static ESK_File LoadCpkSkeletonForFpfTool(string sourceSkeletonPath)
         {
-            return file.Instance.GetParsedFileFromGame(sourceSkeletonPath, true, false, true) as ESK_File;
+            return file.Instance.LoadFile<ESK_File>(sourceSkeletonPath, true, false, true);
         }
 
         private static PartSet LoadCpkPartSetForFpfTool(string characterCode, string bcsName, int partSetId)
         {
             string bcsPath = $"chara/{characterCode}/{bcsName}.bcs";
-            BCS_File bcsFile = file.Instance.GetParsedFileFromGame(bcsPath, true, false, true) as BCS_File;
+            BCS_File bcsFile = file.Instance.LoadFile<BCS_File>(bcsPath, true, false, true);
             return bcsFile?.PartSets?.FirstOrDefault(partSet => partSet.ID == partSetId);
         }
 
@@ -974,7 +974,7 @@ namespace XenoKit.Controls
                         continue;
 
                     ESK_File sourceSkeleton = onlyFromCpk ? LoadCpkSkeletonForFpfTool(relativeEskPath) : LoadSourceSkeletonForFpfTool(relativeEskPath);
-                    ESK_File targetSkeleton = file.Instance.GetParsedFileFromGame(relativeEskPath, onlyFromCpk, false, true) as ESK_File;
+                    ESK_File targetSkeleton = file.Instance.LoadFile<ESK_File>(relativeEskPath, onlyFromCpk, false, true);
 
                     if (sourceSkeleton != null && targetSkeleton != null)
                         matches.Add(new SecondarySkeletonMatch(relativeEskPath, attachBone, (int)part.PartType, sourceSkeleton, targetSkeleton));

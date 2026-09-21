@@ -108,15 +108,15 @@ namespace XenoKit.Engine.Vfx.Asset
         {
             switch (EffectPart.Deactivation)
             {
-                case EffectPart.DeactivationMode.Immediate:
+                case DeactivationMode.Immediate:
                     ClearAllTbindNodes();
                     IsFinished = true;
                     return;
-                case EffectPart.DeactivationMode.LoopCancel:
+                case DeactivationMode.LoopCancel:
                     IsTerminating = true;
                     StartRetractionForAllNodes();
                     return;
-                case EffectPart.DeactivationMode.Never:
+                case DeactivationMode.Never:
                     IsTerminating = true;
                     StartNaturalStopForAllNodes();
                     return;
