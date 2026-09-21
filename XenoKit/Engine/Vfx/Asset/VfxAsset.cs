@@ -20,7 +20,7 @@ namespace XenoKit.Engine.Vfx.Asset
         /// <summary>
         /// Where the asset actually ends up on screen, matching the matrix used when drawing it.
         /// </summary>
-        public Matrix4x4 VisualTransform => CurrentRotation * Transform;
+        public Matrix4x4 VisualTransform => GetAdjustedTransform();
 
         /// <summary>
         /// The basis the Position X/Y/Z offsets are applied in. Identity when they act in world space.
@@ -31,12 +31,13 @@ namespace XenoKit.Engine.Vfx.Asset
         protected readonly bool SpawnedByProjectile;
 
         protected virtual bool FinishAnimationBeforeTerminating => false;
-        protected SimdVector3 BoneDirectionSourceAxis = SimdVector3.UnitY;
         private int BoneIdx = -1;
         public float Scale { get; protected set; } = -1f;
         private Matrix4x4 BacSpawnSource;
-        private Matrix4x4 InitialPosition;
-        private Matrix4x4 InitialRotation;
+        private SimdVector3 AttachmentPosition;
+        private SimdVector3 PreviousAttachmentPosition;
+        private Matrix4x4 AttachmentRotation;
+        private SimdVector3 AttachmentDirection;
         private Matrix4x4 CurrentRotation;
         private float rotationFactorX;
         private float rotationFactorY;
@@ -71,10 +72,8 @@ namespace XenoKit.Engine.Vfx.Asset
                 AssetTypeChanged = true;
             }
 
-            if (!string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null)
-            {
-                BoneIdx = Actor.Skeleton.GetBoneIndex(EffectPart.ESK, true);
-            }
+            BoneIdx = !string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null
+                ? Actor.Skeleton.GetBoneIndex(EffectPart.ESK, true) : -1;
 
             //Roll where in the min/max range this instance sits, once per spawn. Keeping the factor instead of the
             //resulting angle lets the rotation follow edits to the min/max values without re-rolling and jittering.
@@ -84,22 +83,9 @@ namespace XenoKit.Engine.Vfx.Asset
 
             RefreshRotation();
 
-            //Set Transform to selected bone if on bone attachment, else use the StartingTransform (from BAC)
-            if (EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn())
-            {
-                Transform = BoneIdx != -1 && Actor != null ? GetBoneAttachTransform() : Matrix4x4.Identity;
-            }
-            else
-            {
-                Transform = BacSpawnSource;
-            }
-
-            //Set initial position and rotation matrices. This is needed to properly support the Update Pos/Update Rot flags.
-            InitialPosition = Matrix4x4.CreateTranslation(Transform.Translation);
-            InitialRotation = Transform * InitialPosition.Invert();
-
-            //Apply Initial Position XYZ offsets
-            Transform = Matrix4x4.CreateTranslation(new SimdVector3(EffectPart.PositionX, EffectPart.PositionY, EffectPart.PositionZ)) * Transform;
+            AttachmentRotation = Matrix4x4.Identity;
+            AttachmentDirection = GetSpawnDirection();
+            UpdateAttachment(GetAttachTransform(), true);
 
             Scale = Xv2CoreLib.Random.Range(EffectPart.ScaleMin, EffectPart.ScaleMax);
 
@@ -182,57 +168,8 @@ namespace XenoKit.Engine.Vfx.Asset
 
             DrawThisFrame = true;
 
-            if(Actor != null && BoneIdx != -1 && EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn())
-            {
-                Matrix4x4 attachTransform = GetBoneAttachTransform();
-                Matrix4x4 offset = Matrix4x4.CreateTranslation(new SimdVector3(EffectPart.PositionX, EffectPart.PositionY, EffectPart.PositionZ));
-                Matrix4x4 attachPosition = Matrix4x4.CreateTranslation(attachTransform.Translation);
-                Matrix4x4 attachRotation = attachTransform * MathHelpers.Invert(attachPosition);
-
-                if (EffectPart.PositionUpdate && EffectPart.RotateUpdate)
-                {
-                    Transform = offset * attachTransform;
-                    PositionSpace = attachRotation;
-                }
-                else if (EffectPart.PositionUpdate)
-                {
-                    Transform = InitialRotation * attachPosition * offset;
-                    PositionSpace = Matrix4x4.Identity;
-                }
-                else if (EffectPart.RotateUpdate)
-                {
-                    Transform = attachRotation * InitialPosition * offset;
-                    PositionSpace = Matrix4x4.Identity;
-                }
-                else
-                {
-                    //Use starting position and rotation
-                    Transform = offset * InitialRotation * InitialPosition;
-                    PositionSpace = InitialRotation;
-                }
-            }
-            else if(UsesExternalSpawn())
-            {
-                Matrix4x4 offset = Matrix4x4.CreateTranslation(new SimdVector3(EffectPart.PositionX, EffectPart.PositionY, EffectPart.PositionZ));
-                Matrix4x4 spawnPosition = Matrix4x4.CreateTranslation(BacSpawnSource.Translation);
-                Matrix4x4 spawnRotation = BacSpawnSource * MathHelpers.Invert(spawnPosition);
-
-                if (EffectPart.PositionUpdate && EffectPart.RotateUpdate)
-                {
-                    Transform = offset * BacSpawnSource;
-                    PositionSpace = spawnRotation;
-                }
-                else if (EffectPart.PositionUpdate)
-                {
-                    Transform = InitialRotation * spawnPosition * offset;
-                    PositionSpace = Matrix4x4.Identity;
-                }
-                else if (EffectPart.RotateUpdate)
-                {
-                    Transform = spawnRotation * InitialPosition * offset;
-                    PositionSpace = Matrix4x4.Identity;
-                }
-            }
+            UpdateAttachment(EffectPart.PositionUpdate || EffectPart.RotateUpdate
+                ? GetAttachTransform() : Matrix4x4.Identity, false);
 
             //Near and Far fade distance
             if (MathHelpers.FloatEquals(EffectPart.FarFadeDistance, 0))
@@ -256,101 +193,83 @@ namespace XenoKit.Engine.Vfx.Asset
                    (SpawnedByProjectile && string.IsNullOrWhiteSpace(EffectPart.ESK));
         }
 
-        private Matrix4x4 GetBoneAttachTransform()
+        private Matrix4x4 GetAttachTransform()
         {
-            Matrix4x4 attachTransform = Actor.GetAbsoluteBoneMatrix(BoneIdx);
+            if (EffectPart.AttachementType == Attachment.Bone && !UsesExternalSpawn())
+                return BoneIdx != -1 && Actor != null ? Actor.GetAbsoluteBoneMatrix(BoneIdx) : Matrix4x4.Identity;
 
-            if (!EffectPart.UseBoneDirection)
-                return attachTransform;
-
-            int targetBoneIndex = GetBoneDirectionTargetIndex();
-
-            if (targetBoneIndex == -1)
-                return attachTransform;
-
-            return CreateBoneDirectionTransform(attachTransform, Actor.GetAbsoluteBoneMatrix(targetBoneIndex), GetBoneDirectionSourceAxis());
-        }
-
-        private SimdVector3 GetBoneDirectionSourceAxis()
-        {
-            SimdVector3 sourceAxis = BoneDirectionSourceAxis;
-
-            if (sourceAxis.LengthSquared() < 0.000001f)
-                sourceAxis = SimdVector3.UnitY;
-
-            sourceAxis = SimdVector3.Normalize(sourceAxis);
-            sourceAxis = SimdVector3.TransformNormal(sourceAxis, CurrentRotation);
-
-            if (sourceAxis.LengthSquared() < 0.000001f)
-                return SimdVector3.UnitY;
-
-            return SimdVector3.Normalize(sourceAxis);
-        }
-
-        private int GetBoneDirectionTargetIndex()
-        {
-            string targetBoneName = null;
-
-            switch (EffectPart.ESK)
+            if (EffectPart.AttachementType == Attachment.Camera)
             {
-                case string boneName when string.Equals(boneName, "b_R_Arm2", StringComparison.OrdinalIgnoreCase):
-                    targetBoneName = "b_R_Hand";
-                    break;
-                case string boneName when string.Equals(boneName, "b_L_Arm2", StringComparison.OrdinalIgnoreCase):
-                    targetBoneName = "b_L_Hand";
-                    break;
-                case string boneName when string.Equals(boneName, "b_R_Leg2", StringComparison.OrdinalIgnoreCase):
-                    targetBoneName = "b_R_Foot";
-                    break;
-                case string boneName when string.Equals(boneName, "b_L_Leg2", StringComparison.OrdinalIgnoreCase):
-                    targetBoneName = "b_L_Foot";
-                    break;
+                Matrix4x4 camera = VfxRotation.CreateCamera(Camera.ViewMatrix);
+                SimdVector3 forward = Camera.CameraState.TargetPosition - Camera.CameraState.Position;
+                if (forward != SimdVector3.Zero)
+                    forward = SimdVector3.Normalize(forward);
+                camera.Translation = Camera.CameraState.Position + forward;
+                return camera;
             }
 
-            int targetBoneIndex = !string.IsNullOrWhiteSpace(targetBoneName)
-                ? Actor.Skeleton.GetBoneIndex(targetBoneName, true)
-                : -1;
-
-            if (targetBoneIndex != -1)
-                return targetBoneIndex;
-
-            for (int i = 0; i < Actor.Skeleton.Bones.Length; i++)
-            {
-                if (Actor.Skeleton.Bones[i].ParentIndex == BoneIdx)
-                    return i;
-            }
-
-            return -1;
+            return BacSpawnSource;
         }
 
-        private static Matrix4x4 CreateBoneDirectionTransform(Matrix4x4 startBone, Matrix4x4 endBone, SimdVector3 sourceAxis)
+        private SimdVector3 GetSpawnDirection()
         {
-            SimdVector3 start = startBone.Translation;
-            SimdVector3 direction = endBone.Translation - start;
+            Matrix4x4 source = Actor != null && !SpawnedByProjectile ? Actor.Transform : BacSpawnSource;
+            SimdVector3 direction = SimdVector3.TransformNormal(-SimdVector3.UnitZ, source);
+            if (EffectPart.OnGroundOnly && direction.Y > 0f)
+                direction.Y = 0f;
+            return direction == SimdVector3.Zero ? direction : SimdVector3.Normalize(direction);
+        }
 
-            if (direction.LengthSquared() < 0.000001f)
-                return startBone;
+        private void UpdateAttachment(Matrix4x4 attachTransform, bool initialize)
+        {
+            Matrix4x4 attachRotation = attachTransform;
+            attachRotation.Translation = SimdVector3.Zero;
+            if (initialize || EffectPart.PositionUpdate)
+            {
+                PreviousAttachmentPosition = initialize ? BacSpawnSource.Translation : AttachmentPosition;
+                AttachmentPosition = attachTransform.Translation;
+            }
 
-            Matrix4x4 startPosition = Matrix4x4.CreateTranslation(start);
-            Matrix4x4 startRotation = startBone * MathHelpers.Invert(startPosition);
+            if (initialize || EffectPart.RotateUpdate)
+            {
+                switch (EffectPart.Orientation)
+                {
+                    case OrientationType.None:
+                        AttachmentRotation = Matrix4x4.Identity;
+                        break;
+                    case OrientationType.User:
+                        AttachmentDirection = GetSpawnDirection();
+                        if (AttachmentDirection != SimdVector3.Zero)
+                            AttachmentRotation = VfxRotation.CreateUser(EffectPart.I_06, AttachmentDirection);
+                        break;
+                    case OrientationType.AttachmentBone:
+                        AttachmentRotation = attachRotation;
+                        break;
+                    case OrientationType.Camera:
+                        AttachmentRotation = EffectPart.AttachementType == Attachment.Camera
+                            ? attachRotation : VfxRotation.CreateCamera(Camera.ViewMatrix);
+                        break;
+                    case OrientationType.RotateMovement:
+                        AttachmentRotation = VfxRotation.CreateMovement(EffectPart.I_06,
+                            PreviousAttachmentPosition - AttachmentPosition, ref AttachmentDirection);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unknown effect orientation: {EffectPart.Orientation}.");
+                }
+            }
 
-            SimdVector3 targetY = SimdVector3.Normalize(direction);
-            SimdVector3 currentDirection = SimdVector3.Normalize(SimdVector3.TransformNormal(sourceAxis, startRotation));
-            float dot = MathHelper.Clamp(SimdVector3.Dot(currentDirection, targetY), -1f, 1f);
+            if (initialize || EffectPart.PositionUpdate)
+            {
+                // UseBoneDirection rotates the offset. It does not aim the effect at a child bone.
+                PositionSpace = !EffectPart.UseBoneDirection ? Matrix4x4.Identity :
+                    EffectPart.AttachementType == Attachment.Bone || EffectPart.AttachementType == Attachment.Camera
+                        ? attachRotation : AttachmentRotation;
+            }
 
-            if (dot > 0.9999f)
-                return startRotation * startPosition;
-
-            SimdVector3 axis = SimdVector3.Cross(currentDirection, targetY);
-
-            if (axis.LengthSquared() < 0.000001f)
-                axis = SimdVector3.Cross(currentDirection, SimdVector3.UnitX);
-
-            if (axis.LengthSquared() < 0.000001f)
-                axis = SimdVector3.Cross(currentDirection, SimdVector3.UnitZ);
-
-            Matrix4x4 aimRotation = Matrix4x4.CreateFromAxisAngle(SimdVector3.Normalize(axis), (float)System.Math.Acos(dot));
-            return startRotation * aimRotation * startPosition;
+            SimdVector3 offset = new SimdVector3(EffectPart.PositionX, EffectPart.PositionY, EffectPart.PositionZ);
+            Matrix4x4 transform = AttachmentRotation;
+            transform.Translation = AttachmentPosition + SimdVector3.TransformNormal(offset, PositionSpace);
+            Transform = transform;
         }
 
         public virtual void Simulate()
@@ -370,58 +289,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
         protected Matrix4x4 GetAdjustedTransform()
         {
-            //Unsure on AttachmentBone and User. They seem to get different rotations... so something is wrong
-
-            Matrix4x4 transform = Transform;
-
-            if (EffectPart.AttachementType == Attachment.Camera)
-            {
-                //Place transform directly in front of the camera
-                SimdVector3 direction = ViewportInstance.Camera.CameraState.TargetPosition - ViewportInstance.Camera.CameraState.Position;
-                SimdVector3 cameraForward = SimdVector3.Normalize(direction);
-                SimdVector3 positionInFrontOfCamera = ViewportInstance.Camera.CameraState.Position + (cameraForward * 1f);
-
-                transform.Translation = positionInFrontOfCamera;
-            }
-
-            switch (EffectPart.Orientation)
-            {
-                case OrientationType.None:
-                    //Just uses position and no orientation
-                    //The game seems to always rotate it by 90 degrees on Y for some reason
-                    transform = Matrix4x4.CreateRotationY(MathHelper.PiOver2) * CurrentRotation * Matrix4x4.CreateTranslation(transform.Translation);
-                    break;
-                case OrientationType.User:
-                    if (Actor == null) return Transform;
-                    //Effect Position/Rotation + Base Bone of actor, with an additional rotation based on EffectPart.Direction (I_06)
-                    Matrix4x4 userMatrix = Matrix4x4.CreateTranslation(transform.Translation) * (Actor.Transform * MathHelpers.Invert(Matrix4x4.CreateTranslation(Actor.Transform.Translation)));
-
-                    //If I_06 was 2, there is no rotation (default direction)
-                    if (EffectPart.I_06 == 0)
-                        userMatrix = Matrix4x4.CreateRotationY(MathHelper.PiOver2) * userMatrix;
-                    else if (EffectPart.I_06 == 1)
-                        userMatrix = Matrix4x4.CreateRotationX(MathHelper.PiOver2) * userMatrix;
-
-                    transform = CurrentRotation * userMatrix;
-                    break;
-                case OrientationType.Camera:
-                    //Effect Position + rotate to face camera.
-                    transform = CurrentRotation * Matrix4x4.CreateBillboard(transform.Translation, Viewport.Instance.Camera.CameraState.Position, MathHelpers.Up, MathHelpers.Forward);
-                    break;
-                case OrientationType.RotateMovement:
-                    //This rotates the effect by 45 degrees if there is active movement going on.
-                    //transform = Matrix.CreateRotationX(MathHelper.PiOver4) * Transform;
-                    transform = CurrentRotation * Transform;
-                    break;
-                case OrientationType.AttachmentBone:
-                default:
-                    //Use full rotation of the attachment bone
-                    transform = CurrentRotation * Transform;
-                    break;
-
-            }
-
-            return transform;
+            return CurrentRotation * Transform;
         }
     }
 }

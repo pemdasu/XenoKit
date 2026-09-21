@@ -12,7 +12,7 @@ namespace XenoKit.Engine.Vfx.Shape
     {
         UprightWidth,
         PathNormalWidth,
-        PathNormalDepthBand,
+        AxialBand,
         PathNormalGroundBand
     }
 
@@ -22,7 +22,7 @@ namespace XenoKit.Engine.Vfx.Shape
         private const float MiterLimit = 4f;
         private const int TbindCurveSteps = 4;
 
-        internal static EffectShapeMeshData BuildShapeDrawRibbonMesh(IList<EffectShapePoint> points, Matrix4x4 world, float halfWidth, float depthWidth, float scrollU, float scrollV, float stepU, float stepV, Color topColor, Color bottomColor, bool closed, ShapeDrawStripMode mode)
+        internal static EffectShapeMeshData BuildShapeDrawRibbonMesh(IList<EffectShapePoint> points, Matrix4x4 world, float halfWidth, float depthWidth, float innerRadius, float outerRadius, float scrollU, float scrollV, float stepU, float stepV, Color topColor, Color bottomColor, bool closed, ShapeDrawStripMode mode, bool rotateUv)
         {
             if (points == null || points.Count < 2)
                 return new EffectShapeMeshData(new VertexPositionTextureColor[0], null, PrimitiveType.TriangleStrip, 0);
@@ -36,17 +36,19 @@ namespace XenoKit.Engine.Vfx.Shape
 
             List<float> distances = GetShapeDistances(points, pointCount, isClosed);
             float totalDistance = distances[distances.Count - 1];
-            float width = Math.Max(0.0001f, halfWidth);
+            bool axialBand = mode == ShapeDrawStripMode.AxialBand;
+            float width = axialBand ? halfWidth : Math.Max(0.0001f, halfWidth);
             int pairCount = isClosed ? pointCount + 1 : pointCount;
             List<VertexPositionTextureColor> vertices = new List<VertexPositionTextureColor>((pairCount * 2) + 2);
             VertexPositionTextureColor lastBottom = default(VertexPositionTextureColor);
 
             for (int i = 0; i < pointCount; i++)
             {
-                GetShapeDrawPair(points, pointCount, i, isClosed, width, depthWidth, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
-                float u = WrapUnit(scrollU + (stepU * SafeDivide(distances[i], totalDistance)));
-                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, u, scrollV);
-                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, u, scrollV + stepV);
+                GetShapeDrawPair(points, pointCount, i, isClosed, width, depthWidth, innerRadius, outerRadius, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
+                float fraction = SafeDivide(distances[i], totalDistance);
+                float along = rotateUv ? scrollV + stepV * fraction : scrollU + stepU * fraction;
+                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, rotateUv ? scrollU : along, rotateUv ? along : scrollV);
+                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, rotateUv ? scrollU + stepU : along, rotateUv ? along : scrollV + stepV);
 
                 vertices.Add(top);
                 vertices.Add(bottom);
@@ -55,10 +57,10 @@ namespace XenoKit.Engine.Vfx.Shape
 
             if (isClosed)
             {
-                GetShapeDrawPair(points, pointCount, 0, isClosed, width, depthWidth, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
-                float u = WrapUnit(scrollU + stepU);
-                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, u, scrollV);
-                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, u, scrollV + stepV);
+                GetShapeDrawPair(points, pointCount, 0, isClosed, width, depthWidth, innerRadius, outerRadius, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
+                float along = rotateUv ? scrollV + stepV : scrollU + stepU;
+                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, rotateUv ? scrollU : along, rotateUv ? along : scrollV);
+                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, rotateUv ? scrollU + stepU : along, scrollV + stepV);
 
                 vertices.Add(top);
                 vertices.Add(bottom);
@@ -71,18 +73,16 @@ namespace XenoKit.Engine.Vfx.Shape
             return new EffectShapeMeshData(vertices.ToArray(), null, PrimitiveType.TriangleStrip, Math.Max(0, vertices.Count - 2));
         }
 
-        private static void GetShapeDrawPair(IList<EffectShapePoint> points, int pointCount, int index, bool isClosed, float width, float depthWidth, ShapeDrawStripMode mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition)
+        private static void GetShapeDrawPair(IList<EffectShapePoint> points, int pointCount, int index, bool isClosed, float width, float depthWidth, float innerRadius, float outerRadius, ShapeDrawStripMode mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition)
         {
             SimdVector3 center;
             SimdVector3 offset;
 
-            if (mode == ShapeDrawStripMode.PathNormalDepthBand)
+            if (mode == ShapeDrawStripMode.AxialBand)
             {
-                center = ToVector(points[index]);
-                offset = GetJoinOffset(points, pointCount, index, isClosed, width);
-                SimdVector3 depth = new SimdVector3(0f, 0f, depthWidth);
-                topPosition = center + offset - (depth * 0.5f);
-                bottomPosition = center - offset + (depth * 0.5f);
+                EffectShapePoint point = points[index];
+                topPosition = new SimdVector3(point.Y * innerRadius, point.X * innerRadius, width * 2f);
+                bottomPosition = new SimdVector3(point.Y * outerRadius, point.X * outerRadius, 0f);
                 return;
             }
 
@@ -110,12 +110,6 @@ namespace XenoKit.Engine.Vfx.Shape
             offset = new SimdVector3(0f, width, 0f);
             topPosition = center + offset;
             bottomPosition = center - offset;
-        }
-
-        private static float WrapUnit(float value)
-        {
-            value = value - (float)Math.Floor(value);
-            return value == 0f ? 0f : value;
         }
 
         internal static EffectShapeMeshData BuildConeExtrudeRibbonMesh(IList<EffectRibbonPoint> points, Matrix4x4 world, float scrollU, float scrollV, float stepU, float stepV)

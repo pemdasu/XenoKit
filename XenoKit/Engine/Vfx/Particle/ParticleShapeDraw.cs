@@ -37,7 +37,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
                 ShapeDrawStripMode stripMode = GetShapeDrawStripMode();
                 Matrix4x4 world = CreateShapeDrawWorld(stripMode);
-                List<EffectShapePoint> points = GetScaledShapePoints();
+                List<EffectShapePoint> points = GetShapePoints(stripMode);
 
                 Color primary = new Color(PrimaryColor[0], PrimaryColor[1], PrimaryColor[2], PrimaryColor[3]);
                 Color secondary = (Node.NodeFlags & NodeFlags1.EnableSecondaryColor) != 0 && (Node.NodeFlags & NodeFlags1.FlashOnGen) == 0
@@ -45,7 +45,20 @@ namespace XenoKit.Engine.Vfx.Particle
                     : primary;
 
                 float depthWidth = GetShapeDrawDepthWidth(stripMode);
-                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildShapeDrawRibbonMesh(points, world, ScaleV, depthWidth, ParticleUV.ScrollU, ParticleUV.ScrollV, ParticleUV.StepU, ParticleUV.StepV, primary, secondary, ShouldClose(points), stripMode);
+                Vector2 uvStart = new Vector2(ParticleUV.ScrollU, ParticleUV.ScrollV);
+                Vector2 uvStep = new Vector2(ParticleUV.StepU, ParticleUV.StepV);
+                if (ParticleUV.TextureDef?.SymmetryU == EMP_TextureSamplerDef.SymmetryType.Inverted)
+                {
+                    uvStart.X += uvStep.X;
+                    uvStep.X = -uvStep.X;
+                }
+                if (ParticleUV.TextureDef?.SymmetryV == EMP_TextureSamplerDef.SymmetryType.Inverted)
+                {
+                    uvStart.Y += uvStep.Y;
+                    uvStep.Y = -uvStep.Y;
+                }
+                bool rotateUv = ((ParticleUV.TextureDef?.I_02_b ?? 0) & 1) != 0;
+                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildShapeDrawRibbonMesh(points, world, ScaleV, depthWidth, ScaleBase, ScaleU, uvStart.X, uvStart.Y, uvStep.X, uvStep.Y, primary, secondary, ShouldClose(points), stripMode, rotateUv);
                 mesh.SetMeshData(meshData);
             }
             else
@@ -70,11 +83,14 @@ namespace XenoKit.Engine.Vfx.Particle
 
         private ShapeDrawStripMode GetShapeDrawStripMode()
         {
+            if (Node.EmissionNode.BillboardType == ParticleBillboardType.None)
+                return ShapeDrawStripMode.AxialBand;
+
             if (Node.NodeFlags2.HasFlag(NodeFlags2.Unk2) && Node.EmissionNode.BillboardType == ParticleBillboardType.Front)
                 return ShapeDrawStripMode.PathNormalGroundBand;
 
             if (Node.NodeFlags2.HasFlag(NodeFlags2.Unk2))
-                return ShapeDrawStripMode.PathNormalDepthBand;
+                return ShapeDrawStripMode.AxialBand;
 
             return Node.NodeFlags2 == 0 || Node.NodeFlags2.HasFlag(NodeFlags2.Unk1)
                 ? ShapeDrawStripMode.PathNormalWidth
@@ -83,10 +99,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         private float GetShapeDrawDepthWidth(ShapeDrawStripMode stripMode)
         {
-            if (stripMode != ShapeDrawStripMode.PathNormalDepthBand && stripMode != ShapeDrawStripMode.PathNormalGroundBand)
-                return 0f;
-
-            return stripMode == ShapeDrawStripMode.PathNormalGroundBand ? ScaleV : ScaleV * 2f;
+            return stripMode == ShapeDrawStripMode.PathNormalGroundBand ? ScaleV : 0f;
         }
 
         private Matrix4x4 CreateShapeDrawWorld(ShapeDrawStripMode stripMode)
@@ -94,25 +107,16 @@ namespace XenoKit.Engine.Vfx.Particle
             if (stripMode == ShapeDrawStripMode.PathNormalGroundBand)
                 return ApplyShapeDrawRenderDepth(CreateUprightYawWorldRaw());
 
-            if (stripMode == ShapeDrawStripMode.PathNormalDepthBand)
-                return ApplyShapeDrawRenderDepth(CreateRotationAxisWorldRaw());
+            if (stripMode == ShapeDrawStripMode.AxialBand)
+                return ApplyShapeDrawRenderDepth(CreateAxialBandWorldRaw());
 
-            if (Node.EmissionNode.BillboardType != ParticleBillboardType.None)
-            {
-                return ParticleBillboard.CreateWorld(
-                    this,
-                    Node.EmissionNode.BillboardType,
-                    Node.EmissionNode.VelocityOriented,
-                    GetParticleRotationAmount(),
-                    GetParticleRandomDirection(),
-                    Node.EmissionNode.Texture.RenderDepth);
-            }
-
-            Matrix4x4 world = stripMode == ShapeDrawStripMode.PathNormalWidth
-                ? CreateFullParticleWorldRaw()
-                : CreateUprightYawWorldRaw();
-
-            return ApplyShapeDrawRenderDepth(world);
+            return ParticleBillboard.CreateWorld(
+                this,
+                Node.EmissionNode.BillboardType,
+                Node.EmissionNode.VelocityOriented,
+                GetParticleRotationAmount(),
+                GetParticleRandomDirection(),
+                Node.EmissionNode.Texture.RenderDepth);
         }
 
         private Matrix4x4 CreateUprightYawWorldRaw()
@@ -127,17 +131,10 @@ namespace XenoKit.Engine.Vfx.Particle
                    Matrix4x4.CreateTranslation(baseWorld.Translation);
         }
 
-        private Matrix4x4 CreateFullParticleWorldRaw()
+        private Matrix4x4 CreateAxialBandWorldRaw()
         {
-            return Rotation *
-                   Transform *
-                   Matrix4x4.CreateScale(ParticleSystem.Scale) *
-                   GetParticleAttachmentBone();
-        }
-
-        private Matrix4x4 CreateRotationAxisWorldRaw()
-        {
-            return GetParticleRotationAxisWorld(false);
+            float angle = RandomDirection ? -RotationAmount : RotationAmount;
+            return Matrix4x4.CreateRotationZ(MathHelper.ToRadians(angle)) * Rotation * GetParticlePositionWorld();
         }
 
         private Matrix4x4 ApplyShapeDrawRenderDepth(Matrix4x4 world)
@@ -158,12 +155,13 @@ namespace XenoKit.Engine.Vfx.Particle
             return dx * dx + dy * dy <= 0.0001f;
         }
 
-        private List<EffectShapePoint> GetScaledShapePoints()
+        private List<EffectShapePoint> GetShapePoints(ShapeDrawStripMode stripMode)
         {
             List<EffectShapePoint> points = new List<EffectShapePoint>(Node.EmissionNode.ShapeDraw.Points.Count);
+            float pointScale = stripMode == ShapeDrawStripMode.AxialBand ? 1f : ScaleU;
 
             foreach (ShapeDrawPoint point in Node.EmissionNode.ShapeDraw.Points)
-                points.Add(new EffectShapePoint(point.X * ScaleU, point.Y * ScaleU));
+                points.Add(new EffectShapePoint(point.X * pointScale, point.Y * pointScale));
 
             return points;
         }
