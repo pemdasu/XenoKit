@@ -166,11 +166,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
 
             Vector3 angles = GetAngles(effectPart);
 
-            //Matches VfxRotation.Create: X/Y/Z are pitch/yaw/roll.
-            return Matrix.CreateFromYawPitchRoll(
-                MathHelper.ToRadians(angles.Y),
+            return Extensions.ToXna(Vfx.VfxRotation.Create(
                 MathHelper.ToRadians(angles.X),
-                MathHelper.ToRadians(angles.Z));
+                MathHelper.ToRadians(angles.Y),
+                MathHelper.ToRadians(angles.Z)));
         }
 
         public static Matrix GetLocalMatrix(EffectPart effectPart)
