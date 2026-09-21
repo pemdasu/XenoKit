@@ -37,6 +37,9 @@ namespace XenoKit.Engine.Scripting.BSA
             if (bsaEntry == null || selectedMove == null || selectedBsaFile?.BSA_Entries?.Contains(bsaEntry) != true)
                 return;
 
+            if (!SettingsManager.Instance.Settings.XenoKit_ProjectileSimulation)
+                return;
+
             if (!SettingsManager.Instance.Settings.XenoKit_VfxSimulation && !SettingsManager.Instance.Settings.XenoKit_HitboxSimulation)
                 return;
 
@@ -52,8 +55,8 @@ namespace XenoKit.Engine.Scripting.BSA
             entry = bsaEntry;
             bsaFile = selectedBsaFile;
             move = selectedMove;
-            duration = GetPreviewDuration(entry);
             projectile = ProjectileInstance.CreatePreview(SceneManager.Actors[0], move, entry, bsaFile, Matrix4x4.Identity);
+            duration = projectile.EndFrame;
             isActive = true;
         }
 
@@ -87,7 +90,7 @@ namespace XenoKit.Engine.Scripting.BSA
                 return;
             }
 
-            projectile?.Update(1f);
+            projectile?.Update(SceneManager.Actors[0]?.ActiveTimeScale ?? 1f);
 
             if (projectile == null || projectile.IsFinished)
             {
@@ -129,22 +132,31 @@ namespace XenoKit.Engine.Scripting.BSA
             if (projectile != null && targetFrame >= CurrentFrame)
             {
                 while (CurrentFrame < targetFrame)
-                    AdvanceOneFrame();
+                    AdvanceOneFrame(CurrentFrame + 1 >= targetFrame);
 
                 return;
             }
 
+            Xv2CoreLib.Random.ResetWithCurrentSeed();
             Viewport.Instance?.VfxManager?.StopEffects();
+
+            if (Viewport.Instance?.VfxManager != null)
+                Viewport.Instance.VfxManager.ForceEffectUpdate = false;
+
             projectile?.Dispose();
             projectile = ProjectileInstance.CreatePreview(SceneManager.Actors[0], move, entry, bsaFile, Matrix4x4.Identity);
 
             for (int replayFrame = 0; replayFrame < targetFrame; replayFrame++)
-                AdvanceOneFrame();
+                AdvanceOneFrame(replayFrame == targetFrame - 1);
         }
 
-        private void AdvanceOneFrame()
+        private void AdvanceOneFrame(bool isLastFrame)
         {
             projectile?.Update(1f);
+
+            if (Viewport.Instance?.VfxManager != null)
+                Viewport.Instance.VfxManager.ForceEffectUpdate = isLastFrame;
+
             Viewport.Instance?.VfxManager?.Simulate();
         }
 
@@ -153,21 +165,5 @@ namespace XenoKit.Engine.Scripting.BSA
             projectile?.Draw();
         }
 
-        private static int GetPreviewDuration(BSA_Entry bsaEntry)
-        {
-            int effectDuration = bsaEntry.IBsaTypes?
-                .OfType<BSA_Type6>()
-                .Select(effect => (int)effect.StartTime + effect.Duration)
-                .DefaultIfEmpty(0)
-                .Max() ?? 0;
-
-            int hitboxDuration = bsaEntry.IBsaTypes?
-                .OfType<BSA_Type3>()
-                .Select(hitbox => (int)hitbox.StartTime + hitbox.Duration)
-                .DefaultIfEmpty(0)
-                .Max() ?? 0;
-
-            return Math.Max(Math.Max(Math.Max((int)bsaEntry.I_22, effectDuration), hitboxDuration), 1);
-        }
     }
 }
