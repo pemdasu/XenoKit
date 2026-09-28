@@ -65,17 +65,18 @@ namespace XenoKit.Engine.Vfx.Particle
         internal static Matrix4x4 CreateVelocityRotation(Matrix4x4 particleWorld, Matrix4x4 viewMatrix)
         {
             SimdVector3 cameraBack = SimdVector3.Normalize(new SimdVector3(viewMatrix.M13, viewMatrix.M23, viewMatrix.M33));
+            SimdVector3 cameraFront = -cameraBack;
             SimdVector3 particleUp = particleWorld.GetUp();
             SimdVector3 screenUp = particleUp - SimdVector3.Dot(particleUp, cameraBack) * cameraBack;
             if (screenUp.LengthSquared() < 0.000001f)
                 screenUp = new SimdVector3(viewMatrix.M12, viewMatrix.M22, viewMatrix.M32);
             screenUp = SimdVector3.Normalize(screenUp);
-            SimdVector3 screenRight = SimdVector3.Normalize(SimdVector3.Cross(screenUp, cameraBack));
+            SimdVector3 screenRight = SimdVector3.Normalize(SimdVector3.Cross(screenUp, cameraFront));
 
             return new Matrix4x4(
                 screenRight.X, screenRight.Y, screenRight.Z, 0f,
                 screenUp.X, screenUp.Y, screenUp.Z, 0f,
-                cameraBack.X, cameraBack.Y, cameraBack.Z, 0f,
+                cameraFront.X, cameraFront.Y, cameraFront.Z, 0f,
                 0f, 0f, 0f, 1f);
         }
 
