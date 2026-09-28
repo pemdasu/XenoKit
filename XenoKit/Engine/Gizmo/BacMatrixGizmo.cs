@@ -14,7 +14,10 @@ namespace XenoKit.Engine.Gizmo
                 if (matrix == null) return Matrix.Identity;
 
                 if (matrix is BAC_Type9 projectileType)
-                    return Extensions.ToXna(ProjectileInstance.CreateProjectileWorldTransform(SceneManager.Actors[0], projectileType));
+                {
+                    var spawnActor = ProjectileInstance.GetSpawnActor(SceneManager.Actors[0], projectileType);
+                    return Extensions.ToXna(ProjectileInstance.CreateProjectileWorldTransform(spawnActor, projectileType));
+                }
 
                 Matrix world = Matrix.Identity;
 

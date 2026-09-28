@@ -28,7 +28,7 @@ namespace XenoKit.Engine.Gizmo
         }
 
         public override bool AllowScale => false;
-        public override bool AllowRotation => false;
+        public override bool AllowRotation => Entity is Actor actor && actor == SceneManager.Actors[1];
         public override bool AllowTranslate => true;
 
 
@@ -40,6 +40,10 @@ namespace XenoKit.Engine.Gizmo
 
         public override bool IsContextValid()
         {
+            if (Entity is Actor actor)
+                return actor == SceneManager.Actors[1] && SceneManager.VictimEnabled &&
+                    SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Projectile);
+
             return Entity != null && SceneManager.IsOnTab(ContextTab);
         }
 

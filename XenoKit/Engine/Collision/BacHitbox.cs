@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Generic;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC;
 using Xv2CoreLib.BAC;
@@ -42,6 +43,7 @@ namespace XenoKit.Engine.Collision
         public readonly BAC_Type1 Hitbox;
         public BoundingBox BoundingBox;
         public bool IsSupported { get; private set; }
+        private readonly HashSet<Actor> hitActors = new HashSet<Actor>();
         private int boneIdx = -1;
         private bool isBaseBone = false;
 
@@ -182,6 +184,20 @@ namespace XenoKit.Engine.Collision
         {
             if (!BacEntry.InScope || BacEntry.IsFinished) return false;
             return BacEntry.IsValidTime(Hitbox.StartTime, Hitbox.Duration);
+        }
+
+        public bool CanHit(Actor target)
+        {
+            BAC_Type1.HitboxFlagsEnum impactType = Hitbox.GetImpactType();
+            return (impactType == BAC_Type1.HitboxFlagsEnum.ImpactType_Continuous ||
+                    impactType == BAC_Type1.HitboxFlagsEnum.ImpactType_Single) &&
+                   (impactType != BAC_Type1.HitboxFlagsEnum.ImpactType_Single || !hitActors.Contains(target));
+        }
+
+        public void RecordHit(Actor target)
+        {
+            if (Hitbox.GetImpactType() == BAC_Type1.HitboxFlagsEnum.ImpactType_Single)
+                hitActors.Add(target);
         }
 
         public SimdVector3 GetRelativeDirection(Matrix4x4 matrix)
