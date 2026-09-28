@@ -12,13 +12,14 @@
     <Grid>
         <StackPanel>
             <Expander Header="Effect" IsExpanded="True">
+                <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="EEPK Type" ToolTip="This is the EEPK to use effects from."/>
+                        <Label Content="EEPK Type"/>
                         <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.EepkType}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.EepkType}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
@@ -45,7 +46,17 @@
                         <Label Content="Switch" ToolTip="On spawns the effect. Off disables an already active effect with matching settings."/>
                         <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.Switch}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.Switch}"/>
                     </Grid>
+                    <Grid Margin="3,5,0,0" Width="250">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Attachment"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.ProjectileEffectAttachment}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.AttachmentSelector}"/>
+                    </Grid>
                 </WrapPanel>
+                <CheckBox Margin="8,5" Content="Use nested effect position" ToolTip="Use the nested effect's parent vector as this effect's position source." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.UseNestedEffectPosition, UpdateSourceTrigger=Default}"/>
+                </StackPanel>
             </Expander>
 
             <Expander Header="Spawn Source" IsExpanded="True">
@@ -71,14 +82,6 @@
 
             <Expander Header="Unknown" IsExpanded="False">
                 <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_06"/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.I_06, UpdateSourceTrigger=Default}"/>
-                    </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

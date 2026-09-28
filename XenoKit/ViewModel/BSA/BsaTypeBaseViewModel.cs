@@ -52,7 +52,9 @@ namespace XenoKit.ViewModel.BSA
                 case BSA_Type6 type6: return new BsaType6ViewModel(type6);
                 case BSA_Type7 type7: return new BsaType7ViewModel(type7);
                 case BSA_Type8 type8: return new BsaType8ViewModel(type8);
+                case BSA_Type9 type9: return new BsaType9ViewModel(type9);
                 case BSA_Type10 type10: return new BsaType10ViewModel(type10);
+                case BSA_Type11 type11: return new BsaType11ViewModel(type11);
                 case BSA_Type12 type12: return new BsaType12ViewModel(type12);
                 case BSA_Type13 type13: return new BsaType13ViewModel(type13);
                 case BSA_Type14 type14: return new BsaType14ViewModel(type14);

@@ -6,22 +6,28 @@ namespace XenoKit.ViewModel.BSA
     {
         private readonly BSA_Type10 type;
 
-        public int SkillID
+        public short SkillID
         {
-            get => type.I_00;
-            set => SetValue(nameof(type.I_00), type.I_00, value, v => type.I_00 = v, "BSA Type10 Skill ID");
+            get => type.SkillID;
+            set => SetValue(nameof(type.SkillID), type.SkillID, value, v => type.SkillID = v, "BSA Skill ID");
         }
 
-        public ushort I_04
+        public short SkillType
         {
-            get => type.I_04;
-            set => SetValue(nameof(type.I_04), type.I_04, value, v => type.I_04 = v, "BSA Type10 I_04");
+            get => type.SkillType;
+            set => SetValue(nameof(type.SkillType), type.SkillType, value, v => type.SkillType = v, "BSA Skill Type");
         }
 
-        public ushort I_06
+        public short UpgradeLevelDelta
         {
-            get => type.I_06;
-            set => SetValue(nameof(type.I_06), type.I_06, value, v => type.I_06 = v, "BSA Type10 I_06");
+            get => type.UpgradeLevelDelta;
+            set => SetValue(nameof(type.UpgradeLevelDelta), type.UpgradeLevelDelta, value, v => type.UpgradeLevelDelta = v, "BSA Upgrade Level Delta");
+        }
+
+        public byte UpgradeOperation
+        {
+            get => type.UpgradeOperation;
+            set => SetValue(nameof(type.UpgradeOperation), type.UpgradeOperation, value, v => type.UpgradeOperation = v, "BSA Upgrade Operation");
         }
 
         public BsaType10ViewModel(BSA_Type10 type) : base(type)
@@ -33,8 +39,9 @@ namespace XenoKit.ViewModel.BSA
         {
             base.UpdateProperties();
             RaisePropertyChanged(() => SkillID);
-            RaisePropertyChanged(() => I_04);
-            RaisePropertyChanged(() => I_06);
+            RaisePropertyChanged(() => SkillType);
+            RaisePropertyChanged(() => UpgradeLevelDelta);
+            RaisePropertyChanged(() => UpgradeOperation);
         }
     }
 }

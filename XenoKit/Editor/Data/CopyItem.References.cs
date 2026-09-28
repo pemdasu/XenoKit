@@ -193,7 +193,7 @@ namespace XenoKit.Editor
         private static int GetAcbTypeValue(object instance, Xv2CoreLib.BAC.AcbType bacAcbType)
         {
             if (instance is Xv2CoreLib.BSA.BSA_Type7 || instance is Xv2CoreLib.BSA.BSA_Expiration)
-                return (int)XenoKit.ViewModel.BSA.BsaType7ViewModel.GetBsaAcbType(bacAcbType);
+                return (int)Xv2CoreLib.BSA.BsaSoundResources.GetBsaAcbType(bacAcbType);
 
             return (int)bacAcbType;
         }

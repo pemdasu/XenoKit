@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BSA;
 
@@ -26,29 +25,13 @@ namespace XenoKit.ViewModel.BSA
 
         public bool BoundsEnabled => BoundingBoxType != BAC_Type1.BoundingBoxTypeEnum.Uniform;
 
-        public string MatrixFlagsText
+        public Switch UseDistanceRelativeBounds
         {
-            get => $"0x{hitbox.I_00:X}";
+            get => (hitbox.I_04 & 1) == 0 ? Switch.Off : Switch.On;
             set
             {
-                if (!TryParseUshort(value, out ushort newFlags))
-                {
-                    RaisePropertyChanged(() => MatrixFlagsText);
-                    return;
-                }
-
-                SetValue(nameof(hitbox.I_00), hitbox.I_00, newFlags, v => hitbox.I_00 = v, "BSA Hitbox Matrix Flags");
-                RaiseBoundsProperties();
-            }
-        }
-
-        public Switch GrowMaxBounds
-        {
-            get => hitbox.I_04 == 0 ? Switch.Off : Switch.On;
-            set
-            {
-                ushort newValue = value == Switch.On ? (ushort)1 : (ushort)0;
-                SetValue(nameof(hitbox.I_04), hitbox.I_04, newValue, v => hitbox.I_04 = v, "BSA Hitbox Grow Max Bounds");
+                ushort newValue = (ushort)((hitbox.I_04 & ~1) | (value == Switch.On ? 1 : 0));
+                SetValue(nameof(hitbox.I_04), hitbox.I_04, newValue, v => hitbox.I_04 = v, "BSA Distance Relative Bounds");
             }
         }
 
@@ -63,9 +46,17 @@ namespace XenoKit.ViewModel.BSA
         public float MinY { get => hitbox.F_40; set => SetValue(nameof(hitbox.F_40), hitbox.F_40, value, v => hitbox.F_40 = v, "BSA Hitbox Min Y"); }
         public float MinZ { get => hitbox.F_44; set => SetValue(nameof(hitbox.F_44), hitbox.F_44, value, v => hitbox.F_44 = v, "BSA Hitbox Min Z"); }
 
-        // Named from the model's own Hit_Amount and Hitbox_Lifetime YAX attributes.
-        public ushort HitAmount { get => hitbox.I_48; set => SetValue(nameof(hitbox.I_48), hitbox.I_48, value, v => hitbox.I_48 = v, "BSA Hitbox Hit Amount"); }
-        public ushort HitboxLifetime { get => hitbox.I_50; set => SetValue(nameof(hitbox.I_50), hitbox.I_50, value, v => hitbox.I_50 = v, "BSA Hitbox Lifetime"); }
+        public ushort HitCountControl { get => hitbox.I_48; set => SetValue(nameof(hitbox.I_48), hitbox.I_48, value, v => hitbox.I_48 = v, "BSA Hit Count Control"); }
+        public ushort HitboxPriority { get => hitbox.I_50; set => SetValue(nameof(hitbox.I_50), hitbox.I_50, value, v => hitbox.I_50 = v, "BSA Hitbox Priority"); }
+        public bool TargetLinkedActorOnly
+        {
+            get => (hitbox.I_52 & 1) != 0;
+            set
+            {
+                ushort newValue = (ushort)((hitbox.I_52 & ~1) | (value ? 1 : 0));
+                SetValue(nameof(hitbox.I_52), hitbox.I_52, newValue, v => hitbox.I_52 = v, "BSA Target Linked Actor Only");
+            }
+        }
 
         public ushort FirstHit { get => hitbox.FirstHit; set => SetValue(nameof(hitbox.FirstHit), hitbox.FirstHit, value, v => hitbox.FirstHit = v, "BSA Hitbox BDM First Hit ID"); }
         public ushort MultipleHits { get => hitbox.MultipleHits; set => SetValue(nameof(hitbox.MultipleHits), hitbox.MultipleHits, value, v => hitbox.MultipleHits = v, "BSA Hitbox BDM Multiple Hits ID"); }
@@ -76,9 +67,6 @@ namespace XenoKit.ViewModel.BSA
         public byte I_06_b { get => hitbox.I_06_b; set => SetValue(nameof(hitbox.I_06_b), hitbox.I_06_b, value, v => hitbox.I_06_b = v, "BSA Hitbox I_06_b"); }
         public byte I_06_c { get => hitbox.I_06_c; set => SetValue(nameof(hitbox.I_06_c), hitbox.I_06_c, value, v => hitbox.I_06_c = v, "BSA Hitbox I_06_c"); }
         public byte I_06_d { get => hitbox.I_06_d; set => SetValue(nameof(hitbox.I_06_d), hitbox.I_06_d, value, v => hitbox.I_06_d = v, "BSA Hitbox I_06_d"); }
-        public ushort I_52 { get => hitbox.I_52; set => SetValue(nameof(hitbox.I_52), hitbox.I_52, value, v => hitbox.I_52 = v, "BSA Hitbox I_52"); }
-        public ushort I_54 { get => hitbox.I_54; set => SetValue(nameof(hitbox.I_54), hitbox.I_54, value, v => hitbox.I_54 = v, "BSA Hitbox I_54"); }
-        public ushort I_56 { get => hitbox.I_56; set => SetValue(nameof(hitbox.I_56), hitbox.I_56, value, v => hitbox.I_56 = v, "BSA Hitbox I_56"); }
 
         public BsaType3ViewModel(BSA_Type3 type) : base(type)
         {
@@ -89,24 +77,13 @@ namespace XenoKit.ViewModel.BSA
         {
             RaisePropertyChanged(() => BoundingBoxType);
             RaisePropertyChanged(() => BoundsEnabled);
-            RaisePropertyChanged(() => MatrixFlagsText);
-        }
-
-        private static bool TryParseUshort(string value, out ushort result)
-        {
-            string text = value?.Trim() ?? string.Empty;
-
-            if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                return ushort.TryParse(text.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out result);
-
-            return ushort.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
         }
 
         protected override void UpdateProperties()
         {
             base.UpdateProperties();
             RaiseBoundsProperties();
-            RaisePropertyChanged(() => GrowMaxBounds);
+            RaisePropertyChanged(() => UseDistanceRelativeBounds);
             RaisePropertyChanged(() => PositionX);
             RaisePropertyChanged(() => PositionY);
             RaisePropertyChanged(() => PositionZ);
@@ -117,8 +94,9 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => MinX);
             RaisePropertyChanged(() => MinY);
             RaisePropertyChanged(() => MinZ);
-            RaisePropertyChanged(() => HitAmount);
-            RaisePropertyChanged(() => HitboxLifetime);
+            RaisePropertyChanged(() => HitCountControl);
+            RaisePropertyChanged(() => HitboxPriority);
+            RaisePropertyChanged(() => TargetLinkedActorOnly);
             RaisePropertyChanged(() => FirstHit);
             RaisePropertyChanged(() => MultipleHits);
             RaisePropertyChanged(() => LastHit);
@@ -127,9 +105,6 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => I_06_b);
             RaisePropertyChanged(() => I_06_c);
             RaisePropertyChanged(() => I_06_d);
-            RaisePropertyChanged(() => I_52);
-            RaisePropertyChanged(() => I_54);
-            RaisePropertyChanged(() => I_56);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace XenoKit.ViewModel.BSA
                     case IBsaType type:
                         return type.Type;
                     case BSA_Collision collision:
-                        return $"Collision ({Xv2CoreLib.ValuesDictionary.BSA.GetEepkTypeName(collision.EepkType)}, {collision.SkillID}, {collision.EffectID})";
+                        return $"Collision Effect ({Xv2CoreLib.ValuesDictionary.BSA.GetEepkTypeName(collision.EepkType)}, {collision.SkillID}, {collision.EffectID})";
                     case BSA_Expiration expiration:
                         return $"Collision Sound ({Xv2CoreLib.ValuesDictionary.BSA.GetAcbTypeName(expiration.I_00)}, {expiration.I_02}, {expiration.I_04}, {expiration.I_06})";
                     default:

@@ -12,22 +12,34 @@ namespace XenoKit.ViewModel.BSA
             set => SetValue(nameof(passEntry.BSA_EntryID), passEntry.BSA_EntryID, value, v => passEntry.BSA_EntryID = v, "BSA Pass Entry");
         }
 
-        public ushort MainCondition
+        public short Condition
+        {
+            get => passEntry.I_00;
+            set => SetValue(nameof(passEntry.I_00), passEntry.I_00, value, v => passEntry.I_00 = v, "BSA Entry Passing Condition");
+        }
+
+        private ushort ConditionFlags
         {
             get => passEntry.I_02;
-            set => SetValue(nameof(passEntry.I_02), passEntry.I_02, value, v => passEntry.I_02 = v, "BSA Pass Main Condition");
+            set
+            {
+                SetValue(nameof(passEntry.I_02), passEntry.I_02, value, v => passEntry.I_02 = v, "BSA Entry Passing Flags");
+                RaisePropertyChanged(() => SkipEntryCall);
+                RaisePropertyChanged(() => SkipTimingUpdate);
+                RaisePropertyChanged(() => CompareSignalValue);
+                RaisePropertyChanged(() => ReceiveBacCondition);
+            }
         }
+
+        public bool SkipEntryCall { get => (ConditionFlags & 0x1) != 0; set => SetConditionFlag(0x1, value); }
+        public bool SkipTimingUpdate { get => (ConditionFlags & 0x2) != 0; set => SetConditionFlag(0x2, value); }
+        public bool CompareSignalValue { get => (ConditionFlags & 0x8) != 0; set => SetConditionFlag(0x8, value); }
+        public bool ReceiveBacCondition { get => (ConditionFlags & 0x10) != 0; set => SetConditionFlag(0x10, value); }
 
         public float BacCondition
         {
             get => passEntry.F_08;
             set => SetValue(nameof(passEntry.F_08), passEntry.F_08, value, v => passEntry.F_08 = v, "BSA Pass BAC Condition");
-        }
-
-        public short I_00
-        {
-            get => passEntry.I_00;
-            set => SetValue(nameof(passEntry.I_00), passEntry.I_00, value, v => passEntry.I_00 = v, "BSA Pass I_00");
         }
 
         public short I_06
@@ -47,13 +59,21 @@ namespace XenoKit.ViewModel.BSA
             passEntry = type;
         }
 
+        private void SetConditionFlag(ushort mask, bool value)
+        {
+            ConditionFlags = value ? (ushort)(ConditionFlags | mask) : (ushort)(ConditionFlags & ~mask);
+        }
+
         protected override void UpdateProperties()
         {
             base.UpdateProperties();
             RaisePropertyChanged(() => BsaEntryId);
-            RaisePropertyChanged(() => MainCondition);
+            RaisePropertyChanged(() => Condition);
+            RaisePropertyChanged(() => SkipEntryCall);
+            RaisePropertyChanged(() => SkipTimingUpdate);
+            RaisePropertyChanged(() => CompareSignalValue);
+            RaisePropertyChanged(() => ReceiveBacCondition);
             RaisePropertyChanged(() => BacCondition);
-            RaisePropertyChanged(() => I_00);
             RaisePropertyChanged(() => I_06);
             RaisePropertyChanged(() => F_12);
         }

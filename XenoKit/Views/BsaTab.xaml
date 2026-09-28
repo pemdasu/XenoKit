@@ -158,21 +158,23 @@
                         <iconPacks:PackIconMaterialLight Kind="Plus"/>
                         <Button.ContextMenu>
                             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                <MenuItem Header="Entry Passing" Command="{Binding AddSubtypeCommand}" CommandParameter="0"/>
-                                <MenuItem Header="Movement" Command="{Binding AddSubtypeCommand}" CommandParameter="1"/>
-                                <MenuItem Header="Projectile Timeline Remap" Command="{Binding AddSubtypeCommand}" CommandParameter="2"/>
-                                <MenuItem Header="Hitbox" Command="{Binding AddSubtypeCommand}" CommandParameter="3"/>
-                                <MenuItem Header="Deflection" Command="{Binding AddSubtypeCommand}" CommandParameter="4"/>
-                                <MenuItem Header="Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="6"/>
-                                <MenuItem Header="Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="7"/>
-                                <MenuItem Header="Screen Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="8"/>
-                                <MenuItem Header="Unknown 10" Command="{Binding AddSubtypeCommand}" CommandParameter="10"/>
-                                <MenuItem Header="Send Projectile Signal" Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
-                                <MenuItem Header="Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
-                                <MenuItem Header="Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
+                                <MenuItem Header="[0] Entry Passing" Command="{Binding AddSubtypeCommand}" CommandParameter="0"/>
+                                <MenuItem Header="[1] Movement" Command="{Binding AddSubtypeCommand}" CommandParameter="1"/>
+                                <MenuItem Header="[2] Projectile Frame Mapping" ToolTip="Calculates an output frame from this entry's time range. Its final use in the game is not yet known." Command="{Binding AddSubtypeCommand}" CommandParameter="2"/>
+                                <MenuItem Header="[3] Hitbox" Command="{Binding AddSubtypeCommand}" CommandParameter="3"/>
+                                <MenuItem Header="[4] Deflection" Command="{Binding AddSubtypeCommand}" CommandParameter="4"/>
+                                <MenuItem Header="[6] Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="6"/>
+                                <MenuItem Header="[7] Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="7"/>
+                                <MenuItem Header="[8] Post Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="8"/>
+                                <MenuItem Header="[9] Projectile Health Adjustment" Command="{Binding AddSubtypeCommand}" CommandParameter="9"/>
+                                <MenuItem Header="[10] Modify Skill Upgrade Level" Command="{Binding AddSubtypeCommand}" CommandParameter="10"/>
+                                <MenuItem Header="[11] Effect Property Control" Command="{Binding AddSubtypeCommand}" CommandParameter="11"/>
+                                <MenuItem Header="[12] Send Projectile Signal" ToolTip="Sends a value to matching Type 0 Entry Passing records in the selected BSA resource. Delivery mode controls broadcast or same-context priority routing." Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
+                                <MenuItem Header="[13] Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
+                                <MenuItem Header="[14] Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
                                 <Separator/>
-                                <MenuItem Header="Collision" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
-                                <MenuItem Header="Expiration" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
+                                <MenuItem Header="Collision Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
+                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -205,21 +207,23 @@
                     <DataGrid.ContextMenu>
                         <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                             <MenuItem Header="Add">
-                                <MenuItem Header="Entry Passing" Command="{Binding AddSubtypeCommand}" CommandParameter="0"/>
-                                <MenuItem Header="Movement" Command="{Binding AddSubtypeCommand}" CommandParameter="1"/>
-                                <MenuItem Header="Projectile Timeline Remap" Command="{Binding AddSubtypeCommand}" CommandParameter="2"/>
-                                <MenuItem Header="Hitbox" Command="{Binding AddSubtypeCommand}" CommandParameter="3"/>
-                                <MenuItem Header="Deflection" Command="{Binding AddSubtypeCommand}" CommandParameter="4"/>
-                                <MenuItem Header="Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="6"/>
-                                <MenuItem Header="Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="7"/>
-                                <MenuItem Header="Screen Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="8"/>
-                                <MenuItem Header="Unknown 10" Command="{Binding AddSubtypeCommand}" CommandParameter="10"/>
-                                <MenuItem Header="Send Projectile Signal" Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
-                                <MenuItem Header="Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
-                                <MenuItem Header="Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
+                                <MenuItem Header="[0] Entry Passing" Command="{Binding AddSubtypeCommand}" CommandParameter="0"/>
+                                <MenuItem Header="[1] Movement" Command="{Binding AddSubtypeCommand}" CommandParameter="1"/>
+                                <MenuItem Header="[2] Projectile Frame Mapping" ToolTip="Calculates an output frame from this entry's time range. Its final use in the game is not yet known." Command="{Binding AddSubtypeCommand}" CommandParameter="2"/>
+                                <MenuItem Header="[3] Hitbox" Command="{Binding AddSubtypeCommand}" CommandParameter="3"/>
+                                <MenuItem Header="[4] Deflection" Command="{Binding AddSubtypeCommand}" CommandParameter="4"/>
+                                <MenuItem Header="[6] Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="6"/>
+                                <MenuItem Header="[7] Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="7"/>
+                                <MenuItem Header="[8] Post Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="8"/>
+                                <MenuItem Header="[9] Projectile Health Adjustment" Command="{Binding AddSubtypeCommand}" CommandParameter="9"/>
+                                <MenuItem Header="[10] Modify Skill Upgrade Level" Command="{Binding AddSubtypeCommand}" CommandParameter="10"/>
+                                <MenuItem Header="[11] Effect Property Control" Command="{Binding AddSubtypeCommand}" CommandParameter="11"/>
+                                <MenuItem Header="[12] Send Projectile Signal" ToolTip="Sends a value to matching Type 0 Entry Passing records in the selected BSA resource. Delivery mode controls broadcast or same-context priority routing." Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
+                                <MenuItem Header="[13] Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
+                                <MenuItem Header="[14] Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
                                 <Separator/>
-                                <MenuItem Header="Collision" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
-                                <MenuItem Header="Expiration" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
+                                <MenuItem Header="Collision Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
+                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
                             </MenuItem>
                             <Separator/>
                             <MenuItem Header="Copy" Command="{Binding CopySubtypeCommand}"/>
@@ -248,7 +252,9 @@
                 <bsaView:BsaType6View BsaViewModel="{Binding Type6ViewModel}"/>
                 <bsaView:BsaType7View BsaViewModel="{Binding Type7ViewModel}"/>
                 <bsaView:BsaType8View BsaViewModel="{Binding Type8ViewModel}"/>
+                <bsaView:BsaType9View BsaViewModel="{Binding Type9ViewModel}"/>
                 <bsaView:BsaType10View BsaViewModel="{Binding Type10ViewModel}"/>
+                <bsaView:BsaType11View BsaViewModel="{Binding Type11ViewModel}"/>
                 <bsaView:BsaType12View BsaViewModel="{Binding Type12ViewModel}"/>
                 <bsaView:BsaType13View BsaViewModel="{Binding Type13ViewModel}"/>
                 <bsaView:BsaType14View BsaViewModel="{Binding Type14ViewModel}"/>

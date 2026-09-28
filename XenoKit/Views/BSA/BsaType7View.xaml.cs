@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using XenoKit.Editor;
 using XenoKit.Engine;
 using XenoKit.ViewModel.BSA;
+using Xv2CoreLib.BSA;
 
 namespace XenoKit.Views.BSA
 {
@@ -33,16 +34,27 @@ namespace XenoKit.Views.BSA
             if (BsaViewModel == null)
                 return;
 
-            var acb = Files.Instance.GetAcbFile(BsaViewModel.BacAcbType, Files.Instance.SelectedMove, SceneManager.Actors[0], true);
+            PreviewSound(BsaViewModel.AcbType, BsaViewModel.CueId);
+        }
 
-            if (acb == null)
+        internal static void PreviewSound(AcbType soundType, ushort cueId)
+        {
+            if (!BsaSoundResources.TryGetBacAcbType(soundType, out Xv2CoreLib.BAC.AcbType acbType))
             {
-                Log.Add($"Could not find the ACB for AcbType {BsaViewModel.AcbType}. Preview failed.");
+                Log.Add($"No XenoKit ACB mapping for BSA sound category {(ushort)soundType}.");
                 return;
             }
 
-            if (BsaViewModel.CueId != ushort.MaxValue)
-                Viewport.Instance.AudioEngine.PreviewCue(BsaViewModel.CueId, acb);
+            var acb = Files.Instance.GetAcbFile(acbType, Files.Instance.SelectedMove, SceneManager.Actors[0], true);
+
+            if (acb == null)
+            {
+                Log.Add($"Could not find the ACB for AcbType {soundType}. Preview failed.");
+                return;
+            }
+
+            if (cueId != ushort.MaxValue)
+                Viewport.Instance.AudioEngine.PreviewCue(cueId, acb);
         }
     }
 }

@@ -26,8 +26,25 @@ namespace XenoKit.ViewModel.BSA
 
         public Switch Switch
         {
-            get => effect.I_08;
-            set => SetValue(nameof(effect.I_08), effect.I_08, value, v => effect.I_08 = v, "BSA Effect Switch");
+            get => (Switch)((ushort)effect.I_08 & 1);
+            set => EffectFlags = (ushort)(((ushort)effect.I_08 & ~1) | ((ushort)value & 1));
+        }
+
+        private ushort EffectFlags
+        {
+            get => (ushort)effect.I_08;
+            set
+            {
+                SetValue(nameof(effect.I_08), effect.I_08, (Switch)value, v => effect.I_08 = v, "BSA Effect Flags");
+                RaisePropertyChanged(() => Switch);
+                RaisePropertyChanged(() => UseNestedEffectPosition);
+            }
+        }
+
+        public bool UseNestedEffectPosition
+        {
+            get => (EffectFlags & 0x100) != 0;
+            set => EffectFlags = value ? (ushort)(EffectFlags | 0x100) : (ushort)(EffectFlags & ~0x100);
         }
 
         public float PositionX
@@ -48,10 +65,10 @@ namespace XenoKit.ViewModel.BSA
             set => SetValue(nameof(effect.F_20), effect.F_20, value, v => effect.F_20 = v, "BSA Effect Position Z");
         }
 
-        public ushort I_06
+        public ushort AttachmentSelector
         {
             get => effect.I_06;
-            set => SetValue(nameof(effect.I_06), effect.I_06, value, v => effect.I_06 = v, "BSA Effect I_06");
+            set => SetValue(nameof(effect.I_06), effect.I_06, value, v => effect.I_06 = v, "BSA Effect Attachment Selector");
         }
 
         public ushort I_10
@@ -72,10 +89,11 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => SkillID);
             RaisePropertyChanged(() => EffectID);
             RaisePropertyChanged(() => Switch);
+            RaisePropertyChanged(() => UseNestedEffectPosition);
             RaisePropertyChanged(() => PositionX);
             RaisePropertyChanged(() => PositionY);
             RaisePropertyChanged(() => PositionZ);
-            RaisePropertyChanged(() => I_06);
+            RaisePropertyChanged(() => AttachmentSelector);
             RaisePropertyChanged(() => I_10);
         }
     }

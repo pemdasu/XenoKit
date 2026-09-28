@@ -11,14 +11,14 @@
              d:DesignHeight="250" d:DesignWidth="520">
     <Grid>
         <StackPanel>
-            <Expander Header="Skill Reference" IsExpanded="True">
+            <Expander Header="Skill" IsExpanded="True">
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Skill Type" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Skill category used with the Skill ID to find the BSA resource whose Entry Passing entries receive this signal."/>
+                        <TextBlock Text="Skill Type" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Selects the skill whose entry passing records receive this signal."/>
                         <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.EepkType}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType12View}}, Path=BsaViewModel.SkillType}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360">
@@ -26,7 +26,7 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Skill ID" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Skill ID paired with Skill Type when the game looks up the BSA resource whose Entry Passing entries receive this signal."/>
+                        <TextBlock Text="Skill ID" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Paired with Skill Type to find the receiving skill."/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType12View}}, Path=BsaViewModel.SkillID, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
@@ -47,7 +47,7 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Delivery Mode" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Controls how the signal reaches BSA Entry Passing entries. Broadcast sends to every matching entry. Same-context delivery sends only to the highest-priority matching entry."/>
+                        <TextBlock Text="Delivery Mode" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="0 broadcasts to every matching receiver. A positive value selects receivers in the same runtime context with the highest Type 0 priority; tied receivers all get the signal."/>
                         <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.SignalDeliveryMode}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType12View}}, Path=BsaViewModel.DeliveryMode}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360">
@@ -55,7 +55,7 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Pause Recipient Timeline (One Update)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="A positive value pauses the receiving Entry Passing entry's timeline for one update."/>
+                        <TextBlock Text="Pause Recipient Timeline (One Update)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Any positive value pauses each receiving projectile's BSA timeline for its next update. The numeric magnitude does not set the number of paused frames."/>
                         <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType12View}}, Path=BsaViewModel.PauseRecipientTimeline, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>

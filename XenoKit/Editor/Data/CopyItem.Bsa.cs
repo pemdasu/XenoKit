@@ -44,7 +44,8 @@ namespace XenoKit.Editor
             {
                 foreach (var expiration in bsaEntry.SubEntries.ExpirationEntries)
                 {
-                    if (CopyCue(XenoKit.ViewModel.BSA.BsaType7ViewModel.GetBacAcbType(expiration.I_00), expiration.I_04, move))
+                    if (BsaSoundResources.TryGetBacAcbType(expiration.I_00, out Xv2CoreLib.BAC.AcbType acbType) &&
+                        CopyCue(acbType, expiration.I_04, move))
                     {
                         ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_04), ValueReference.InstanceRefType.SeAcb));
                         ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_00), ValueReference.InstanceRefType.SeAcb, ValueReference.Mode.Type));
@@ -57,16 +58,27 @@ namespace XenoKit.Editor
 
             foreach(var bsaType in bsaEntry.IBsaTypes)
             {
-                if (bsaType is BSA_Type0 type0)
-                    CopyBsaType0References(type0, move);
-                else if (bsaType is BSA_Type3 type3)
-                    CopyBsaType3References(type3, move);
-                else if (bsaType is BSA_Type6 type6)
-                    CopyBsaType6References(type6, move);
-                else if (bsaType is BSA_Type7 type7)
-                    CopyBsaType7References(type7, move);
-                else if (bsaType is BSA_Type12 type12)
-                    CopyBsaType12References(type12, move);
+                switch (bsaType)
+                {
+                    case BSA_Type0 type0:
+                        CopyBsaType0References(type0, move);
+                        break;
+                    case BSA_Type3 type3:
+                        CopyBsaType3References(type3, move);
+                        break;
+                    case BSA_Type6 type6:
+                        CopyBsaType6References(type6, move);
+                        break;
+                    case BSA_Type7 type7:
+                        CopyBsaType7References(type7, move);
+                        break;
+                    case BSA_Type11 type11:
+                        CopyBsaType11References(type11, move);
+                        break;
+                    case BSA_Type12 type12:
+                        CopyBsaType12References(type12, move);
+                        break;
+                }
             }
         }
 
@@ -110,9 +122,8 @@ namespace XenoKit.Editor
 
         private void CopyBsaType7References(BSA_Type7 bsaType, Move move)
         {
-            // BSA and BAC number AcbType differently, so this has to be mapped rather than cast.
-            // A raw cast turned BSA Skill_SE (3) into BAC Character_VOX (3) and copied from the wrong ACB.
-            if (CopyCue(XenoKit.ViewModel.BSA.BsaType7ViewModel.GetBacAcbType(bsaType.AcbType), bsaType.CueId, move))
+            if (BsaSoundResources.TryGetBacAcbType(bsaType.AcbType, out Xv2CoreLib.BAC.AcbType acbType) &&
+                CopyCue(acbType, bsaType.CueId, move))
             {
                 ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.CueId), ValueReference.InstanceRefType.SeAcb));
                 ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.AcbType), ValueReference.InstanceRefType.SeAcb, ValueReference.Mode.Type));
@@ -127,6 +138,16 @@ namespace XenoKit.Editor
 
             ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.EepkType), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.Type));
             ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.SkillID), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.SkillId));
+        }
+
+        private void CopyBsaType11References(BSA_Type11 bsaType, Move move)
+        {
+            if (CopyEffect((BAC_Type8.EepkTypeEnum)bsaType.SkillType, bsaType.EffectID, bsaType.SkillID, move))
+            {
+                ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.EffectID), ValueReference.InstanceRefType.Eepk));
+                ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.SkillType), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.Type));
+                ValueRefs.Add(new ValueReference(bsaType, nameof(bsaType.SkillID), ValueReference.InstanceRefType.Eepk, ValueReference.Mode.SkillId));
+            }
         }
 
         private List<IUndoRedo> PasteBsaEntries(IList<BSA_Entry> bsaEntries, Move move, BSA_Entry bsaEntryToReplace = null)

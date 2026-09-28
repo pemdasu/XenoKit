@@ -18,8 +18,26 @@ namespace XenoKit.ViewModel.BSA
         }
 
         public int I_00 { get => entry.I_00; set => SetValue(nameof(entry.I_00), entry.I_00, value, v => entry.I_00 = v, "BSA I_00"); }
-        public byte ImpactA { get => entry.I_16_a; set => SetValue(nameof(entry.I_16_a), entry.I_16_a, value, v => entry.I_16_a = v, "BSA Impact A"); }
-        public byte ImpactB { get => entry.I_16_b; set => SetValue(nameof(entry.I_16_b), entry.I_16_b, value, v => entry.I_16_b = v, "BSA Impact B"); }
+        public byte ImpactA
+        {
+            get => entry.I_16_a;
+            set
+            {
+                SetValue(nameof(entry.I_16_a), entry.I_16_a, value, v => entry.I_16_a = v, "BSA Impact A");
+                RaisePropertyChanged(() => ImpactAUnknownLabel);
+            }
+        }
+        public byte ImpactB
+        {
+            get => entry.I_16_b;
+            set
+            {
+                SetValue(nameof(entry.I_16_b), entry.I_16_b, value, v => entry.I_16_b = v, "BSA Impact B");
+                RaisePropertyChanged(() => ImpactBUnknownLabel);
+            }
+        }
+        public string ImpactAUnknownLabel => Xv2CoreLib.ValuesDictionary.BSA.ImpactA.ContainsKey(ImpactA) ? null : $"Unknown ({ImpactA})";
+        public string ImpactBUnknownLabel => Xv2CoreLib.ValuesDictionary.BSA.ImpactB.ContainsKey(ImpactB) ? null : $"Unknown ({ImpactB})";
         public byte I_17 { get => entry.I_17; set => SetValue(nameof(entry.I_17), entry.I_17, value, v => entry.I_17 = v, "BSA I_17"); }
         public int I_18 { get => entry.I_18; set => SetValue(nameof(entry.I_18), entry.I_18, value, v => entry.I_18 = v, "BSA I_18"); }
         public ushort Lifetime { get => entry.I_22; set => SetValue(nameof(entry.I_22), entry.I_22, value, v => entry.I_22 = v, "BSA Lifetime"); }
@@ -58,6 +76,8 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => I_00);
             RaisePropertyChanged(() => ImpactA);
             RaisePropertyChanged(() => ImpactB);
+            RaisePropertyChanged(() => ImpactAUnknownLabel);
+            RaisePropertyChanged(() => ImpactBUnknownLabel);
             RaisePropertyChanged(() => I_17);
             RaisePropertyChanged(() => I_18);
             RaisePropertyChanged(() => Lifetime);

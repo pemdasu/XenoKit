@@ -12,7 +12,6 @@ namespace XenoKit.ViewModel.BSA
             set
             {
                 SetValue(nameof(sound.AcbType), sound.AcbType, value, v => sound.AcbType = v, "BSA Sound ACB Type");
-                RaisePropertyChanged(() => BacAcbType);
             }
         }
 
@@ -22,52 +21,33 @@ namespace XenoKit.ViewModel.BSA
             set => SetValue(nameof(sound.CueId), sound.CueId, value, v => sound.CueId = v, "BSA Sound Cue ID");
         }
 
-        public ushort I_02
+        private ushort SoundRoutingFlags
         {
             get => sound.I_02;
-            set => SetValue(nameof(sound.I_02), sound.I_02, value, v => sound.I_02 = v, "BSA Sound I_02");
+            set
+            {
+                SetValue(nameof(sound.I_02), sound.I_02, value, v => sound.I_02 = v, "BSA Sound Routing Flags");
+                RaisePropertyChanged(() => AlternateSoundRoute);
+                RaisePropertyChanged(() => CancelPendingSound);
+            }
+        }
+
+        public bool AlternateSoundRoute
+        {
+            get => (sound.I_02 & 0x1000) != 0;
+            set => SoundRoutingFlags = value ? (ushort)(sound.I_02 | 0x1000) : (ushort)(sound.I_02 & ~0x1000);
+        }
+
+        public bool CancelPendingSound
+        {
+            get => (sound.I_02 & 0x2000) != 0;
+            set => SoundRoutingFlags = value ? (ushort)(sound.I_02 | 0x2000) : (ushort)(sound.I_02 & ~0x2000);
         }
 
         public ushort I_06
         {
             get => sound.I_06;
             set => SetValue(nameof(sound.I_06), sound.I_06, value, v => sound.I_06 = v, "BSA Sound I_06");
-        }
-
-        /// <summary>
-        /// BSA and BAC number AcbType differently, so the value has to be mapped rather than cast.
-        /// BSA Skill_SE is 3, but BAC 3 is Character_VOX.
-        /// </summary>
-        public Xv2CoreLib.BAC.AcbType BacAcbType => GetBacAcbType(sound.AcbType);
-
-        public static Xv2CoreLib.BAC.AcbType GetBacAcbType(AcbType bsaAcbType)
-        {
-            switch (bsaAcbType)
-            {
-                case Xv2CoreLib.BSA.AcbType.Common_SE:
-                    return Xv2CoreLib.BAC.AcbType.Common_SE;
-                case Xv2CoreLib.BSA.AcbType.Chara_SE:
-                    return Xv2CoreLib.BAC.AcbType.Character_SE;
-                case Xv2CoreLib.BSA.AcbType.Skill_SE:
-                    return Xv2CoreLib.BAC.AcbType.Skill_SE;
-                default:
-                    return Xv2CoreLib.BAC.AcbType.Common_SE;
-            }
-        }
-
-        public static AcbType GetBsaAcbType(Xv2CoreLib.BAC.AcbType bacAcbType)
-        {
-            switch (bacAcbType)
-            {
-                case Xv2CoreLib.BAC.AcbType.Common_SE:
-                    return AcbType.Common_SE;
-                case Xv2CoreLib.BAC.AcbType.Character_SE:
-                    return AcbType.Chara_SE;
-                case Xv2CoreLib.BAC.AcbType.Skill_SE:
-                    return AcbType.Skill_SE;
-                default:
-                    return AcbType.Common_SE;
-            }
         }
 
         public BsaType7ViewModel(BSA_Type7 type) : base(type)
@@ -80,9 +60,9 @@ namespace XenoKit.ViewModel.BSA
             base.UpdateProperties();
             RaisePropertyChanged(() => AcbType);
             RaisePropertyChanged(() => CueId);
-            RaisePropertyChanged(() => I_02);
+            RaisePropertyChanged(() => AlternateSoundRoute);
+            RaisePropertyChanged(() => CancelPendingSound);
             RaisePropertyChanged(() => I_06);
-            RaisePropertyChanged(() => BacAcbType);
         }
     }
 }

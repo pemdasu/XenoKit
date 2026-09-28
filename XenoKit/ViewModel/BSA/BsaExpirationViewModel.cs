@@ -12,9 +12,9 @@ namespace XenoKit.ViewModel.BSA
         private readonly BSA_Expiration expiration;
 
         public AcbType AcbType { get => expiration.I_00; set => SetValue(nameof(expiration.I_00), expiration.I_00, value, v => expiration.I_00 = v, "BSA Collision Sound ACB Type"); }
-        public ushort I_02 { get => expiration.I_02; set => SetValue(nameof(expiration.I_02), expiration.I_02, value, v => expiration.I_02 = v, "BSA Expiration I_02"); }
+        public ushort I_02 { get => expiration.I_02; set => SetValue(nameof(expiration.I_02), expiration.I_02, value, v => expiration.I_02 = v, "BSA Collision Sound I_02"); }
         public ushort CueId { get => expiration.I_04; set => SetValue(nameof(expiration.I_04), expiration.I_04, value, v => expiration.I_04 = v, "BSA Collision Sound Cue ID"); }
-        public ushort I_06 { get => expiration.I_06; set => SetValue(nameof(expiration.I_06), expiration.I_06, value, v => expiration.I_06 = v, "BSA Expiration I_06"); }
+        public ushort I_06 { get => expiration.I_06; set => SetValue(nameof(expiration.I_06), expiration.I_06, value, v => expiration.I_06 = v, "BSA Collision Sound I_06"); }
 
         public BsaExpirationViewModel(BSA_Expiration expiration)
         {
