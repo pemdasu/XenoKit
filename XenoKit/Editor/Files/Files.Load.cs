@@ -325,6 +325,7 @@ namespace XenoKit.Editor
 
             //Update dictionaries
             BAC.AddMissing(moveFiles.BacFile?.File);
+            BSA.AddMissing(moveFiles.BsaFile?.File);
         }
 
         public async void AsyncLoadStage()

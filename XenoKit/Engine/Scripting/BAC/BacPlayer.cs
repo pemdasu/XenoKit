@@ -298,7 +298,7 @@ namespace XenoKit.Engine.Scripting.BAC
                         //Only init when missing. Rebuilding discards unsaved edits, since IBsaTypes is derived from Type0-Type14.
                         if (bsaEntry.IBsaTypes == null)
                             bsaEntry.InitializeIBsaTypes();
-                        BacEntryInstance.AddProjectile(projectile, bsaEntry, canLoop);
+                        BacEntryInstance.AddProjectile(projectile, bsaEntry, bsaFile, canLoop);
                     }
                     else
                     {
@@ -622,10 +622,7 @@ namespace XenoKit.Engine.Scripting.BAC
             if (!BacEntryInstance.IsPreview)
                 return false;
 
-            if (type is BAC_Type8 || type is BAC_Type9 || type is BAC_Type11)
-                return true;
-
-            return type is BAC_Type15 function && (function.FunctionType == 0x10 || function.FunctionType == 0x26);
+            return type is BAC_Type8 || type is BAC_Type9 || type is BAC_Type11;
         }
         
         #region Helpers

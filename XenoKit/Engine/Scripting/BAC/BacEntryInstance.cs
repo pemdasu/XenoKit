@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using XenoKit.Editor;
@@ -68,7 +69,11 @@ namespace XenoKit.Engine.Scripting.BAC
         private const float BsaConditionTolerance = 0.001f;
 
         private readonly Dictionary<ushort, BacScreenEffectInstance> activeScreenEffects = new Dictionary<ushort, BacScreenEffectInstance>();
+        private readonly Action<ushort> clearScreenEffectCallback;
+        private readonly Action clearBodyOutlineCallback;
         internal IEnumerable<BacScreenEffectInstance> ActiveScreenEffects => activeScreenEffects.Values;
+        internal Action<ushort> ClearScreenEffectCallback => clearScreenEffectCallback;
+        internal Action ClearBodyOutlineCallback => clearBodyOutlineCallback;
         public BacScreenEffectState ScreenEffectState { get; } = new BacScreenEffectState();
 
         /// <summary>
@@ -82,6 +87,8 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public BacEntryInstance(BAC_File bacFile, BAC_Entry bacEntry, Move currentMove, Actor user, Actor actor, bool isPreview)
         {
+            clearScreenEffectCallback = ClearScreenEffect;
+            clearBodyOutlineCallback = ClearBodyOutlineValues;
             BacFile = bacFile;
             BacEntry = bacEntry;
             SkillMove = currentMove;
@@ -370,6 +377,12 @@ namespace XenoKit.Engine.Scripting.BAC
                 (int)CurrentFrame);
         }
 
+        public void StartScreenEffect(BPE_Entry bpeEntry)
+        {
+            ushort bpeIndex = checked((ushort)bpeEntry.SortID);
+            activeScreenEffects[bpeIndex] = new BacScreenEffectInstance(bpeEntry, 0, (int)CurrentFrame);
+        }
+
         public void ClearScreenEffect(BAC_Type16 screenEffect)
         {
             ushort bpeIndex = screenEffect.BpeIndex;
@@ -402,12 +415,7 @@ namespace XenoKit.Engine.Scripting.BAC
         public void ClearBodyOutlineValues()
         {
             if (Actor != null)
-            {
-                Actor.ShaderParameters.BodyOutlineActive = false;
-                Actor.ShaderParameters.BodyOutlineColor = SimdVector4.Zero;
-                Actor.ShaderParameters.BodyOutlineParam2 = SimdVector4.Zero;
-                Actor.ShaderParameters.BodyOutlineParam3 = SimdVector4.Zero;
-            }
+                Actor.ClearBodyOutlineValues();
         }
 
         private static BAC_Type16.ScreenEffectFlagsEnum GetScreenEffectMatchFlags(BAC_Type16.ScreenEffectFlagsEnum flags)
@@ -442,7 +450,7 @@ namespace XenoKit.Engine.Scripting.BAC
             return activeBsaPassConditions.Any(activeCondition => System.Math.Abs(activeCondition - condition) <= BsaConditionTolerance);
         }
 
-        public bool AddProjectile(BAC_Type9 projectileType, BSA_Entry bsaEntry, bool canLoop)
+        public bool AddProjectile(BAC_Type9 projectileType, BSA_Entry bsaEntry, BSA_File bsaFile, bool canLoop)
         {
             if (!IsPreview || bsaEntry == null) return false;
 
@@ -461,7 +469,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 spawnedProjectileTypes.Add(projectileType);
             }
 
-            Projectiles.Add(new ProjectileInstance(this, projectileType, bsaEntry));
+            Projectiles.Add(new ProjectileInstance(this, projectileType, bsaEntry, bsaFile));
             return true;
         }
 

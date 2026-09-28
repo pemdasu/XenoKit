@@ -411,7 +411,7 @@ namespace XenoKit.Editor
         public static bool BacType9_IsBsaTypeSelfReference(Type MoveType, int SkillID, BAC_Type9.BsaTypeEnum bsaType, ushort bsaEntrySkillId)
         {
             if (MoveType == Type.Skill && (bsaType == BsaTypeEnum.AwokenSkill || bsaType == BsaTypeEnum.SuperSkill || bsaType == BsaTypeEnum.UltimateSkill
-                || bsaType == BsaTypeEnum.EvasiveSkill || bsaType == BsaTypeEnum.KiBlastSkill) && bsaEntrySkillId == SkillID) return true;
+                || bsaType == BsaTypeEnum.EvasiveSkill || bsaType == BsaTypeEnum.KiBlastSkill || bsaType == BsaTypeEnum.NEW_AwokenSkill) && bsaEntrySkillId == SkillID) return true;
             return false;
         }
 

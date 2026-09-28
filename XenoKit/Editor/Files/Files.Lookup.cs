@@ -328,6 +328,7 @@ namespace XenoKit.Editor
                 case BAC_Type9.BsaTypeEnum.KiBlastSkill:
                 case BAC_Type9.BsaTypeEnum.SuperSkill:
                 case BAC_Type9.BsaTypeEnum.UltimateSkill:
+                case BAC_Type9.BsaTypeEnum.NEW_AwokenSkill:
                     if (move.SkillID == skillId && move.MoveType == Move.Type.Skill) return move.Files.BsaFile.File;
                     return null;
             }
