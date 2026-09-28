@@ -10,135 +10,75 @@
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="520">
     <Grid>
-        <StackPanel>            <Expander Header="Unknown" IsExpanded="True">
+        <StackPanel>
+            <Expander Header="Deflection Bounds" IsExpanded="True">
+                <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_00"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_00, UpdateSourceTrigger=Default}"/>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Label Content="Bounds Type"/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.BoundsType, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_04"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_04, UpdateSourceTrigger=Default}"/>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Label Content="Bounds Size"/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.BoundsSize, UpdateSourceTrigger=Default}"/>
+                    </Grid>
+                </WrapPanel>
+                <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                    <Label Content="Position"/>
+                    <Label Grid.Column="1" Content="X"/>
+                    <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.PositionX, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="3" Content="Y"/>
+                    <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.PositionY, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="5" Content="Z"/>
+                    <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.PositionZ, UpdateSourceTrigger=Default}"/>
+                </Grid>
+                <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                    <Label Content="Vector A"/>
+                    <Label Grid.Column="1" Content="X"/>
+                    <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorAX, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="3" Content="Y"/>
+                    <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorAY, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="5" Content="Z"/>
+                    <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorAZ, UpdateSourceTrigger=Default}"/>
+                </Grid>
+                <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                    <Label Content="Vector B"/>
+                    <Label Grid.Column="1" Content="X"/>
+                    <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorBX, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="3" Content="Y"/>
+                    <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorBY, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="5" Content="Z"/>
+                    <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.VectorBZ, UpdateSourceTrigger=Default}"/>
+                </Grid>
+                <WrapPanel>
+                    <Grid Margin="3,5,0,0" Width="250">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Label Content="Deflection Priority"/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.Priority, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_08"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_08, UpdateSourceTrigger=Default}"/>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Label Content="Deflection BDM ID"/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.BdmId, UpdateSourceTrigger=Default}"/>
                     </Grid>
+                </WrapPanel>
+                </StackPanel>
+            </Expander>            <Expander Header="Unknown" IsExpanded="False">
+                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F_12"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.F_12, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F_16"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.F_16, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F_20"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.F_20, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_24"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_24, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_28"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_28, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_32"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_32, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_36"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_36, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_40"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_40, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_44"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_44, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Label Content="I_48"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_48, UpdateSourceTrigger=Default}"/>
+                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_48, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_50"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_50, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_52"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_52, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <Label Content="I_54"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_54, UpdateSourceTrigger=Default}"/>
+                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType4View}}, Path=BsaViewModel.I_54, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
             </Expander>

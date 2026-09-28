@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:local="clr-namespace:XenoKit.Views.BSA"
              xmlns:bsaDic="clr-namespace:Xv2CoreLib.ValuesDictionary;assembly=Xv2CoreLib"
              d:DataContext="{d:DesignInstance Type=local:BsaType13View}"
@@ -11,7 +12,18 @@
              d:DesignHeight="300" d:DesignWidth="520">
     <Grid>
         <StackPanel>
-            <Expander Header="Projectile Protection" IsExpanded="True">
+            <Expander IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Projectile Protection" VerticalAlignment="Center"/>
+                        <Border Width="20" Height="20" Margin="6,0,0,0" Background="Transparent" VerticalAlignment="Center"
+                                ToolTipService.InitialShowDelay="100" ToolTipService.ShowDuration="60000"
+                                ToolTip="The game sorts incoming projectiles into numbered groups. Choose which groups this protection blocks. The meaning of each group number is not yet known.">
+                            <iconPacks:PackIconMaterial Kind="Information" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource MahApps.Brushes.Text}"/>
+                        </Border>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
@@ -26,32 +38,24 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="I_02" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.I_02, UpdateSourceTrigger=Default}"/>
+                        <TextBlock Text="Max Hitbox Priority" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Protects against hitboxes with priority at or below this value."/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.MaxHitboxPriority, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Max Hitbox Power" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Incoming hitboxes at or below this power stay protected."/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.MaxHitboxPower, UpdateSourceTrigger=Default}"/>
+                        <TextBlock Text="Block Groups 0-3" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0"/>
+                        <CheckBox Grid.Column="1" Content="Enabled" VerticalAlignment="Center" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.ProtectSelectors0To3, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Protect Selectors 0-3" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Enable protection for the game's projectile selector values 0, 1, 2, and 3."/>
-                        <CheckBox Grid.Column="1" Content="Enabled" VerticalAlignment="Center" ToolTip="Enable protection for the game's projectile selector values 0, 1, 2, and 3." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.ProtectSelectors0To3, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="360">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="175"/>
-                            <ColumnDefinition Width="175"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Protect Additional Selectors" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="These are the game's additional projectile selector values. Choose whether protection also covers 4 and 5, 6, or all of 4 through 6. Selector 6 follows a separate game path and may not be protected in every hit case."/>
-                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.AdditionalSelectorCoverage}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.AdditionalSelectorCoverage}" ToolTip="These are the game's additional projectile selector values. Choose whether protection also covers 4 and 5, 6, or all of 4 through 6. Selector 6 follows a separate game path and may not be protected in every hit case."/>
+                        <TextBlock Text="Block More Groups" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Group 6 uses a separate game path, so some hits may bypass this protection."/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.AdditionalSelectorCoverage}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.AdditionalSelectorCoverage}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
@@ -66,26 +70,11 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Mark Protected Hit" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Marks a hit stopped by projectile protection with the game's protected-hit event flag."/>
-                        <CheckBox Grid.Column="1" Content="Enabled" VerticalAlignment="Center" ToolTip="Marks a hit stopped by projectile protection with the game's protected-hit event flag." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.MarkProtectedHit, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="360">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="175"/>
-                            <ColumnDefinition Width="175"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="I_24" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.I_24, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="360">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="175"/>
-                            <ColumnDefinition Width="175"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="I_28" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.I_28, UpdateSourceTrigger=Default}"/>
+                        <TextBlock Text="Mark Protected Hit" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0"/>
+                        <CheckBox Grid.Column="1" Content="Enabled" VerticalAlignment="Center" ToolTip="Mark hits stopped by this protection." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType13View}}, Path=BsaViewModel.MarkProtectedHit, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
+                </StackPanel>
             </Expander>
         </StackPanel>
     </Grid>

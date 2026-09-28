@@ -5,12 +5,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:local="clr-namespace:XenoKit.Views.BSA"
+             xmlns:bsaDic="clr-namespace:Xv2CoreLib.ValuesDictionary;assembly=Xv2CoreLib"
              d:DataContext="{d:DesignInstance Type=local:BsaType0View}"
              mc:Ignorable="d"
              d:DesignHeight="250" d:DesignWidth="520">
     <Grid>
         <StackPanel>
             <Expander Header="Entry Passing" IsExpanded="True">
+                <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
@@ -25,30 +27,29 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Main Condition" ToolTip="Condition flags for the pass. Stored as hex in the file."/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.MainCondition, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Condition" ToolTip="Chooses the event or state that can pass to another BSA entry."/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.EntryPassingCondition}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.Condition}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="BAC Condition"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.BacCondition, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Condition Value" ToolTip="Signal value for condition 5, or distance for conditions 4 and 9."/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.##" Interval="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.BacCondition, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
+                <StackPanel Margin="8,5" HorizontalAlignment="Left">
+                    <CheckBox Margin="4" Content="Skip entry call" ToolTip="Do not pass the selected BSA entry when the condition succeeds." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.SkipEntryCall}"/>
+                    <CheckBox Margin="4" Content="Skip timing update" ToolTip="Do not adjust projectile timing when this condition succeeds." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.SkipTimingUpdate}"/>
+                    <CheckBox Margin="4" Content="Match signal value" ToolTip="For condition 5, compare the received value with Condition Value." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.CompareSignalValue}"/>
+                    <CheckBox Margin="4" Content="Receive BAC condition" ToolTip="Use this entry when a BAC condition sends the matching value." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.ReceiveBacCondition}"/>
+                </StackPanel>
+                </StackPanel>
             </Expander>
 
             <Expander Header="Unknown" IsExpanded="False">
                 <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_00"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.I_00, UpdateSourceTrigger=Default}"/>
-                    </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

@@ -110,7 +110,9 @@ namespace XenoKit.Views
         public BsaType6ViewModel Type6ViewModel => typeViewModel as BsaType6ViewModel;
         public BsaType7ViewModel Type7ViewModel => typeViewModel as BsaType7ViewModel;
         public BsaType8ViewModel Type8ViewModel => typeViewModel as BsaType8ViewModel;
+        public BsaType9ViewModel Type9ViewModel => typeViewModel as BsaType9ViewModel;
         public BsaType10ViewModel Type10ViewModel => typeViewModel as BsaType10ViewModel;
+        public BsaType11ViewModel Type11ViewModel => typeViewModel as BsaType11ViewModel;
         public BsaType12ViewModel Type12ViewModel => typeViewModel as BsaType12ViewModel;
         public BsaType13ViewModel Type13ViewModel => typeViewModel as BsaType13ViewModel;
         public BsaType14ViewModel Type14ViewModel => typeViewModel as BsaType14ViewModel;

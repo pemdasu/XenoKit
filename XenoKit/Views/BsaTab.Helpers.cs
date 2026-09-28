@@ -180,7 +180,9 @@ namespace XenoKit.Views
                 case 6: return new BSA_Type6();
                 case 7: return new BSA_Type7();
                 case 8: return new BSA_Type8();
+                case 9: return new BSA_Type9();
                 case 10: return new BSA_Type10();
+                case 11: return new BSA_Type11();
                 case 12: return new BSA_Type12();
                 case 13: return new BSA_Type13();
                 case 14: return new BSA_Type14();
@@ -208,7 +210,9 @@ namespace XenoKit.Views
             NotifyPropertyChanged(nameof(Type6ViewModel));
             NotifyPropertyChanged(nameof(Type7ViewModel));
             NotifyPropertyChanged(nameof(Type8ViewModel));
+            NotifyPropertyChanged(nameof(Type9ViewModel));
             NotifyPropertyChanged(nameof(Type10ViewModel));
+            NotifyPropertyChanged(nameof(Type11ViewModel));
             NotifyPropertyChanged(nameof(Type12ViewModel));
             NotifyPropertyChanged(nameof(Type13ViewModel));
             NotifyPropertyChanged(nameof(Type14ViewModel));

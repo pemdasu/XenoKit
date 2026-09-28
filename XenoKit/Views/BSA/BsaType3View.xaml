@@ -27,16 +27,8 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Matrix Flags (raw)" ToolTip="The full I_00 value. The low nibble is the bounds type."/>
-                        <TextBox Grid.Column="1" VerticalAlignment="Center" Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.MatrixFlagsText, UpdateSourceTrigger=LostFocus}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Grow Max Bounds"/>
-                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.Switch}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.GrowMaxBounds}"/>
+                        <Label Content="Distance Bounds" ToolTip="In Min/Max mode, uses the distance to the active object to size the hitbox."/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.Switch}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.UseDistanceRelativeBounds}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
@@ -109,22 +101,23 @@
             </Expander>
 
             <Expander Header="Damage" IsExpanded="True">
+                <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Hit Amount" ToolTip="How many times this hitbox can hit."/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.HitAmount, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Hit Count Control" ToolTip="Sets the hit-count threshold and the hit slot used for the check."/>
+                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.HitCountControl, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Hitbox Lifetime" ToolTip="How long the hitbox stays alive for."/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.HitboxLifetime, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Hitbox Priority" ToolTip="Compared with other event priorities during hit resolution."/>
+                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.HitboxPriority, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
@@ -151,6 +144,8 @@
                         <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.LastHit, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
+                <CheckBox Content="Target Linked Actor Only" Margin="8,5" HorizontalAlignment="Left" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.TargetLinkedActorOnly}" ToolTip="Limits collision to the actor linked to this projectile."/>
+                </StackPanel>
             </Expander>
 
             <Expander Header="Unknown" IsExpanded="False">
@@ -194,30 +189,6 @@
                         </Grid.ColumnDefinitions>
                         <Label Content="I_06_d"/>
                         <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="255" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.I_06_d, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_52"/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.I_52, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_54"/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.I_54, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_56"/>
-                        <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType3View}}, Path=BsaViewModel.I_56, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
             </Expander>

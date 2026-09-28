@@ -25,5 +25,11 @@ namespace XenoKit.Views.BSA
         {
             ((BsaExpirationView)sender).Visibility = e.NewValue != null ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        private void SoundPreview_Click(object sender, RoutedEventArgs e)
+        {
+            if (BsaViewModel != null)
+                BsaType7View.PreviewSound(BsaViewModel.AcbType, BsaViewModel.CueId);
+        }
     }
 }
