@@ -359,7 +359,7 @@ namespace XenoKit.Engine.Character
         private static int PickStumbleOption(int flags)
         {
             if (flags == 0) flags = 0x7;
-            int count = Utils.GetSetBitCount(flags);
+            int count = (flags & 1) + ((flags >> 1) & 1) + ((flags >> 2) & 1);
             int choice = Xv2CoreLib.Random.Range(0, count - 1);
 
             for (int index = 0; index < 3; index++)
