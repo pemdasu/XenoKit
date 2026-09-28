@@ -18,14 +18,20 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public void Update(BacEntryInstance bacEntryInstance, int currentFrame)
         {
-            BacScreenEffectState state = bacEntryInstance.ScreenEffectState;
+            Update(bacEntryInstance.ActiveScreenEffects, bacEntryInstance.ScreenEffectState, currentFrame,
+                bacEntryInstance.ClearScreenEffectCallback, bacEntryInstance.ClearBodyOutlineCallback);
+        }
+
+        public void Update(IEnumerable<BacScreenEffectInstance> activeEffects, BacScreenEffectState state, int currentFrame,
+            Action<ushort> clearEffect, Action clearBodyOutline)
+        {
             state.Clear();
 
             List<ushort> expiredEffects = null;
             int latestBodyOutlineStartFrame = int.MinValue;
             bool hasBodyOutline = false;
 
-            foreach (BacScreenEffectInstance activeEffect in bacEntryInstance.ActiveScreenEffects)
+            foreach (BacScreenEffectInstance activeEffect in activeEffects)
             {
                 BPE_Entry bpeEntry = activeEffect.Entry;
                 int frame = currentFrame - activeEffect.StartFrame;
@@ -86,11 +92,11 @@ namespace XenoKit.Engine.Scripting.BAC
             if (expiredEffects != null)
             {
                 foreach (ushort bpeIndex in expiredEffects)
-                    bacEntryInstance.ClearScreenEffect(bpeIndex);
+                    clearEffect(bpeIndex);
             }
 
             if (!hasBodyOutline)
-                bacEntryInstance.ClearBodyOutlineValues();
+                clearBodyOutline();
         }
 
         public bool HasData(BPE_Entry bpeEntry)

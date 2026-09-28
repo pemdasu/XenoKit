@@ -1303,9 +1303,9 @@ namespace XenoKit.Engine.Shader
             //This is not right.
             //Materials marked as ZWriteMask seem to be rendered last
             if (MatParam.ZWriteMask == 1)
-            {
                 depth.DepthBufferWriteEnable = false;
-            }
+            else if (ShaderType == ShaderType.Emo && MatParam.AlphaBlendType == 0)
+                depth.DepthBufferWriteEnable = true;
 
             return depth;
         }
@@ -1548,13 +1548,14 @@ namespace XenoKit.Engine.Shader
 
     public enum ShaderType
     {
-        Default, //Effects (PBIND, TBIND, EMO)
+        Default,
         Chara,
         CharaNormals, //NORMAL_FADE_WATERDEPTH_W_M
         CharaShadow, //ShadowModel_W
         Stage,
         StageShadow, //ShadowModel
         PostFilter,
+        Emo,
     }
 
     public enum ActorShaderPath

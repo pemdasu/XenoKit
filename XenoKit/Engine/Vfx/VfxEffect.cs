@@ -74,6 +74,9 @@ namespace XenoKit.Engine.Vfx
                 Assets.Clear();
             }
 
+            if (!CanSpawnPart(EffectPart, GetSpawnHeight()))
+                return;
+
             if (EffectPart.AssetType == AssetType.CBIND)
             {
                 if (EffectPart.AssetRef.Files[0].EcfFile == null) return;
@@ -116,9 +119,13 @@ namespace XenoKit.Engine.Vfx
                 Assets.Clear();
             }
 
+            float spawnHeight = GetSpawnHeight();
+
             foreach (EffectPart effectPart in Effect.EffectParts)
             {
                 if (effectPart.AssetRef == null) continue;
+
+                if (!CanSpawnPart(effectPart, spawnHeight)) continue;
 
                 if (effectPart.AssetType == AssetType.CBIND)
                 {
@@ -145,6 +152,17 @@ namespace XenoKit.Engine.Vfx
                     Assets.Add(new VfxTbind(SpawnTransform, effectPart.AssetRef.Files[0].EtrFile, effectPart, Actor, SpawnedByProjectile));
                 }
             }
+        }
+
+        private float GetSpawnHeight()
+        {
+            return SpawnedByProjectile || Actor == null ? SpawnTransform.Translation.Y : Actor.Transform.Translation.Y;
+        }
+
+        private static bool CanSpawnPart(EffectPart effectPart, float height)
+        {
+            // Stage collision is not loaded in the preview, so Y=0 is the ground plane.
+            return !effectPart.OnGroundOnly || Math.Abs(height) <= 0.5f;
         }
 
         private void EffectParts_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

@@ -329,16 +329,31 @@ namespace XenoKit.Engine.Model
 
         public void Draw(Matrix4x4 world, int actor, Xv2ShaderEffect[] materials, Xv2Texture[] textures, Xv2Texture[] dyts, int dytIdx, Xv2Skeleton skeleton = null, ModelInstanceData instanceData = null, bool? glareOutputAllowed = null)
         {
+            if (materials == null)
+                return;
+
             if (skeleton == null)
                 skeleton = Skeleton;
 
-            foreach (Xv2Model model in Models)
+            if (Type == ModelType.Emo && RenderSystem.CurrentDrawPass == Rendering.DrawPass.AlphaBlend)
             {
-                foreach (Xv2Mesh mesh in model.Meshes)
+                Vector3 cameraPosition = ViewportInstance.Camera.CameraState.Position;
+                IEnumerable<Xv2Submesh> submeshes = Models.SelectMany(model => model.Meshes).SelectMany(mesh => mesh.Submeshes)
+                    .Where(submesh => submesh.MaterialIndex < 0 || RenderSystem.CheckDrawPass(materials[submesh.MaterialIndex]))
+                    .OrderByDescending(submesh =>
+                        Vector3.DistanceSquared(Extensions.ToXna(submesh.GetSortPosition(world)), cameraPosition));
+
+                foreach (Xv2Submesh submesh in submeshes)
+                    submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton, instanceData, glareOutputAllowed);
+            }
+            else
+            {
+                foreach (Xv2Model model in Models)
                 {
-                    foreach (Xv2Submesh submesh in mesh.Submeshes)
+                    foreach (Xv2Mesh mesh in model.Meshes)
                     {
-                        submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton, instanceData, glareOutputAllowed);
+                        foreach (Xv2Submesh submesh in mesh.Submeshes)
+                            submesh.Draw(ref world, actor, materials, textures, dyts, dytIdx, skeleton, instanceData, glareOutputAllowed);
                     }
                 }
             }
@@ -1268,7 +1283,7 @@ namespace XenoKit.Engine.Model
                     Vertices[i].BlendIndex1 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[1];
                     Vertices[i].BlendIndex2 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[2];
                     Vertices[i].BlendIndex3 = SourceEmdSubmesh.Vertexes[i].BlendIndexes[3];
-                    Vertices[i].BlendWeights = new Vector3(SourceEmdSubmesh.Vertexes[i].BlendWeights[0], SourceEmdSubmesh.Vertexes[i].BlendWeights[1], SourceEmdSubmesh.Vertexes[i].BlendWeights[2]);
+                    Vertices[i].BlendWeights = new Vector4(SourceEmdSubmesh.Vertexes[i].BlendWeights[0], SourceEmdSubmesh.Vertexes[i].BlendWeights[1], SourceEmdSubmesh.Vertexes[i].BlendWeights[2], SourceEmdSubmesh.Vertexes[i].BlendWeights[3]);
                 }
             }
 
@@ -1335,7 +1350,7 @@ namespace XenoKit.Engine.Model
                     Vertices[i].BlendIndex1 = SourceEmgMesh.Vertices[i].BlendIndexes[1];
                     Vertices[i].BlendIndex2 = SourceEmgMesh.Vertices[i].BlendIndexes[2];
                     Vertices[i].BlendIndex3 = SourceEmgMesh.Vertices[i].BlendIndexes[3];
-                    Vertices[i].BlendWeights = new Vector3(SourceEmgMesh.Vertices[i].BlendWeights[0], SourceEmgMesh.Vertices[i].BlendWeights[1], SourceEmgMesh.Vertices[i].BlendWeights[2]);
+                    Vertices[i].BlendWeights = new Vector4(SourceEmgMesh.Vertices[i].BlendWeights[0], SourceEmgMesh.Vertices[i].BlendWeights[1], SourceEmgMesh.Vertices[i].BlendWeights[2], SourceEmgMesh.Vertices[i].BlendWeights[3]);
                 }
             }
 
@@ -1369,8 +1384,7 @@ namespace XenoKit.Engine.Model
         {
             if (materials == null) return;
 
-            Xv2Bone attachBone = Parent.AttachBone;
-            Matrix4x4 newWorld = attachBone != null ? Transform * attachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Matrix4x4 newWorld = GetWorldTransform(world);
 
             Xv2ShaderEffect material = MaterialIndex != -1 ? materials[MaterialIndex] : (EnableSkinning ? DefaultShaders.VertexColor_W : DefaultShaders.WhiteWireframe);
 
@@ -1425,8 +1439,7 @@ namespace XenoKit.Engine.Model
         {
             //if (!RenderSystem.CheckDrawPass(material)) return;
 
-            Xv2Bone attachBone = Parent.AttachBone;
-            Matrix4x4 newWorld = attachBone != null ? Transform * attachBone.AbsoluteAnimationMatrix * world : Transform * world;
+            Matrix4x4 newWorld = GetWorldTransform(world);
 
             if (!FrustumIntersects(newWorld) && instanceData == null)
                 return;
@@ -1932,6 +1945,19 @@ namespace XenoKit.Engine.Model
         public Vector3 GetAABBCenter()
         {
             return Parent.AttachBone != null ? Vector3.Transform(BoundingBoxCenter, Parent.AttachBone.AbsoluteAnimationMatrix) : BoundingBoxCenter;
+        }
+
+        public SimdVector3 GetSortPosition(Matrix4x4 world)
+        {
+            SimdVector3 center = new SimdVector3(SourceEmgSubmesh.BarycenterX, SourceEmgSubmesh.BarycenterY, SourceEmgSubmesh.BarycenterZ);
+            return SimdVector3.Transform(center, GetWorldTransform(world));
+        }
+
+        private Matrix4x4 GetWorldTransform(Matrix4x4 world)
+        {
+            return Parent.AttachBone != null
+                ? Transform * Parent.AttachBone.AbsoluteAnimationMatrix * world
+                : Transform * world;
         }
     }
 
