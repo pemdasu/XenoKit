@@ -123,7 +123,7 @@ namespace XenoKit.Engine.Vfx.Asset
 
             if (Model != null)
             {
-                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Default);
+                Materials = Xv2ShaderEffect.LoadMaterials(EmmFile, ShaderType.Emo);
                 Model.InitMaterialIndex(Materials);
             }
             else

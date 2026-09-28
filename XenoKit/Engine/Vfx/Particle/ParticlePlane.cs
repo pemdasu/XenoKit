@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using System;
 using XenoKit.Engine.Rendering;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
@@ -29,9 +30,10 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             float scaleU_FirstVertex = ((Node.NodeFlags & NodeFlags1.EnableScaleXY) != 0) ? ScaleBase : ScaleU;
 
-            float aabbX = scaleU_FirstVertex > ScaleU ? scaleU_FirstVertex : ScaleU;
-            Vector3 min = new Vector3(aabbX, ScaleV, 0f);
-            Vector3 max = new Vector3(-aabbX, -ScaleV, 0f);
+            float aabbX = Math.Max(Math.Abs(scaleU_FirstVertex), Math.Abs(ScaleU));
+            float aabbY = Math.Abs(ScaleV);
+            Vector3 min = new Vector3(-aabbX, -aabbY, 0f);
+            Vector3 max = new Vector3(aabbX, aabbY, 0f);
 
             AABB = new BoundingBox(min, max);
         }
@@ -60,74 +62,12 @@ namespace XenoKit.Engine.Vfx.Particle
                 UpdateColor();
                 UpdateAABB();
 
-                //Update world matrix
-                Matrix4x4 newWorld;
+                if (Node.EmissionNode.BillboardType == ParticleBillboardType.Camera &&
+                    Node.EmissionNode.VelocityOriented && Velocity == Vector3.Zero)
+                    DrawThisFrame = false;
 
-                if (Node.EmissionNode.BillboardType == ParticleBillboardType.Camera)
-                {
-                    Matrix4x4 attachBone = GetAttachmentBone();
-                    float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
-
-                    //Used for setting the translation component of the final billboard matrix
-                    Matrix4x4 worldTranslation = Transform * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
-
-                    if (Node.EmissionNode.VelocityOriented)
-                    {
-                        //Skip rendering all together if velocity is zero
-                        if (Velocity == Vector3.Zero)
-                        {
-                            DrawThisFrame = false;
-                        }
-
-                        Matrix4x4 world = Transform * attachBone;
-
-                        //This is not entirely correct.
-                        //Matrix.CreateBillboard does not create the same result as in game. This method makes the particle always look at the current camera position, while in game it only cares about camera direction
-                        //newWorld = Matrix.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi) * Matrix.CreateConstrainedBillboard(world.Translation, CameraBase.CameraState.Position, world.Up, -Vector3.Up, null) * Matrix.CreateScale(ParticleSystem.Scale);
-                        Matrix4x4 billboard = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) *
-                                   Matrix4x4.CreateConstrainedBillboard(world.Translation, Camera.CameraState.Position, world.GetUp(), -MathHelpers.Up, SimdVector3.Zero);
-                        billboard.Translation = SimdVector3.Zero;
-
-                        newWorld = billboard *
-                                   Matrix4x4.CreateScale(ParticleSystem.Scale);
-                        
-                        newWorld.Translation = worldTranslation.Translation;
-                    }
-                    else
-                    {
-                        Matrix4x4 billboard = Matrix4x4.CreateFromAxisAngle(MathHelpers.Up, MathHelper.Pi) *
-                                   Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) *
-                                   MathHelpers.Invert(Camera.ViewMatrix);
-                        billboard.Translation = SimdVector3.Zero;
-
-                        newWorld = billboard *
-                                   Matrix4x4.CreateScale(ParticleSystem.Scale);
-                        newWorld.Translation = worldTranslation.Translation;
-                    }
-                }
-                else if (Node.EmissionNode.BillboardType == ParticleBillboardType.Front)
-                {
-                    Matrix4x4 attachBone = GetAttachmentBone();
-                    float rotAmount = RandomDirection ? -RotationAmount : RotationAmount;
-                    Matrix4x4 world = Transform * Matrix4x4.CreateScale(ParticleSystem.Scale) * attachBone;
-                    Matrix4x4 billboard = Matrix4x4.CreateFromAxisAngle(MathHelpers.Forward, MathHelper.ToRadians(-rotAmount)) *
-                               Matrix4x4.CreateBillboard(world.Translation, attachBone.Translation, MathHelpers.Up, SimdVector3.Zero);
-                    billboard.Translation = SimdVector3.Zero;
-
-                    newWorld = billboard *
-                               Matrix4x4.CreateScale(ParticleSystem.Scale);
-                    newWorld.Translation = world.Translation;
-                }
-                else
-                {
-                    //Is ParticleBillboardType.None
-                    newWorld = GetRotationAxisWorld(false);
-                }
-
-                //Apply RenderDepth offset to world position. This translates the camera toward or away from the camera by the amount specified in RenderDepth.
-                //This isn't exactly how the game handles this (it moves the vertex positions), but it produces the same result and is quicker to implement
-                newWorld *= Matrix4x4.CreateTranslation(Camera.TransformRelativeToCamera(newWorld.Translation, Node.EmissionNode.Texture.RenderDepth));
-                AbsoluteTransform = newWorld;
+                AbsoluteTransform = ParticleBillboard.CreateWorld(this, Node.EmissionNode.BillboardType,
+                    Node.EmissionNode.VelocityOriented, RotationAmount, RandomDirection, Node.EmissionNode.Texture.RenderDepth);
             }
 
             UpdateChildrenNodes();
@@ -137,7 +77,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         public void DrawBatch()
         {
-            if (!Viewport.Instance.DrawThisFrame) return;
+            if (!Viewport.Instance.DrawThisFrame || !DrawThisFrame) return;
             if (EmissionData == null || ParticleSystem == null) return;
             //if (!ParticleSystem.DrawThisFrame) return;
             //if (!RenderSystem.CheckDrawPass(EmissionData.Material) || !ParticleSystem.DrawThisFrame) return;

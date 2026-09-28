@@ -182,7 +182,7 @@ namespace XenoKit.Engine.Vfx.Shape
                 for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
                 {
                     int vertexIndex = (rowIndex * columnCount) + columnIndex;
-                    Vector2 uv = GetTbindGridUv(profiledSamples[0], row, rowIndex, rowCount, columnIndex, columnCount, uvScrollU, uvScrollV, uvStepU, uvStepV);
+                    Vector2 uv = GetTbindGridUv(shape, profiledSamples[0], rowIndex, rowCount, columnIndex, columnCount, uvScrollU, uvScrollV, uvStepU, uvStepV);
                     Color color = GetTbindColumnColor(row, columnIndex, columnCount);
                     SimdVector3 normal = GetTbindVertexNormal(row, rowFrames, rowIndex, autoOrientation);
                     SimdVector3 tangent = GetTbindVertexTangent(row, rowFrames, rowIndex, autoOrientation);
@@ -272,7 +272,7 @@ namespace XenoKit.Engine.Vfx.Shape
             return ApplyAlphaScale(segment.PrimaryColor, segment.AlphaScale);
         }
 
-        private static Vector2 GetTbindGridUv(EffectShapeSegment firstRow, EffectShapeSegment row, int rowIndex, int rowCount, int columnIndex, int columnCount, float scrollU, float scrollV, float stepU, float stepV)
+        private static Vector2 GetTbindGridUv(IList<EffectShapePoint> shape, EffectShapeSegment firstRow, int rowIndex, int rowCount, int columnIndex, int columnCount, float scrollU, float scrollV, float stepU, float stepV)
         {
             if (columnCount == 2)
             {
@@ -281,8 +281,8 @@ namespace XenoKit.Engine.Vfx.Shape
                 return new Vector2(scrollU + (stepU * baseU), scrollV + (stepV * baseV));
             }
 
-            float u = firstRow.UvBaseU + SafeDivide(columnIndex, columnCount - 1);
-            float v = firstRow.UvBaseV + rowIndex;
+            float u = firstRow.UvBaseU + (1f - shape[columnIndex].Y) * 0.5f;
+            float v = firstRow.UvBaseV + SafeDivide(rowIndex, rowCount - 1);
             return new Vector2(scrollU + (stepU * u), scrollV + (stepV * v));
         }
 

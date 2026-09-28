@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace XenoKit.Engine.Vertex
 {
-    [StructLayout(LayoutKind.Explicit, Size = 72)]
+    [StructLayout(LayoutKind.Explicit, Size = 76)]
     public struct VertexPositionNormalTextureBlend : IVertexType
     {
         [FieldOffset(0)]
@@ -36,7 +36,7 @@ namespace XenoKit.Engine.Vertex
         [FieldOffset(59)]
         public byte BlendIndex3;
         [FieldOffset(60)]
-        public Vector3 BlendWeights;
+        public Vector4 BlendWeights;
 
         //Vertex Type:
         public static readonly VertexDeclaration VertexDeclaration;
@@ -44,7 +44,7 @@ namespace XenoKit.Engine.Vertex
 
 
 
-        public VertexPositionNormalTextureBlend(Vector3 position, Vector3 normal, Vector3 tangent, Vector2 texUV0, Vector2 texUV1, Vector4 color, byte blendIndex0, byte blendIndex1, byte blendIndex2, byte blendIndex3, Vector3 blendWeights)
+        public VertexPositionNormalTextureBlend(Vector3 position, Vector3 normal, Vector3 tangent, Vector2 texUV0, Vector2 texUV1, Vector4 color, byte blendIndex0, byte blendIndex1, byte blendIndex2, byte blendIndex3, Vector4 blendWeights)
         {
             Position = position;
             Normal = normal;
@@ -71,7 +71,7 @@ namespace XenoKit.Engine.Vertex
                                                                 new VertexElement(44, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 1),
                                                                 new VertexElement(52, VertexElementFormat.Color, VertexElementUsage.Color, 0),
                                                                 new VertexElement(56, VertexElementFormat.Byte4, VertexElementUsage.BlendIndices, 0),
-                                                                new VertexElement(60, VertexElementFormat.Vector3, VertexElementUsage.BlendWeight, 0) };
+                                                                new VertexElement(60, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0) };
             VertexDeclaration declaration = new VertexDeclaration(elements);
             VertexDeclaration = declaration;
         }

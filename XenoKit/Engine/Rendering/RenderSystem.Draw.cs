@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
 using XenoKit.Engine.Scripting.BAC;
+using XenoKit.Engine.Scripting.BSA;
 using XenoKit.Engine.Shader;
 using XenoKit.Inspector.InspectorEntities;
 using Xv2CoreLib.EMM;
@@ -239,6 +240,9 @@ namespace XenoKit.Engine.Rendering
                 BacScreenEffectState state = SceneManager.Actors[actorSlot]?.ActionControl?.BacPlayer?.BacEntryInstance?.ScreenEffectState;
                 ApplyScreenEffects(state);
             }
+
+            if (SceneManager.IsOnTab(EditorTabs.Projectile))
+                ApplyScreenEffects(BsaEffectPreviewController.Instance.ScreenEffectState);
         }
 
         private void ApplyScreenEffects(BacScreenEffectState state)
