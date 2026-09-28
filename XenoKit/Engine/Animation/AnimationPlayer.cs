@@ -143,7 +143,7 @@ namespace XenoKit.Engine.Animation
 
             //Advance frame
             if (ViewportInstance.IsPlaying && IsUsingAnimation && PrimaryAnimation?.CurrentFrame < PrimaryAnimation?.EndFrame &&
-                SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Action, EditorTabs.Inspector, EditorTabs.InspectorAnimation))
+                SceneManager.IsOnTab(EditorTabs.Animation, EditorTabs.Action, EditorTabs.Projectile, EditorTabs.Inspector, EditorTabs.InspectorAnimation))
             {
                 AdvanceFrame();
             }

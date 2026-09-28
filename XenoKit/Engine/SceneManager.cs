@@ -7,8 +7,10 @@ using XenoKit.Engine.Model;
 using XenoKit.Engine.Scripting.BSA;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
+using Xv2CoreLib.BDM;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.SPM;
+using SimdVector3 = System.Numerics.Vector3;
 
 namespace XenoKit.Engine
 {
@@ -215,6 +217,7 @@ namespace XenoKit.Engine
                     case MainEditorTabs.Projectile:
                         CurrentSceneState = EditorTabs.Projectile;
                         ActorsEnable[0] = false;
+                        ActorsEnable[1] = true;
                         break;
                     case MainEditorTabs.State:
                         CurrentSceneState = EditorTabs.State;
@@ -324,34 +327,45 @@ namespace XenoKit.Engine
         public static float BattleDamageBlood = 0f;
 
         //Simulation Parameters
-        private static bool _victimIsFacingPrimary = true;
-        private static float _victimDistance = 2f;
+        private static SimdVector3 victimPosition = new SimdVector3(0f, 0f, -2f);
+        private static SimdVector3 victimRotation = new SimdVector3(0f, 180f, 0f);
+        public static event EventHandler VictimTransformChanged;
         public static bool VictimEnabled { get; set; } = false;
-        public static float VictimDistance
+        public static bool VictimAutoRecover { get; set; } = true;
+        public static int VictimRecoveryFrames { get; set; } = 120;
+        public static bool VictimInvulnerable { get; set; } = false;
+        public static SimdVector3 VictimPosition
         {
-            get => _victimDistance;
+            get => victimPosition;
             set
             {
-                if (_victimDistance != value)
-                {
-                    _victimDistance = MathHelper.Clamp(value, -15f, 15f);
-                    Actors[1]?.ResetPosition();
-                }
+                victimPosition = value;
+                Actors[1]?.ResetPosition();
+                VictimTransformChanged?.Invoke(null, EventArgs.Empty);
             }
         }
-        public static bool VictimIsFacingPrimary
+        public static SimdVector3 VictimRotation
         {
-            get => _victimIsFacingPrimary;
+            get => victimRotation;
             set
             {
-                if (_victimIsFacingPrimary != value)
-                {
-                    _victimIsFacingPrimary = value;
-                    Actors[1]?.ResetPosition();
-                }
+                victimRotation = value;
+                Actors[1]?.ResetPosition();
+                VictimTransformChanged?.Invoke(null, EventArgs.Empty);
             }
         }
-        public static bool VictimIsGuarding { get; set; }
+        public static HitboxState? VictimHitboxState { get; set; }
+
+        public static void SetVictimTransform(System.Numerics.Matrix4x4 transform)
+        {
+            if (!System.Numerics.Matrix4x4.Decompose(transform, out SimdVector3 scale,
+                out System.Numerics.Quaternion rotation, out SimdVector3 position))
+                throw new InvalidOperationException("Victim transform cannot be decomposed.");
+
+            victimPosition = position;
+            victimRotation = rotation.ToEuler();
+            VictimTransformChanged?.Invoke(null, EventArgs.Empty);
+        }
 
         public static bool AllowBacLoop { get; set; }
 

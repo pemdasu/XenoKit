@@ -13,13 +13,16 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
         public EntityTransformOperation(EngineObject entity)
         {
             this.entity = entity;
-            originalMatrix = entity.Transform;
+            originalMatrix = entity is Actor actor ? actor.BaseTransform : entity.Transform;
         }
 
         public override void Confirm()
         {
             if (IsFinished)
                 throw new InvalidOperationException($"EntityTransformOperation.Confirm: This transformation has already been finished, cannot add undo step or cancel at this point.");
+
+            if (Modified && entity is Actor actor && actor == SceneManager.Actors[1])
+                SceneManager.SetVictimTransform(actor.BaseTransform);
 
             IsFinished = true;
         }
@@ -29,7 +32,10 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (IsFinished)
                 throw new InvalidOperationException($"EntityTransformOperation.Cancel: This transformation has already been finished, cannot add undo step or cancel at this point.");
 
-            entity.Transform = originalMatrix;
+            if (entity is Actor actor)
+                actor.BaseTransform = originalMatrix;
+            else
+                entity.Transform = originalMatrix;
 
             IsFinished = true;
         }
@@ -39,7 +45,28 @@ namespace XenoKit.Engine.Gizmo.TransformOperations
             if (delta != Vector3.Zero)
             {
                 Modified = true;
-                entity.Transform *= Matrix4x4.CreateTranslation(new SimdVector3(delta.X, delta.Y, delta.Z));
+                Matrix4x4 translation = Matrix4x4.CreateTranslation(new SimdVector3(delta.X, delta.Y, delta.Z));
+                if (entity is Actor actor)
+                    actor.BaseTransform *= translation;
+                else
+                    entity.Transform *= translation;
+            }
+        }
+
+        public override Vector3 GetRotationAngles()
+        {
+            Matrix4x4 matrix = entity is Actor actor ? actor.BaseTransform : entity.Transform;
+            Matrix4x4.Decompose(matrix, out SimdVector3 scale, out System.Numerics.Quaternion rotation, out SimdVector3 position);
+            return Extensions.ToXna(rotation.ToEuler());
+        }
+
+        public override void UpdateRot(Vector3 newRot)
+        {
+            if (entity is Actor actor && actor == SceneManager.Actors[1])
+            {
+                Modified = true;
+                actor.BaseTransform = Matrix4x4.CreateFromQuaternion(newRot.ToNumerics().EulerToQuaternion()) *
+                    Matrix4x4.CreateTranslation(actor.BaseTransform.Translation);
             }
         }
     }

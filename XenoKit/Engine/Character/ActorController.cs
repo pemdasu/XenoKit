@@ -53,7 +53,7 @@ namespace XenoKit.Engine.Character
         {
             if (!keepAnimation)
             {
-                ClearBacEntries();
+                DamageManager.ResetBdmEntry();
                 State = Actor.ActorSlot == 0 ? ActorState.Null : ActorState.Idle;
             }
 
@@ -103,7 +103,7 @@ namespace XenoKit.Engine.Character
                 SetBacEntries(BAC_IDLE_STANCE);
                 LoopBacEntries = true;
             }
-            else if (DamageManager.HasEntry)
+            else if (state != ActorState.Null && DamageManager.HasEntry)
             {
                 SetBacEntries(DamageManager.GetBacEntryForActorState(state));
             }
@@ -112,12 +112,13 @@ namespace XenoKit.Engine.Character
         #region Update
         public void Update()
         {
-            UpdateIFrames();
-            UpdateFreezeActionFrames();
-
-            if (DamageManager.HasEntry)
+            if (Actor.ViewportInstance.IsPlaying)
             {
-                UpdateDamageState(false);
+                UpdateIFrames();
+                UpdateFreezeActionFrames();
+
+                if (DamageManager.HasEntry)
+                    UpdateDamageState(false);
             }
             
             if (State != ActorState.Null)
@@ -231,9 +232,14 @@ namespace XenoKit.Engine.Character
 
         public void ApplyDamageState(BDM_Entry bdmEntry, SimdVector3 damageDir, BacHitbox hitbox)
         {
+            ApplyDamageState(bdmEntry, damageDir, hitbox.OwnerActor, hitbox.BacEntry.SkillMove, hitbox.GetAbsoluteHitboxMatrix());
+        }
+
+        public void ApplyDamageState(BDM_Entry bdmEntry, SimdVector3 damageDir, Actor attacker, Move move, System.Numerics.Matrix4x4 hitPosition)
+        {
             if (bdmEntry != null)
             {
-                DamageManager.InitBdmEntry(bdmEntry, damageDir, hitbox.OwnerActor, hitbox.BacEntry.SkillMove, hitbox.GetAbsoluteHitboxMatrix());
+                DamageManager.InitBdmEntry(bdmEntry, damageDir, attacker, move, hitPosition);
 
                 if(DamageManager.BdmSubEntry.DamageType == DamageType.Grab)
                 {
@@ -242,7 +248,18 @@ namespace XenoKit.Engine.Character
                     return;
                 }
 
-                State = DamageManager.GetInitialActorState();
+                if (DamageManager.BdmSubEntry.DamageType == DamageType.None)
+                    return;
+
+                ActorState initialState = DamageManager.GetInitialActorState();
+                if (initialState == ActorState.Null)
+                {
+                    Log.Add($"BDM damage type {DamageManager.BdmSubEntry.DamageType} is not supported in the preview.", LogType.Warning);
+                    DamageManager.ResetBdmEntry();
+                    return;
+                }
+
+                State = initialState;
             }
         }
 
@@ -250,12 +267,39 @@ namespace XenoKit.Engine.Character
         {
             if (DamageManager.HasEntry)
             {
-                //Return to idle state when damage animations have finished 
-                if (CurrentBacEntry >= BacEntryCount && ActiveBacEntry == null)
+                bool hasDamageAnimation = DamageManager.BdmSubEntry.DamageType != DamageType.None;
+                bool animationFinished = CurrentBacEntry >= BacEntryCount && ActiveBacEntry == null;
+                bool waitsForRecovery = State == ActorState.Knockback &&
+                    (DamageManager.BdmSubEntry.DamageType == DamageType.Knockback1 ||
+                     DamageManager.BdmSubEntry.DamageType == DamageType.LightStaminaBreak);
+                bool isTimedStatus = State == ActorState.SingleAnimation &&
+                    (DamageManager.BdmSubEntry.DamageType == DamageType.Electric ||
+                     DamageManager.BdmSubEntry.DamageType == DamageType.Dazed ||
+                     DamageManager.BdmSubEntry.DamageType == DamageType.Paralysis);
+                bool timedStateFinished = (waitsForRecovery || isTimedStatus) && DamageManager.CurrentFrame > 0 &&
+                    DamageManager.CurrentFrame >= DamageManager.BdmSubEntry.KnockbackDuration + DamageManager.BdmSubEntry.VictimStun;
+                bool recoveryLimitReached = Actor.ActorSlot == 1 && SceneManager.VictimAutoRecover &&
+                    (State == ActorState.Knockback || State == ActorState.Falling || State == ActorState.GroundImpact) &&
+                    DamageManager.CurrentFrame >= SceneManager.VictimRecoveryFrames;
+                if (recoveryLimitReached)
                 {
                     DamageManager.ResetBdmEntry();
                     State = ActorState.Idle;
                     return;
+                }
+                if (hasDamageAnimation && (timedStateFinished ||
+                    (animationFinished && !waitsForRecovery && !isTimedStatus)))
+                {
+                    ActorState nextState = DamageManager.GetNextActorState();
+                    if (nextState == ActorState.Null)
+                    {
+                        DamageManager.ResetBdmEntry();
+                        if (Actor.ActorSlot == 1 && SceneManager.VictimAutoRecover)
+                            State = ActorState.Idle;
+                        return;
+                    }
+
+                    State = nextState;
                 }
 
                 //On the first frame, activate the effects and sounds declared on the BDM entry and initialize any other settings
@@ -278,14 +322,13 @@ namespace XenoKit.Engine.Character
 
                     DamageManager.PushbackStrength = DamageManager.BdmSubEntry.PushbackStrength;
 
-                    if (!simulate)
+                    if (!simulate && DamageManager.BdmSubEntry.CueId != -1 &&
+                        Actor.ViewportInstance.IsPlaying && Actor.AnimationPlayer.PrimaryAnimation != null)
                     {
                         Xv2CoreLib.ACB.ACB_Wrapper acb = Files.Instance.GetAcbFile((Xv2CoreLib.BAC.AcbType)DamageManager.BdmSubEntry.AcbType, DamageManager.Move, Actor, true);
 
-                        if (acb != null && DamageManager.BdmSubEntry.CueId != -1 && Actor.ViewportInstance.IsPlaying && Actor.AnimationPlayer.PrimaryAnimation != null)
-                        {
+                        if (acb != null)
                             Viewport.Instance.AudioEngine.PlayCue(DamageManager.BdmSubEntry.CueId, acb, Actor);
-                        }
                     }
                 }
 
@@ -294,17 +337,18 @@ namespace XenoKit.Engine.Character
                     //Pushback
                     if (!MathHelpers.FloatEquals(DamageManager.PushbackStrength, 0f) && DamageManager.UsePushback)
                     {
-                        SimdVector3 pushbackVector = DamageManager.Victim.Transform.Translation - DamageManager.Attacker.Transform.Translation;
-                        pushbackVector = SimdVector3.Normalize(pushbackVector);
-                        Actor.ApplyTranslation(pushbackVector * DamageManager.PushbackStrength);
+                        SimdVector3 pushbackVector = SimdVector3.TransformNormal(-DamageManager.HitVector, Actor.Transform);
+                        if (pushbackVector.LengthSquared() > 0f)
+                            Actor.ApplyTranslation(SimdVector3.Normalize(pushbackVector) * DamageManager.PushbackStrength);
 
                         //PushbackStrength may need to be clamped with high accerlerations
                         DamageManager.PushbackStrength *= DamageManager.BdmSubEntry.PushbackAcceleration;
                     }
 
-                    if(State == ActorState.Knockback)
+                    if (State == ActorState.Knockback || State == ActorState.Falling)
                     {
-
+                        Actor.ApplyTranslation(DamageManager.KnockbackVelocity);
+                        DamageManager.KnockbackVelocity += SimdVector3.UnitY * DamageManager.BdmSubEntry.KnockbackDragY;
                     }
                 }
 
@@ -332,6 +376,6 @@ namespace XenoKit.Engine.Character
         Falling,
         GroundImpact,
         RecoveryFromGround,
-        RecoveryFromFalling
+        StatusRecovery
     }
 }

@@ -3,7 +3,9 @@ using Xv2CoreLib;
 using XenoKit.Editor;
 using XenoKit.Engine.Animation;
 using XenoKit.Engine.Scripting.BAC;
+using XenoKit.Engine.Scripting.BSA;
 using Xv2CoreLib.EAN;
+using Xv2CoreLib.BAC;
 using XenoKit.Controls;
 using XenoKit.Engine.Character;
 using XenoKit.Engine.Collision;
@@ -71,7 +73,6 @@ namespace XenoKit.Engine
         public ActorController Controller { get; private set; }
 
         //Hitbox:
-        public BoundingBox Hitbox { get; set; }
         public float[] AABB { get; private set; }
         public bool HitboxEnabled = true;
 
@@ -173,8 +174,8 @@ namespace XenoKit.Engine
             switch (ActorSlot)
             {
                 case 1:
-                    pos = new SimdVector3(0, 0, -SceneManager.VictimDistance);
-                    rotation = SceneManager.VictimIsFacingPrimary ? Matrix4x4.CreateRotationY(MathHelper.Pi) : Matrix4x4.Identity;
+                    pos = SceneManager.VictimPosition;
+                    rotation = Matrix4x4.CreateFromQuaternion(SceneManager.VictimRotation.EulerToQuaternion());
                     break;
                 default:
                     pos = SimdVector3.Zero;
@@ -190,10 +191,7 @@ namespace XenoKit.Engine
         public void ResetState(bool keepAnimation = false)
         {
             ShaderParameters.ShaderPath = ActorShaderPath.Default;
-            ShaderParameters.BodyOutlineActive = false;
-            ShaderParameters.BodyOutlineColor = SimdVector4.Zero;
-            ShaderParameters.BodyOutlineParam2 = SimdVector4.Zero;
-            ShaderParameters.BodyOutlineParam3 = SimdVector4.Zero;
+            ClearBodyOutlineValues();
             BdmTimeScaleDuration = 0;
             BdmTimeScale = 1f;
             BacTimeScale = 1f;
@@ -210,6 +208,14 @@ namespace XenoKit.Engine
 
             if (!retainActionPosition)
                 ResetPosition();
+        }
+
+        public void ClearBodyOutlineValues()
+        {
+            ShaderParameters.BodyOutlineActive = false;
+            ShaderParameters.BodyOutlineColor = SimdVector4.Zero;
+            ShaderParameters.BodyOutlineParam2 = SimdVector4.Zero;
+            ShaderParameters.BodyOutlineParam3 = SimdVector4.Zero;
         }
 
         #endregion
@@ -252,11 +258,6 @@ namespace XenoKit.Engine
             PartSet.Update();
             FpfPosePreview.ApplyAdditionalSkeletons(this);
 
-            //Update hitbox
-            if (SceneManager.IsOnTab(EditorTabs.Action))
-            {
-                Hitbox = new BoundingBox(new Vector3(AABB[0], AABB[1], AABB[2]) + Transform.Translation, new Vector3(AABB[3], AABB[4], AABB[5]) + Transform.Translation);
-            }
         }
 
         public override void DelayedUpdate()
@@ -297,11 +298,6 @@ namespace XenoKit.Engine
             PartSet.Update();
             FpfPosePreview.ApplyAdditionalSkeletons(this);
 
-            //Update hitbox
-            if (SceneManager.IsOnTab(EditorTabs.Action))
-            {
-                Hitbox = new BoundingBox(new Vector3(AABB[0], AABB[1], AABB[2]) + Transform.Translation, new Vector3(AABB[3], AABB[4], AABB[5]) + Transform.Translation);
-            }
         }
 
         public override void Draw()
@@ -354,21 +350,62 @@ namespace XenoKit.Engine
 
         public bool HitTest(BacHitbox hitbox)
         {
-            if (!HitboxEnabled || Controller.InvulnerabilityFrames > 0 || Controller.FreezeActionFrames > 0) return false;
-
-            if (hitbox.IsSupported && Hitbox.Intersects(hitbox.BoundingBox))
+            if (hitbox.IsSupported && hitbox.CanHit(this) && CanBeHit(hitbox.BoundingBox))
             {
                 Xv2CoreLib.BDM.BDM_File bdm = Files.Instance.GetBdmFile(hitbox.Hitbox.bdmFile, hitbox.BacEntry.SkillMove, hitbox.BacEntry.User, false);
 
-                if(bdm != null)
-                {
-                    Controller.ApplyDamageState(bdm.GetEntry(hitbox.Hitbox.BdmEntryID), hitbox.GetRelativeDirection(Transform), hitbox);
-                }
+                Xv2CoreLib.BDM.BDM_Entry entry = bdm?.GetEntry(hitbox.Hitbox.BdmEntryID);
+                if (entry == null)
+                    return false;
 
+                Controller.ApplyDamageState(entry, hitbox.GetRelativeDirection(Transform), hitbox);
+                hitbox.RecordHit(this);
                 return true;
             }
 
             return false;
+        }
+
+        public bool CanBeHit(BoundingBox bounds, BsaHitboxPreview projectileHitbox = null)
+        {
+            return !(ActorSlot == 1 && SceneManager.VictimInvulnerable) &&
+                HitboxEnabled && Controller.InvulnerabilityFrames <= 0 && Controller.FreezeActionFrames <= 0 &&
+                HurtboxIntersects(bounds, projectileHitbox);
+        }
+
+        private bool HurtboxIntersects(BoundingBox bounds, BsaHitboxPreview projectileHitbox = null)
+        {
+            // The game checks these IDs directly; CMS I_16 = 4 also includes other characters.
+            bool largeBody = ShortName == "BRL" || ShortName == "TM1";
+            bool giantBody = ShortName == "DM2";
+            float pelvisRadius = giantBody ? 1.2f : largeBody ? 0.8f : 0.5f;
+            float headRadius = giantBody ? 0.8f : largeBody ? 0.5f : 0.2f;
+            float pelvisOffset = largeBody ? -0.4f : -0.2f;
+
+            int bodyId = Skeleton.GetActiveBoneScaleId();
+            var cbsEntry = CharacterData.CbsEntry?.Find(entry => entry.BodyId == bodyId);
+            if (cbsEntry != null)
+            {
+                if (cbsEntry.F_20 > 0f)
+                    pelvisRadius *= cbsEntry.F_20;
+                if (cbsEntry.F_16 > 0f)
+                    headRadius *= cbsEntry.F_16;
+            }
+
+            return BoneSphereIntersects(BoneLinks.b_C_Pelvis, new SimdVector3(0f, pelvisOffset, 0f), pelvisRadius, bounds, projectileHitbox) ||
+                BoneSphereIntersects(BoneLinks.b_C_Head, SimdVector3.Zero, headRadius, bounds, projectileHitbox) ||
+                (largeBody && BoneSphereIntersects(BoneLinks.b_C_Chest, SimdVector3.Zero, 0.6f, bounds, projectileHitbox));
+        }
+
+        private bool BoneSphereIntersects(BoneLinks bone, SimdVector3 offset, float radius, BoundingBox bounds, BsaHitboxPreview projectileHitbox)
+        {
+            int boneIndex = Skeleton.BAC_BoneIndices[(int)bone];
+            if (boneIndex < 0)
+                throw new InvalidOperationException($"Character {ShortName} has no {bone} bone for its hurtbox.");
+
+            SimdVector3 center = SimdVector3.Transform(offset, GetAbsoluteBoneMatrix(boneIndex));
+            BoundingSphere sphere = new BoundingSphere(Extensions.ToXna(center), radius);
+            return sphere.Intersects(bounds) && (projectileHitbox == null || projectileHitbox.IntersectsSphere(sphere));
         }
 
         public Matrix4x4 GetAbsoluteBoneMatrix(int index)

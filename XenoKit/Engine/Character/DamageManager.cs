@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using XenoKit.Editor;
 using Xv2CoreLib;
 using Xv2CoreLib.BDM;
@@ -17,7 +18,7 @@ namespace XenoKit.Engine.Character
         public Actor Victim => controller.Actor;
         public Move Move { get; private set; }
         public BDM_Entry BdmEntry { get; private set; }
-        public Type0SubEntry BdmSubEntry => BdmEntry.Type0Entries[0];
+        public Type0SubEntry BdmSubEntry { get; private set; }
         public float CurrentFrame = 0f;
 
         //Damage:
@@ -28,14 +29,14 @@ namespace XenoKit.Engine.Character
         //Pushback
         public bool UsePushback = false;
         public float PushbackStrength = 0f;
+        public SimdVector3 KnockbackVelocity;
 
         //BAC
         private int SingleAnimation;
         private int KnockbackAnimation;
         private int FallAnimation;
         private int ImpactAnimation;
-        private int RecoveryFromImpactAnimation;
-        private int RecoveryBeforeImpactAnimation;
+        private int RecoveryAnimation;
 
         //ActorState
         private ActorState[] ActorStates = new ActorState[4];
@@ -48,17 +49,66 @@ namespace XenoKit.Engine.Character
 
         public void InitBdmEntry(BDM_Entry bdmEntry, SimdVector3 damageDirection, Actor attacker, Move move, Matrix4x4 hitPosition)
         {
+            ActorState previousState = controller.State;
+            DamageType previousDamageType = BdmSubEntry?.DamageType ?? DamageType.None;
             ResetBdmEntry();
             Attacker = attacker;
             Move = move;
-            BdmEntry = bdmEntry;
             HitPosition = hitPosition;
             SetDamageDirection(damageDirection);
+
+            HitboxState hitboxState = HitDirectionFrontBack == 1 ? HitboxState.Back : HitboxState.Default;
+            if (controller.Actor.ActorSlot == 1 && SceneManager.VictimHitboxState.HasValue)
+                hitboxState = SceneManager.VictimHitboxState.Value;
+            else
+            {
+                switch (previousState)
+                {
+                    case ActorState.GroundImpact:
+                        hitboxState = HitboxState.GroundImpact;
+                        break;
+                    case ActorState.Knockback:
+                    case ActorState.Falling:
+                        hitboxState = previousDamageType == DamageType.Knockback1 || previousDamageType == DamageType.LightStaminaBreak
+                            ? HitboxState.FloatingKnockback : HitboxState.PrimaryKnockback;
+                        break;
+                    case ActorState.SingleAnimation:
+                        switch (previousDamageType)
+                        {
+                            case DamageType.Standard:
+                            case DamageType.Heavy:
+                            case DamageType.GuardBreak:
+                            case DamageType.HoldStomach:
+                            case DamageType.HoldEyes:
+                                hitboxState = HitboxState.Stumble;
+                                break;
+                        }
+                        break;
+                }
+            }
+
+            if (bdmEntry.Type0Entries != null)
+            {
+                foreach (Type0SubEntry subEntry in bdmEntry.Type0Entries)
+                {
+                    if (subEntry.Index == (int)hitboxState)
+                    {
+                        BdmSubEntry = subEntry;
+                        break;
+                    }
+                }
+            }
+            if (BdmSubEntry == null)
+                throw new InvalidDataException($"BDM entry {bdmEntry.ID} has no subentry for {hitboxState} ({(int)hitboxState}).");
+            BdmEntry = bdmEntry;
 
             bool isBackHit = HitDirectionFrontBack == 1;
 
             switch (BdmSubEntry.DamageType)
             {
+                case DamageType.None:
+                    UsePushback = true;
+                    break;
                 case DamageType.Block:
                     {
                         UsePushback = true;
@@ -68,7 +118,7 @@ namespace XenoKit.Engine.Character
                     }
                 case DamageType.GuardBreak:
                     {
-                        SingleAnimation = controller.IsInAir ? BAC_STAMINA_BREAK_AIR : BAC_STAMINA_BREAK_AIR;
+                        SingleAnimation = controller.IsInAir ? BAC_STAMINA_BREAK_AIR : BAC_STAMINA_BREAK_GROUND;
                         SetActorStates(ActorState.SingleAnimation);
                         break;
                     }
@@ -106,12 +156,25 @@ namespace XenoKit.Engine.Character
                         break;
                     }
                 case DamageType.Dazed:
-                    {
-                        SingleAnimation = 183; //Where is 184 used?
-                        SetActorStates(ActorState.SingleAnimation);
-                        break;
-                    }
+                    SingleAnimation = 181;
+                    RecoveryAnimation = 83;
+                    SetActorStates(ActorState.SingleAnimation, ActorState.StatusRecovery);
+                    break;
+                case DamageType.Electric:
+                    SingleAnimation = 179;
+                    SetActorStates(ActorState.SingleAnimation);
+                    break;
+                case DamageType.Paralysis:
+                    SingleAnimation = 183;
+                    RecoveryAnimation = 184;
+                    SetActorStates(ActorState.SingleAnimation, ActorState.StatusRecovery);
+                    break;
                 case DamageType.Knockback:
+                case DamageType.Knockback5:
+                case DamageType.Knockback6:
+                case DamageType.Knockback7:
+                case DamageType.Knockback8:
+                case DamageType.Knockback9:
                     {
                         KnockbackAnimation = !isBackHit ? 265 : 267;
                         FallAnimation = !isBackHit ? 266 : 268;
@@ -120,47 +183,66 @@ namespace XenoKit.Engine.Character
                         break;
                     }
                 case DamageType.Knockback1:
+                case DamageType.LightStaminaBreak:
                     {
                         //Knockback, then recover with a stumble animation. No gravity phase
-                        KnockbackAnimation = !isBackHit ? 265 : 267;
+                        KnockbackAnimation = !isBackHit ? 269 : 271;
                         SingleAnimation = !isBackHit ? 270 : 272;
+                        SetActorStates(ActorState.Knockback, ActorState.SingleAnimation);
                         break;
                     }
                 case DamageType.Knockback2:
-                    {
-                        //Knockback using stamina break knockback animation. 
-                        KnockbackAnimation = !isBackHit ? 168 : 169;
-                        FallAnimation = KnockbackAnimation;
-                        RecoveryFromImpactAnimation = !isBackHit ? 91 : 92;
-                        break;
-                    }
+                    KnockbackAnimation = !isBackHit ? 168 : 169;
+                    FallAnimation = KnockbackAnimation;
+                    RecoveryAnimation = !isBackHit ? 91 : 92;
+                    SetActorStates(ActorState.Knockback, ActorState.Falling, ActorState.RecoveryFromGround);
+                    break;
                 case DamageType.Knockback3:
-                    {
-                        KnockbackAnimation = !isBackHit ? 273 : 275;
-                        FallAnimation = !isBackHit ? 274 : 276;
-                        ImpactAnimation = !isBackHit ? 75 : 76;
-                        break;
-                    }
+                    KnockbackAnimation = !isBackHit ? 273 : 275;
+                    FallAnimation = !isBackHit ? 274 : 276;
+                    ImpactAnimation = !isBackHit ? 75 : 76;
+                    SetActorStates(ActorState.Knockback, ActorState.Falling, ActorState.GroundImpact);
+                    break;
                 case DamageType.Knockback4:
-                    {
-                        KnockbackAnimation= 170;
-                        FallAnimation = 266;
-                        ImpactAnimation = 80;
-                        break;
-                    }
+                    KnockbackAnimation = 170;
+                    FallAnimation = 266;
+                    ImpactAnimation = 80;
+                    SetActorStates(ActorState.Knockback, ActorState.Falling, ActorState.GroundImpact);
+                    break;
+                case DamageType.HeavyStaminaBreak:
+                    KnockbackAnimation = !isBackHit ? 168 : 169;
+                    FallAnimation = KnockbackAnimation;
+                    ImpactAnimation = !isBackHit ? 91 : 92;
+                    SetActorStates(ActorState.Knockback, ActorState.Falling, ActorState.GroundImpact);
+                    break;
+            }
+
+            if (GetInitialActorState() == ActorState.Knockback)
+            {
+                SimdVector3 direction = new SimdVector3(-HitVector.X, 0f, -HitVector.Z);
+                direction = direction.LengthSquared() > 0f ? SimdVector3.Normalize(direction) : SimdVector3.UnitZ;
+                SimdVector3 localVelocity = direction * BdmSubEntry.KnockbackStrengthZ +
+                    SimdVector3.Cross(direction, SimdVector3.UnitY) * BdmSubEntry.KnockbackStrengthX +
+                    SimdVector3.UnitY * BdmSubEntry.KnockbackStrengthY;
+                KnockbackVelocity = SimdVector3.TransformNormal(localVelocity, controller.Actor.Transform);
             }
         }
 
         public void ResetBdmEntry()
         {
-            if (HasEntry && BdmSubEntry.DamageType != DamageType.Grab)
+            if (HasEntry && BdmSubEntry.DamageType != DamageType.Grab && BdmSubEntry.DamageType != DamageType.None)
                 controller.ClearBacEntries();
 
             BdmEntry = null;
+            BdmSubEntry = null;
             CurrentFrame = 0f;
             HitDirectionAll = 0;
             HitDirectionFrontBack = 0;
             UsePushback = false;
+            PushbackStrength = 0f;
+            KnockbackVelocity = SimdVector3.Zero;
+            ActorStateIdx = 0;
+            SetActorStates();
         }
 
         private void SetDamageDirection(SimdVector3 directionVector)
@@ -253,77 +335,40 @@ namespace XenoKit.Engine.Character
         private const int BAC_HEAVY_STUMBLE_2 = 149;
         private const int BAC_HEAVY_STUMBLE_3 = 157;
 
-        private readonly int[] STUMBLE_SET_1 = new int[] { BAC_STUMBLE_3, BAC_STUMBLE_4, BAC_STUMBLE_7 };
-        private readonly int[] STUMBLE_SET_2 = new int[] { BAC_STUMBLE_1, BAC_STUMBLE_2, BAC_STUMBLE_7 }; //3rd one could be stumble 8.. but i seem to have lost my original testing notes for this so i cant check right now
-        private readonly int[] STUMBLE_SET_3 = new int[] { BAC_STUMBLE_5, BAC_STUMBLE_6, BAC_STUMBLE_9 };
-        private readonly int[] STUMBLE_SET_4 = new int[] { BAC_STUMBLE_1, BAC_STUMBLE_3, BAC_STUMBLE_5 };
-        private readonly int[] STUMBLE_SET_5 = new int[] { BAC_STUMBLE_2, BAC_STUMBLE_4, BAC_STUMBLE_6 };
-        private readonly int[] STUMBLE_SET_6 = new int[] { BAC_STUMBLE_7, BAC_STUMBLE_8, BAC_STUMBLE_9 };
-        private readonly int[] STUMBLE_SET_ALL = new int[] { BAC_STUMBLE_1, BAC_STUMBLE_2, BAC_STUMBLE_3, BAC_STUMBLE_4, BAC_STUMBLE_5, BAC_STUMBLE_6, BAC_STUMBLE_7, BAC_STUMBLE_8, BAC_STUMBLE_9 };
-        private readonly int[] HEAVY_STUMBLE_SET_ALL = new int[] { BAC_HEAVY_STUMBLE_1, BAC_HEAVY_STUMBLE_2, BAC_HEAVY_STUMBLE_3 };
+        private static readonly int[,] STUMBLE_ENTRIES = new int[,]
+        {
+            { BAC_STUMBLE_3, BAC_STUMBLE_4, BAC_STUMBLE_8 },
+            { BAC_STUMBLE_1, BAC_STUMBLE_2, BAC_STUMBLE_7 },
+            { BAC_STUMBLE_5, BAC_STUMBLE_6, BAC_STUMBLE_9 }
+        };
+        private static readonly int[] HEAVY_STUMBLE_ENTRIES = new int[] { BAC_HEAVY_STUMBLE_2, BAC_HEAVY_STUMBLE_1, BAC_HEAVY_STUMBLE_3 };
 
         private int GetStumbleEntry(Stumble stumbleFlags)
         {
-            int rnd = Xv2CoreLib.Random.Range(0, 2);
-            int result = -1;
-
-            //TODO: Flags can be mixed together
-            if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet1)
-            {
-                result = STUMBLE_SET_1[rnd];
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet2) == Stumble.StumbleSet2)
-            {
-                result = STUMBLE_SET_2[rnd];
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet3) == Stumble.StumbleSet3)
-            {
-                result = STUMBLE_SET_3[rnd];
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet4) == Stumble.StumbleSet4)
-            {
-                result = STUMBLE_SET_4[rnd];
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet5) == Stumble.StumbleSet5)
-            {
-                result = STUMBLE_SET_5[rnd];
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet6)
-            {
-                result = STUMBLE_SET_6[rnd];
-            }
-
-            if ((stumbleFlags & Stumble.AllStumbleSets) == Stumble.AllStumbleSets || result == -1)
-            {
-                result = STUMBLE_SET_ALL[Xv2CoreLib.Random.Range(0, STUMBLE_SET_ALL.Length)];
-            }
-
-            return result;
+            int flags = (stumbleFlags & Stumble.AllStumbleSets) != 0 ? 0 : (int)stumbleFlags;
+            int row = PickStumbleOption(flags & 0x7);
+            int column = PickStumbleOption((flags >> 3) & 0x7);
+            return STUMBLE_ENTRIES[row, column];
         }
 
         private int GetHeavyStumbleEntry(Stumble stumbleFlags)
         {
-            int result;
+            return HEAVY_STUMBLE_ENTRIES[PickStumbleOption((int)stumbleFlags & 0x7)];
+        }
 
-            //TODO: Flags can be mixed together
-            if ((stumbleFlags & Stumble.StumbleSet1) == Stumble.StumbleSet1)
+        private static int PickStumbleOption(int flags)
+        {
+            if (flags == 0) flags = 0x7;
+            int count = Utils.GetSetBitCount(flags);
+            int choice = Xv2CoreLib.Random.Range(0, count - 1);
+
+            for (int index = 0; index < 3; index++)
             {
-                result = BAC_HEAVY_STUMBLE_2;
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet2) == Stumble.StumbleSet2)
-            {
-                result = BAC_HEAVY_STUMBLE_1;
-            }
-            else if ((stumbleFlags & Stumble.StumbleSet3) == Stumble.StumbleSet3)
-            {
-                result = BAC_HEAVY_STUMBLE_3;
-            }
-            else
-            {
-                result = HEAVY_STUMBLE_SET_ALL[Xv2CoreLib.Random.Range(0, 2)];
+                if ((flags & (1 << index)) != 0 && choice-- == 0)
+                    return index;
             }
 
-            return result;
+            throw new InvalidOperationException("No stumble animation was selected.");
         }
 
         public int GetBacEntryForActorState(ActorState state)
@@ -339,9 +384,8 @@ namespace XenoKit.Engine.Character
                 case ActorState.GroundImpact:
                     return ImpactAnimation;
                 case ActorState.RecoveryFromGround:
-                    return RecoveryFromImpactAnimation;
-                case ActorState.RecoveryFromFalling:
-                    return RecoveryBeforeImpactAnimation;
+                case ActorState.StatusRecovery:
+                    return RecoveryAnimation;
                 default:
                     Log.Add($"ActorState {state} is not a valid damage state.", LogType.Error);
                     return -1;
