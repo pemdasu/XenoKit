@@ -66,6 +66,11 @@ namespace XenoKit.Editor
             }
         }
 
+        public static DynamicTab FindTab(object parentItem, string name)
+        {
+            return DynamicTabs.FirstOrDefault(tab => Equals(tab.ParentItem, parentItem) && Equals(tab.Tab.Header, name));
+        }
+
         public static bool FocusTab(IDynamicTabObject context)
         {
             DynamicTab existingTab = DynamicTabs.FirstOrDefault(x => x.Context == context);

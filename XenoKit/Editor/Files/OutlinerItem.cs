@@ -4,6 +4,7 @@ using System.ComponentModel;
 using MahApps.Metro.Controls;
 using Xv2CoreLib;
 using Xv2CoreLib.ACB;
+using Xv2CoreLib.BCS;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.EffectContainer;
 using xv2 = Xv2CoreLib.Xenoverse2;
@@ -281,6 +282,8 @@ namespace XenoKit.Editor
         }
 
         #region Save Context File
+        private Xv2File<BCS_File> SelectedBcsFile => character?.CharacterData?.BcsFile;
+
         //The Save Context feature will save whatever the currently active file is (e.g: on Anim tab, this would be the selected EAN file)
         //This is an alternative way to save files without having to save the entire item (character/skill/cmn), which can take some time depending on how big it is.
 
@@ -312,6 +315,14 @@ namespace XenoKit.Editor
                     return SelectedBsaFile != null ? Path.GetFileName(SelectedBsaFile.Path) : null;
                 case EditorTabs.State:
                     return SelectedBcmFile != null ? Path.GetFileName(SelectedBcmFile.Path) : null;
+                case EditorTabs.BCS_PartSet:
+                case EditorTabs.BCS_Colors:
+                case EditorTabs.BCS_Bodies:
+                case EditorTabs.BCS_Header:
+                case EditorTabs.BCS_SkeletonData1:
+                case EditorTabs.BCS_SkeletonData2:
+                case EditorTabs.BCS_Files:
+                    return SelectedBcsFile?.Path != null ? Path.GetFileName(SelectedBcsFile.Path) : null;
                 default:
                     return null;
             }
@@ -393,6 +404,19 @@ namespace XenoKit.Editor
                     {
                         SelectedBcmFile.File.Save(SelectedBcmFile.Path);
                         pathSaved = SelectedBcmFile.Path;
+                    }
+                    break;
+                case EditorTabs.BCS_PartSet:
+                case EditorTabs.BCS_Colors:
+                case EditorTabs.BCS_Bodies:
+                case EditorTabs.BCS_Header:
+                case EditorTabs.BCS_SkeletonData1:
+                case EditorTabs.BCS_SkeletonData2:
+                case EditorTabs.BCS_Files:
+                    if (SelectedBcsFile?.Path != null)
+                    {
+                        SelectedBcsFile.File.SaveBinary(SelectedBcsFile.Path);
+                        pathSaved = SelectedBcsFile.Path;
                     }
                     break;
                 default:
