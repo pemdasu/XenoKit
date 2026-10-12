@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="XenoKit.Views.BcsSkeletonDataView"
+<UserControl x:Class="XenoKit.Views.BcsSkeletonDataView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -46,7 +46,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <ComboBox ItemsSource="{x:Static bcsDir:BCS.CommonSkeletonDataBones}" Text="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName, UpdateSourceTrigger=Default}" IsEditable="True"/>
+                            <ComboBox ItemsSource="{x:Static bcsDir:BCS.CommonSkeletonDataBones}" SelectedItem="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName, UpdateSourceTrigger=Default}" controls:TextBoxHelper.Watermark="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName, Mode=OneWay}" IsEditable="False"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -70,118 +70,44 @@
             </DataGrid.InputBindings>
         </DataGrid>
 
-        <Grid Grid.Column="2" Margin="5" Visibility="{Binding ElementName=UserControl, Path=EditorVisibility}">
-
+        <ScrollViewer Grid.Column="2" Margin="8" VerticalScrollBarVisibility="Auto" Visibility="{Binding ElementName=UserControl, Path=EditorVisibility}">
             <StackPanel>
-                <Border BorderBrush="{DynamicResource MahApps.Brushes.Accent4}" BorderThickness="1">
-                    <StackPanel Margin="10">
-                        <StackPanel>
-                            <Grid Margin="3,20,0,0" Width="250" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="Bone"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{x:Static bcsDir:BCS.CommonSkeletonDataBones}" Text="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName}" IsEditable="True"/>
-                            </Grid>
-
-
-                        </StackPanel>
-                        <WrapPanel>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_I_00"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.I_00}" />
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_I_04"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.I_04}" />
-                            </Grid>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_12"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_12}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_16"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_16}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_20"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_20}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_24"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_24}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_28"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_28}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_32"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_32}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                        </WrapPanel>
-                        <WrapPanel>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_36"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_36}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                            <Grid Margin="3,20,0,0" Width="200" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Label Content="_F_40"/>
-                                <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_40}" StringFormat="0.00" Interval="0.01"/>
-                            </Grid>
-                        </WrapPanel>
-                    </StackPanel>
-
-                </Border>
-
+                <TextBlock Text="Collider" FontWeight="SemiBold" Margin="0,8"/>
+                <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Label Content="Bone" ToolTip="The bone that carries this collider during animation."/>
+                    <ComboBox Grid.Column="1" ItemsSource="{x:Static bcsDir:BCS.CommonSkeletonDataBones}" SelectedItem="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName}" controls:TextBoxHelper.Watermark="{Binding ElementName=UserControl, Path=SkeletonViewModel.BoneName, Mode=OneWay}" IsEditable="False" ToolTip="The collider follows this bone during animation."/>
+                </Grid>
+                <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Label Content="Shape" ToolTip="The solid shape that pushes SCD bodies away from this bone."/>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding ElementName=UserControl, Path=SkeletonViewModel.Shapes}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding ElementName=UserControl, Path=SkeletonViewModel.Shape}" IsEditable="False" controls:TextBoxHelper.Watermark="{Binding ElementName=UserControl, Path=SkeletonViewModel.ShapeLabel}" ToolTip="Box uses all three size values. Sphere uses X. Cylinder and capsule use X and Y."/>
+                </Grid>
+                <Grid Margin="0,3">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Label Content="Collision filter" ToolTip="Controls which SCD bodies can collide with this shape."/>
+                    <controls:NumericUpDown Grid.Column="1" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.I_00}" Minimum="-2147483648" Maximum="2147483647" ToolTip="Keep the existing filter unless you know which collision group is needed."/>
+                </Grid>
+                <TextBlock Text="Position" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <controls:NumericUpDown Grid.Column="0" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_12}" StringFormat="0.######" Interval="0.01" ToolTip="X offset from the selected bone." AutomationProperties.Name="Position X"/>
+                    <controls:NumericUpDown Grid.Column="1" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_16}" StringFormat="0.######" Interval="0.01" ToolTip="Y offset from the selected bone." AutomationProperties.Name="Position Y"/>
+                    <controls:NumericUpDown Grid.Column="2" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_20}" StringFormat="0.######" Interval="0.01" ToolTip="Z offset from the selected bone." AutomationProperties.Name="Position Z"/>
+                </Grid>
+                <TextBlock Text="Rotation (radians)" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <controls:NumericUpDown Grid.Column="0" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_24}" StringFormat="0.######" Interval="0.01" ToolTip="Rotation around the bone's X axis, in radians." AutomationProperties.Name="Rotation (radians) X"/>
+                    <controls:NumericUpDown Grid.Column="1" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_28}" StringFormat="0.######" Interval="0.01" ToolTip="Rotation around the bone's Y axis, in radians." AutomationProperties.Name="Rotation (radians) Y"/>
+                    <controls:NumericUpDown Grid.Column="2" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_32}" StringFormat="0.######" Interval="0.01" ToolTip="Rotation around the bone's Z axis, in radians." AutomationProperties.Name="Rotation (radians) Z"/>
+                </Grid>
+                <TextBlock Text="Size" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <controls:NumericUpDown Grid.Column="0" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_36}" StringFormat="0.######" Interval="0.01" ToolTip="Box width. Sphere, cylinder or capsule radius." AutomationProperties.Name="Size X"/>
+                    <controls:NumericUpDown Grid.Column="1" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_40}" StringFormat="0.######" Interval="0.01" ToolTip="Box height. Cylinder height or capsule center length." AutomationProperties.Name="Size Y"/>
+                    <controls:NumericUpDown Grid.Column="2" Margin="2" Value="{Binding ElementName=UserControl, Path=SkeletonViewModel.F_44}" StringFormat="0.######" Interval="0.01" ToolTip="Box depth. Not used by the other shapes." AutomationProperties.Name="Size Z"/>
+                </Grid>
+                <TextBlock Text="Box: width, height, depth. Sphere: radius. Cylinder and capsule: radius, length." TextWrapping="Wrap" Margin="0,8"/>
             </StackPanel>
-            
-        </Grid>
-
+        </ScrollViewer>
     </Grid>
 </UserControl>

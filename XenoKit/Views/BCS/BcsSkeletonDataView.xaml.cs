@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Windows;
 using System.ComponentModel;
@@ -53,10 +53,13 @@ namespace XenoKit.Views
             set
             {
                 _selectedBone = value;
+                SceneManager.SelectedSkeletonCollider = value;
 
                 if(((SkeletonViewModel?.IsBone(_selectedBone) == false) || SkeletonViewModel == null) && _selectedBone != null)
                 {
+                    if (SkeletonViewModel != null) SkeletonViewModel.PropertyChanged -= ColliderChanged;
                     SkeletonViewModel = new BcsSkeletonDataViewModel(_selectedBone, SkeletonData);
+                    SkeletonViewModel.PropertyChanged += ColliderChanged;
                     NotifyPropertyChanged(nameof(SkeletonViewModel));
                 }
 
@@ -65,6 +68,7 @@ namespace XenoKit.Views
             }
         }
         public BcsSkeletonDataViewModel SkeletonViewModel { get; set; }
+        private bool refreshPending;
 
         public Visibility EditorVisibility => SelectedBone != null ? Visibility.Visible : Visibility.Collapsed;
 
@@ -78,7 +82,22 @@ namespace XenoKit.Views
 
         private void Files_SelectedItemChanged(object sender, EventArgs e)
         {
+            SelectedBone = null;
+        }
 
+        private void ColliderChanged(object sender, PropertyChangedEventArgs e)
+        {
+            Engine.Animation.ScdPhysics.Enabled = true;
+            Viewport.Instance?.BcsColliders.Invalidate();
+            if (refreshPending) return;
+            refreshPending = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                refreshPending = false;
+                foreach (Actor actor in SceneManager.Actors)
+                    if (actor?.CharacterData.BcsFile?.File?.SkeletonData1 == SkeletonData)
+                        actor.PartSet?.ReloadScdPhysics();
+            }));
         }
 
         private void Instance_UndoOrRedoCalled(object source, UndoEventRaisedEventArgs e)
@@ -86,12 +105,15 @@ namespace XenoKit.Views
             //Update view model if undo context is the same
             if(e.UndoContext == SkeletonData && SkeletonData != null)
             {
+                Engine.Animation.ScdPhysics.Enabled = true;
+                Viewport.Instance?.BcsColliders.Invalidate();
                 SkeletonViewModel?.UpdateProperties();
             }
 
             //Update all bone names if undo context is a SkeletonData
-            if(e.UndoContext is Xv2CoreLib.BCS.SkeletonData)
+            if(e.UndoContext == SkeletonData && SkeletonData != null)
             {
+                ColliderChanged(this, null);
                 foreach (var bone in SkeletonData.Bones)
                 {
                     bone.RefreshValues();
@@ -107,7 +129,8 @@ namespace XenoKit.Views
             bone.BoneName = "NewBone";
             SkeletonData.Bones.Add(bone);
 
-            UndoManager.Instance.AddUndo(new UndoableListAdd<Bone>(SkeletonData.Bones, bone, "Add SkeletonData Bone"), UndoGroup.BCS);
+            UndoManager.Instance.AddUndo(new UndoableListAdd<Bone>(SkeletonData.Bones, bone, "Add SkeletonData Bone"), UndoGroup.BCS, undoContext: SkeletonData);
+            ColliderChanged(this, null);
         }
 
         public RelayCommand RemoveBoneCommand => new RelayCommand(RemoveBone, IsBoneSelected);
@@ -125,7 +148,8 @@ namespace XenoKit.Views
                     SkeletonData.Bones.Remove(bone);
                 }
 
-                UndoManager.Instance.AddCompositeUndo(undos, "Remove SkeletonData Bone", UndoGroup.BCS);
+                UndoManager.Instance.AddCompositeUndo(undos, "Remove SkeletonData Bone", UndoGroup.BCS, undoContext: SkeletonData);
+                ColliderChanged(this, null);
             }
         }
 
@@ -146,13 +170,15 @@ namespace XenoKit.Views
             List<Bone> bones = (List<Bone>)Clipboard.GetData(ClipboardConstants.BcsSkeletonDataBone);
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            foreach (var bone in bones)
+            foreach (var source in bones)
             {
+                Bone bone = source.Copy();
                 SkeletonData.Bones.Add(bone);
                 undos.Add(new UndoableListAdd<Bone>(SkeletonData.Bones, bone));
             }
 
-            UndoManager.Instance.AddCompositeUndo(undos, "Paste SkeletonData Bone");
+            UndoManager.Instance.AddCompositeUndo(undos, "Paste SkeletonData Bone", UndoGroup.BCS, undoContext: SkeletonData);
+            ColliderChanged(this, null);
         }
 
         public RelayCommand DuplicateBoneCommand => new RelayCommand(DuplicateBone, IsBoneSelected);
@@ -162,13 +188,15 @@ namespace XenoKit.Views
 
             List<IUndoRedo> undos = new List<IUndoRedo>();
 
-            foreach(var bone in bones)
+            foreach(var source in bones)
             {
+                Bone bone = source.Copy();
                 SkeletonData.Bones.Add(bone);
                 undos.Add(new UndoableListAdd<Bone>(SkeletonData.Bones, bone));
             }
 
-            UndoManager.Instance.AddCompositeUndo(undos, "Duplicate SkeletonData Bone");
+            UndoManager.Instance.AddCompositeUndo(undos, "Duplicate SkeletonData Bone", UndoGroup.BCS, undoContext: SkeletonData);
+            ColliderChanged(this, null);
         }
 
 
