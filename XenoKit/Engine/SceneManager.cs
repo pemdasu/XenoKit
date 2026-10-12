@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,12 +26,13 @@ namespace XenoKit.Engine
         State = 5, //bcm
         Projectile = 6,
         Effect = 7,
-        Audio = 8,
-        System = 9,
-        CAC = 10,
-        Inspector = 11,
-        InspectorAnimation = 12,
-        Stage = 13,
+        PostEffects = 8,
+        Audio = 9,
+        System = 10,
+        CAC = 11,
+        Inspector = 12,
+        InspectorAnimation = 13,
+        Stage = 14,
         DynamicTab
     }
 
@@ -69,6 +70,7 @@ namespace XenoKit.Engine
         Effect_TBIND,
         Effect_CBIND,
         Effect_LIGHT,
+        PostEffects,
         Effect_EMO,
         Audio_VOX,
         Audio_SE,
@@ -94,7 +96,10 @@ namespace XenoKit.Engine
         public static bool IsOnEffectTab = false;
         public static bool IsOnInspectorTab = false;
         public static bool UseRenderScene = false;
+        public static Scripting.BAC.BpePreviewController BpePreview;
+        public static Views.ScdView ScdEditor;
         public static string DebugTestValue = null;
+        public static Xv2CoreLib.BCS.Bone SelectedSkeletonCollider;
 
         /// <summary>
         /// 
@@ -104,6 +109,8 @@ namespace XenoKit.Engine
         public static async Task<bool> SetSceneState(int mainTabIdx, int bcsTabIdx, int audioTabIdx, int effectTabIdx)
         {
             EditorTabs prevTab = CurrentSceneState;
+            BpePreview?.Clear();
+            BpePreview = null;
             MainEditorTabs mainTab = (MainEditorTabs)mainTabIdx;
             BcsEditorTabs bcsTab = (BcsEditorTabs)bcsTabIdx;
 
@@ -133,6 +140,7 @@ namespace XenoKit.Engine
                         UseRenderScene = true;
                         Viewport.Instance.RenderSystem.SetRenderScene(modelScene);
                     }
+
                 }
                 else
                 {
@@ -155,6 +163,8 @@ namespace XenoKit.Engine
                         ActorsEnable[0] = false;
                         break;
                     case MainEditorTabs.BCS:
+                        if ((bcsTab == BcsEditorTabs.SkeletonData1 || bcsTab == BcsEditorTabs.SkeletonData2) && Files.Instance.SelectedItem?.character is Actor colliderActor && colliderActor != Actors[0])
+                            SetActor(colliderActor, 0);
                         switch (bcsTab)
                         {
                             case BcsEditorTabs.Bodies:
@@ -213,6 +223,12 @@ namespace XenoKit.Engine
                                 CurrentSceneState = EditorTabs.Effect_LIGHT;
                                 break;
                         }
+                        break;
+                    case MainEditorTabs.PostEffects:
+                        CurrentSceneState = EditorTabs.PostEffects;
+                        Stop();
+                        if (System.Windows.Application.Current?.MainWindow is MainWindow window && window.PostEffectsEditor != null)
+                            await window.PostEffectsEditor.ActivatePreview();
                         break;
                     case MainEditorTabs.Projectile:
                         CurrentSceneState = EditorTabs.Projectile;
@@ -708,6 +724,7 @@ namespace XenoKit.Engine
             Inspector.InspectorMode.Instance.ActiveSkinnedEntity?.AnimationPlayer?.FirstFrame();
 
             Viewport.Instance.IsPlaying = false;
+            if (CurrentSceneState == EditorTabs.PostEffects && BpePreview != null) BpePreview.Frame = 0;
             PlayStateChanged?.Invoke(null, EventArgs.Empty);
         }
 

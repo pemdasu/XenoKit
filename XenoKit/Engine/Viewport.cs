@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Framework.WpfInterop;
@@ -62,6 +62,7 @@ namespace XenoKit.Engine
         public bool IsPlaying = false;
         public bool RenderCharacters = true;
         public bool WireframeMode = false;
+        public Animation.BcsColliderPreview BcsColliders { get; } = new Animation.BcsColliderPreview();
         public bool IsBlackVoid = false;
 
         //Rendering
@@ -81,6 +82,8 @@ namespace XenoKit.Engine
 
         public static Color ViewportBackgroundColor = new Color(20, 20, 20, 255);
         public static Color ScreenshotBackgroundColor = new Color(20, 20, 20, 255);
+
+        public Color BackgroundColor => IsBlackVoid || !_isDefaultStageActive ? Color.Black : ViewportBackgroundColor;
 
         private int DelayedTimer = 0;
         protected int HotkeyCooldown = 0;
@@ -241,6 +244,8 @@ namespace XenoKit.Engine
                 }
 
                 Simulation.Update();
+                if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+                    SceneManager.BpePreview?.Update();
             }
 
             RenderSystem.Update();
@@ -367,17 +372,55 @@ namespace XenoKit.Engine
 
             //Draw MainRenderTarget onto screen
             GraphicsDevice.SetRenderTarget(AxisCorrectionRenderTarget.RenderTarget);
-            GraphicsDevice.Clear(IsBlackVoid || !_isDefaultStageActive ? Color.Black : Viewport.ViewportBackgroundColor);
+            GraphicsDevice.Clear(BackgroundColor);
             GraphicsDevice.SetDepthBuffer(RenderSystem.DepthBuffer.RenderTarget);
 
             //Merge RTs
             RenderSystem.DisplayRenderTarget(RenderSystem.GetFinalRenderTarget());
             RenderSystem.DisplayRenderTarget(MainRenderTarget.RenderTarget);
 
-            //Draw last and over everything else
-            CurrentGizmo.Draw();
-            BacHitboxGizmo.Draw();
+            //The grid reads scene depth, so it goes first and the overlays below stay on top of it.
             WorldGrid.Draw();
+
+            for (int i = 0; i < SceneManager.Actors.Length; i++)
+            {
+                if (i == 1 && !SceneManager.VictimEnabled) continue;
+
+                if (SceneManager.ActorsEnable[i] && SceneManager.Actors[i] != null)
+                    SceneManager.Actors[i].DrawHitboxes();
+            }
+
+            BacHitboxGizmo.Draw();
+
+            bool editingColliders = SceneManager.CurrentSceneState == EditorTabs.BCS_SkeletonData1 || SceneManager.CurrentSceneState == EditorTabs.BCS_SkeletonData2;
+            if (editingColliders)
+            {
+                Actor actor = SceneManager.Actors[0];
+                var bcs = actor?.CharacterData.BcsFile?.File;
+                var skeleton = SceneManager.CurrentSceneState == EditorTabs.BCS_SkeletonData1 ? bcs?.SkeletonData1 : bcs?.SkeletonData2;
+                BcsColliders.Draw(actor, skeleton, SceneManager.SelectedSkeletonCollider);
+            }
+            else
+            {
+                BcsColliders.Dispose();
+            }
+
+            if (SceneManager.ScdEditor?.Actor is Actor scdActor && !editingColliders && scdActor == SceneManager.Actors[0])
+            {
+                scdActor.PartSet?.DrawScdDebugShapes();
+            }
+            else if (Animation.ScdPhysics.ShowColliders && !editingColliders)
+            {
+                for (int i = 0; i < SceneManager.Actors.Length; i++)
+                {
+                    Actor actor = SceneManager.Actors[i];
+
+                    if (SceneManager.ActorsEnable[i] && actor != null && actor.IsVisible)
+                        actor.PartSet?.DrawScdDebugShapes();
+                }
+            }
+
+            CurrentGizmo.Draw();
             TextRenderer.Draw();
 
             //Now apply axis correction
@@ -409,7 +452,10 @@ namespace XenoKit.Engine
         public void ResetState(bool resetAnims = true, bool resetCamPos = false)
         {
             if (resetAnims)
+            {
                 Camera.ClearCameraAnimation();
+                Camera.BuiltInCameras.Clear();
+            }
 
             if (resetCamPos)
                 Camera.ResetCamera();
@@ -606,6 +652,11 @@ namespace XenoKit.Engine
 
         public void SeekPrevFrame()
         {
+            if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+            {
+                if (SceneManager.BpePreview != null) SceneManager.BpePreview.Frame--;
+                return;
+            }
             if (SceneManager.IsOnEffectTab)
             {
                 VfxPreview.SeekPrev();
@@ -638,6 +689,11 @@ namespace XenoKit.Engine
 
         public void SeekNextFrame()
         {
+            if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+            {
+                if (SceneManager.BpePreview != null) SceneManager.BpePreview.Frame++;
+                return;
+            }
             if (SceneManager.IsOnEffectTab)
             {
                 VfxPreview.SeekNext();
