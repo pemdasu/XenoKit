@@ -404,17 +404,21 @@ namespace XenoKit.Engine.Gizmo
             //Lines
             _lineEffect.World = _gizmoWorld;
             _lineEffect.View = ViewportInstance.Camera.ViewMatrix;
-            _lineEffect.Projection = ViewportInstance.Camera.ProjectionMatrix;
 
-            foreach (var pass in _lineEffect.CurrentTechnique.Passes)
+            foreach (Matrix projection in RenderSystem.GetLineProjections(ViewportInstance.Camera.ProjectionMatrix))
             {
-                GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-                GraphicsDevice.BlendState = BlendState.Opaque;
-                GraphicsDevice.DepthStencilState = DepthStencilState.None;
-                pass.Apply();
+                _lineEffect.Projection = projection;
 
-                GraphicsDevice.DrawUserPrimitives(PrimitiveType.LineList, _translationLineVertices, 0,
-                                             _translationLineVertices.Length / 2);
+                foreach (var pass in _lineEffect.CurrentTechnique.Passes)
+                {
+                    GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+                    GraphicsDevice.BlendState = BlendState.Opaque;
+                    GraphicsDevice.DepthStencilState = DepthStencilState.None;
+                    pass.Apply();
+
+                    GraphicsDevice.DrawUserPrimitives(PrimitiveType.LineList, _translationLineVertices, 0,
+                                                 _translationLineVertices.Length / 2);
+                }
             }
 
             //Quads

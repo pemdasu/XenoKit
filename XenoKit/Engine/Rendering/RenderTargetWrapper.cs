@@ -85,8 +85,10 @@ namespace XenoKit.Engine.Rendering
                 //float resScale = (SettingsManager.settings.XenoKit_FullLowRez) ? 1 : ResolutionScale;
 
                 //Some RenderTargets are rendered at a lower internal resolution than the screen res, such as "LowRez" (1/2) and "LowRezSmoke" (1/4) material draw passes
-                height = (int)((HeightAtInit * RefResolutionScale) * ResolutionScale);
-                width = (int)((WidthAtInit * RefResolutionScale) * ResolutionScale);
+                //Low resolution passes stay the same fraction of the screen, so super sampling does not sharpen them
+                float lowRezScale = ResolutionScale < 1f ? ResolutionScale / System.Math.Max(1f, renderSystem.SuperSampleFactor) : ResolutionScale;
+                height = System.Math.Max(1, (int)((HeightAtInit * RefResolutionScale) * lowRezScale));
+                width = System.Math.Max(1, (int)((WidthAtInit * RefResolutionScale) * lowRezScale));
             }
 
             RenderTarget = new RenderTarget2D(renderSystem.GraphicsDevice, width, height, false, surfaceFormat, depthFormat, MultiSampleCount, RenderTargetUsage.PreserveContents);

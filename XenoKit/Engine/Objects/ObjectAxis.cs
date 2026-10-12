@@ -30,11 +30,17 @@ namespace XenoKit.Engine.Objects
         {
             if((IsWorldAxis && SceneManager.ShowWorldAxis) || !IsWorldAxis)
             {
-                xCube.Draw(Matrix.CreateRotationZ(-(float)Math.PI / 2.0f) * world);
-                yCube.Draw(world);
-                zCube.Draw(Matrix.CreateRotationX((float)Math.PI / 2.0f) * world);
-                if (isLeft)
-                    leftBoneCube.Draw(world);
+                Matrix xWorld = Matrix.CreateRotationZ(-(float)Math.PI / 2.0f) * world;
+                Matrix zWorld = Matrix.CreateRotationX((float)Math.PI / 2.0f) * world;
+
+                foreach (Matrix projection in RenderSystem.GetLineProjections(Camera.ProjectionMatrix))
+                {
+                    xCube.Draw(xWorld, projection);
+                    yCube.Draw(world, projection);
+                    zCube.Draw(zWorld, projection);
+                    if (isLeft)
+                        leftBoneCube.Draw(world, projection);
+                }
             }
         }
     }

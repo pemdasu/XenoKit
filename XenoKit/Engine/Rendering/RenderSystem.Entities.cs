@@ -56,6 +56,10 @@ namespace XenoKit.Engine.Rendering
             {
                 if (rt.ShouldUpdate() && ViewportIsFocused)
                 {
+                    //Low resolution RTs get their size from SuperSampleFactor, so set it before the first RT rebuild
+                    if (!resolutionChanged)
+                        SuperSampleFactor = ViewportInstance.IsFullScreen ? 1f : SettingsManager.settings.XenoKit_SuperSamplingFactor;
+
                     resolutionChanged = true;
 
                     if (rt.RenderTarget != null)
@@ -63,11 +67,6 @@ namespace XenoKit.Engine.Rendering
 
                     rt.UpdateRenderTarget();
                 }
-            }
-
-            if (resolutionChanged)
-            {
-                SuperSampleFactor = ViewportInstance.IsFullScreen ? 1f : SettingsManager.settings.XenoKit_SuperSamplingFactor;
             }
 
             DrawThisFrame = true;
