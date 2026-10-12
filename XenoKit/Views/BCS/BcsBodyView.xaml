@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="XenoKit.Views.BcsBodyView"
+<UserControl x:Class="XenoKit.Views.BcsBodyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -174,7 +174,7 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Label Content="Bone"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{x:Static bcsDir:BCS.CommonBoneScales}" Text="{Binding ElementName=UserControl, Path=SelectedBoneScaleViewModel.BoneName}" IsEditable="True"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{x:Static bcsDir:BCS.CommonBoneScales}" SelectedItem="{Binding ElementName=UserControl, Path=SelectedBoneScaleViewModel.BoneName}" controls:TextBoxHelper.Watermark="{Binding ElementName=UserControl, Path=SelectedBoneScaleViewModel.BoneName, Mode=OneWay}" IsEditable="False"/>
                             </Grid>
 
                             <Label Content="Scale" HorizontalContentAlignment="Center" VerticalContentAlignment="Top" FontSize="10" FontWeight="SemiBold" Width="360"/>

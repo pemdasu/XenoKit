@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="XenoKit.Views.ModelSceneView"
+<UserControl x:Class="XenoKit.Views.ModelSceneView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -258,7 +258,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Bone"/>
-                        <ComboBox Grid.Column="1" SelectedValue="{Binding ElementName=UserControl, Path=SelectedMeshBoneName, UpdateSourceTrigger=LostFocus}" ItemsSource="{Binding ElementName=UserControl, Path=ModelScene.Model.Skeleton.Bones}" DisplayMemberPath="Name" SelectedValuePath="Name" IsEditable="True"/>
+                        <ComboBox Grid.Column="1" SelectedValue="{Binding ElementName=UserControl, Path=SelectedMeshBoneName, UpdateSourceTrigger=LostFocus}" ItemsSource="{Binding ElementName=UserControl, Path=ModelScene.Model.Skeleton.Bones}" DisplayMemberPath="Name" SelectedValuePath="Name" IsEditable="False"/>
                     </Grid>
                 </StackPanel>
 
