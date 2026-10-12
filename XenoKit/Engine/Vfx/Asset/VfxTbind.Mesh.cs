@@ -28,9 +28,10 @@ namespace XenoKit.Engine.Vfx.Asset
 
                 int renderSectionLimit = state.IsRetracting ? MaxRetractingRenderSections : MaxActiveRenderSections;
                 bool autoOrientation = node.Flags.HasFlag(ETR_Node.ExtrudeFlags.AutoOrientation);
-                bool usePathOffsetAsWidth = node.ExtrudeShapePoints.Count == 0 && node.ExtrudePaths.Count > 1;
-                SimdVector3 cameraViewForward = GetCameraViewForward();
-                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildTbindTrailMesh(shape, visibleSegments, GetPathProfile(node), retractionProgress, renderSectionLimit, autoOrientation, usePathOffsetAsWidth, cameraViewForward, uvScrollU, uvScrollV, uvStepU, uvStepV, state.ProfiledSegmentsScratch, state.CurvedSegmentsScratch);
+                //SplineWeights holds the spline weights, one entry per row in a span
+                int subRows = node.SplineWeights.Count - 1;
+                SimdVector3 cameraPosition = GetCameraPosition();
+                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildTbindTrailMesh(shape, visibleSegments, subRows, renderSectionLimit, autoOrientation, cameraPosition, uvScrollU, uvScrollV, uvStepU, uvStepV, state.BudgetSegmentsScratch, state.RowSegmentsScratch);
                 state.Mesh.SetMeshData(meshData);
                 state.MeshBuildKey = meshBuildKey;
             }
@@ -80,16 +81,14 @@ namespace XenoKit.Engine.Vfx.Asset
                 primaryColorKey,
                 secondaryColorKey,
                 shape?.Count ?? 0,
-                node.ExtrudeShapePoints.Count == 0 && node.ExtrudePaths.Count > 1,
+                node.SplineWeights.Count,
                 autoOrientation,
                 cameraKey);
         }
 
         private string GetCameraMeshKey()
         {
-            SimdVector3 position = ViewportInstance.Camera.CameraState.Position;
-            SimdVector3 target = ViewportInstance.Camera.CameraState.TargetPosition;
-            return $"{GetVectorKey(position)}>{GetVectorKey(target)}";
+            return GetVectorKey(GetCameraPosition());
         }
 
         private static string GetTranslationKey(Matrix4x4 matrix)
@@ -102,14 +101,10 @@ namespace XenoKit.Engine.Vfx.Asset
             return $"{vector.X:0.###},{vector.Y:0.###},{vector.Z:0.###}";
         }
 
-        private SimdVector3 GetCameraViewForward()
+        //The drawn camera, which can differ from the editor camera state during built-in BAC cameras
+        private SimdVector3 GetCameraPosition()
         {
-            SimdVector3 forward = new SimdVector3(
-                ViewportInstance.Camera.ViewMatrix.M31,
-                ViewportInstance.Camera.ViewMatrix.M32,
-                ViewportInstance.Camera.ViewMatrix.M33);
-
-            return forward.LengthSquared() > 0.000001f ? SimdVector3.Normalize(forward) : SimdVector3.UnitZ;
+            return Matrix4x4.Invert(ViewportInstance.Camera.ViewMatrix, out Matrix4x4 cameraWorld) ? cameraWorld.Translation : ViewportInstance.Camera.CameraState.Position;
         }
 
         private void RefreshAutoOrientedMeshes()

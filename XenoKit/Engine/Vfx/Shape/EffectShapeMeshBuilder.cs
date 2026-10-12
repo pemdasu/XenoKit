@@ -1,8 +1,9 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using XenoKit.Engine.Vertex;
+using XenoKit.Engine.Vfx.Particle;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector3 = System.Numerics.Vector3;
 
@@ -20,9 +21,8 @@ namespace XenoKit.Engine.Vfx.Shape
     {
         private const float MinLengthSquared = 0.000001f;
         private const float MiterLimit = 4f;
-        private const int TbindCurveSteps = 4;
 
-        internal static EffectShapeMeshData BuildShapeDrawRibbonMesh(IList<EffectShapePoint> points, Matrix4x4 world, float halfWidth, float depthWidth, float innerRadius, float outerRadius, float scrollU, float scrollV, float stepU, float stepV, Color topColor, Color bottomColor, bool closed, ShapeDrawStripMode mode, bool rotateUv)
+        internal static EffectShapeMeshData BuildShapeDrawRibbonMesh(IList<EffectShapePoint> points, Matrix4x4 world, float halfWidth, float depthWidth, float innerRadius, float outerRadius, ParticleUvMap primaryMap, ParticleUvMap secondaryMap, Color topColor, Color bottomColor, bool closed, ShapeDrawStripMode mode)
         {
             if (points == null || points.Count < 2)
                 return new EffectShapeMeshData(new VertexPositionTextureColor[0], null, PrimitiveType.TriangleStrip, 0);
@@ -34,8 +34,21 @@ namespace XenoKit.Engine.Vfx.Shape
             if (pointCount < 2)
                 return new EffectShapeMeshData(new VertexPositionTextureColor[0], null, PrimitiveType.TriangleStrip, 0);
 
-            List<float> distances = GetShapeDistances(points, pointCount, isClosed);
-            float totalDistance = distances[distances.Count - 1];
+            float[] distances = new float[pointCount];
+            for (int index = 1; index < pointCount; index++)
+            {
+                float deltaX = points[index].X - points[index - 1].X;
+                float deltaY = points[index].Y - points[index - 1].Y;
+                distances[index] = distances[index - 1] + (float)Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+            }
+
+            float totalDistance = distances[pointCount - 1];
+            if (isClosed)
+            {
+                float deltaX = points[0].X - points[pointCount - 1].X;
+                float deltaY = points[0].Y - points[pointCount - 1].Y;
+                totalDistance += (float)Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+            }
             bool axialBand = mode == ShapeDrawStripMode.AxialBand;
             float width = axialBand ? halfWidth : Math.Max(0.0001f, halfWidth);
             int pairCount = isClosed ? pointCount + 1 : pointCount;
@@ -46,9 +59,12 @@ namespace XenoKit.Engine.Vfx.Shape
             {
                 GetShapeDrawPair(points, pointCount, i, isClosed, width, depthWidth, innerRadius, outerRadius, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
                 float fraction = SafeDivide(distances[i], totalDistance);
-                float along = rotateUv ? scrollV + stepV * fraction : scrollU + stepU * fraction;
-                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, rotateUv ? scrollU : along, rotateUv ? along : scrollV);
-                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, rotateUv ? scrollU + stepU : along, rotateUv ? along : scrollV + stepV);
+                Vector2 topUv = primaryMap.Map(new Vector2(fraction, 0f));
+                Vector2 bottomUv = primaryMap.Map(new Vector2(fraction, 1f));
+                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, topUv.X, topUv.Y);
+                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, bottomUv.X, bottomUv.Y);
+                top.TextureUV1 = secondaryMap.Map(new Vector2(fraction, 0f));
+                bottom.TextureUV1 = secondaryMap.Map(new Vector2(fraction, 1f));
 
                 vertices.Add(top);
                 vertices.Add(bottom);
@@ -58,9 +74,12 @@ namespace XenoKit.Engine.Vfx.Shape
             if (isClosed)
             {
                 GetShapeDrawPair(points, pointCount, 0, isClosed, width, depthWidth, innerRadius, outerRadius, mode, out SimdVector3 topPosition, out SimdVector3 bottomPosition);
-                float along = rotateUv ? scrollV + stepV : scrollU + stepU;
-                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, rotateUv ? scrollU : along, rotateUv ? along : scrollV);
-                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, rotateUv ? scrollU + stepU : along, scrollV + stepV);
+                Vector2 topUv = primaryMap.Map(Vector2.UnitX);
+                Vector2 bottomUv = primaryMap.Map(Vector2.One);
+                VertexPositionTextureColor top = CreateVertex(topPosition, world, topColor, topUv.X, topUv.Y);
+                VertexPositionTextureColor bottom = CreateVertex(bottomPosition, world, bottomColor, bottomUv.X, bottomUv.Y);
+                top.TextureUV1 = secondaryMap.Map(Vector2.UnitX);
+                bottom.TextureUV1 = secondaryMap.Map(Vector2.One);
 
                 vertices.Add(top);
                 vertices.Add(bottom);
@@ -112,7 +131,7 @@ namespace XenoKit.Engine.Vfx.Shape
             bottomPosition = center - offset;
         }
 
-        internal static EffectShapeMeshData BuildConeExtrudeRibbonMesh(IList<EffectRibbonPoint> points, Matrix4x4 world, float scrollU, float scrollV, float stepU, float stepV)
+        internal static EffectShapeMeshData BuildConeExtrudeRibbonMesh(IList<EffectRibbonPoint> points, Matrix4x4 world, ParticleUvMap primaryMap, ParticleUvMap secondaryMap)
         {
             if (points == null || points.Count < 2)
                 return new EffectShapeMeshData(new VertexPositionTextureColor[0], null, PrimitiveType.TriangleStrip, 0);
@@ -123,11 +142,14 @@ namespace XenoKit.Engine.Vfx.Shape
             for (int i = 0; i < points.Count; i++)
             {
                 EffectRibbonPoint point = points[i];
-                float v = scrollV + (stepV * point.U);
                 float topWidth = Math.Max(0.0001f, point.HalfWidth);
                 float bottomWidth = Math.Max(0.0001f, point.BottomWidth);
-                VertexPositionTextureColor top = CreateVertex(point.Position + new SimdVector3(topWidth, 0f, 0f), world, point.TopColor, scrollU, v);
-                VertexPositionTextureColor bottom = CreateVertex(point.Position - new SimdVector3(bottomWidth, 0f, 0f), world, point.BottomColor, scrollU + stepU, v);
+                Vector2 topUv = primaryMap.Map(new Vector2(0f, point.U));
+                Vector2 bottomUv = primaryMap.Map(new Vector2(1f, point.U));
+                VertexPositionTextureColor top = CreateVertex(point.Position + new SimdVector3(topWidth, 0f, 0f), world, point.TopColor, topUv.X, topUv.Y);
+                VertexPositionTextureColor bottom = CreateVertex(point.Position - new SimdVector3(bottomWidth, 0f, 0f), world, point.BottomColor, bottomUv.X, bottomUv.Y);
+                top.TextureUV1 = secondaryMap.Map(new Vector2(0f, point.U));
+                bottom.TextureUV1 = secondaryMap.Map(new Vector2(1f, point.U));
 
                 vertices.Add(top);
                 vertices.Add(bottom);
@@ -140,28 +162,15 @@ namespace XenoKit.Engine.Vfx.Shape
             return new EffectShapeMeshData(vertices.ToArray(), null, PrimitiveType.TriangleStrip, Math.Max(0, vertices.Count - 2));
         }
 
-        internal static EffectShapeMeshData BuildTbindTrailMesh(IList<EffectShapePoint> shape, IList<EffectShapeSegment> samples, IList<EffectPathPoint> pathProfile, float retractionProgress, int maxRenderSections, bool autoOrientation, bool usePathOffsetAsWidth, SimdVector3 cameraViewForward, float uvScrollU, float uvScrollV, float uvStepU, float uvStepV, List<EffectShapeSegment> profiledScratch, List<EffectShapeSegment> meshScratch)
+        internal static EffectShapeMeshData BuildTbindTrailMesh(IList<EffectShapePoint> shape, IList<EffectShapeSegment> samples, int subRows, int maxRenderSections, bool autoOrientation, SimdVector3 cameraPosition, float uvScrollU, float uvScrollV, float uvStepU, float uvStepV, List<EffectShapeSegment> budgetScratch, List<EffectShapeSegment> rowScratch)
         {
             if (shape == null || shape.Count < 2 || samples == null || samples.Count < 2)
                 return CreateEmptyTbindMesh();
 
-            List<EffectShapeSegment> baseRows = pathProfile != null && pathProfile.Count > 1
-                ? BuildPathProfileRows(samples, pathProfile.Count, maxRenderSections, profiledScratch)
-                : ApplyRenderBudget(samples, maxRenderSections, profiledScratch);
-            List<EffectShapeSegment> profiledSamples = meshScratch;
-            float[] pathPositions = GetEffectivePathPositions(baseRows, retractionProgress);
-            float[] pathScales = GetPathScales(baseRows, pathProfile, pathPositions);
-            EffectPathPoint[] pathPoints = GetPathPoints(pathProfile, pathPositions);
-
-            profiledSamples.Clear();
-
-            for (int i = 0; i < baseRows.Count; i++)
-            {
-                EffectShapeSegment sample = baseRows[i];
-                profiledSamples.Add(usePathOffsetAsWidth
-                    ? ApplyPathScale(sample, pathPositions[i], pathScales[i])
-                    : ApplyInterpolatedPathProfile(sample, pathPoints[i], pathPositions[i], pathScales[i]));
-            }
+            List<EffectShapeSegment> baseRows = ApplyRenderBudget(samples, maxRenderSections, budgetScratch);
+            int maxRows = ushort.MaxValue / shape.Count;
+            subRows = Math.Max(0, Math.Min(subRows, ((maxRows - 1) / (baseRows.Count - 1)) - 1));
+            List<EffectShapeSegment> profiledSamples = BuildHermiteRows(baseRows, subRows, rowScratch);
 
             SetTrailDistances(profiledSamples);
 
@@ -173,7 +182,7 @@ namespace XenoKit.Engine.Vfx.Shape
                 throw new InvalidOperationException($"TBIND strip mesh has {vertexCount} vertices, which exceeds the 16-bit index limit.");
 
             VertexPositionNormalColorTexture[] vertices = new VertexPositionNormalColorTexture[vertexCount];
-            TbindRowFrame[] rowFrames = autoOrientation ? BuildAutoOrientedRowFrames(profiledSamples, cameraViewForward) : null;
+            TbindRowFrame[] rowFrames = autoOrientation ? BuildAutoOrientedRowFrames(profiledSamples, cameraPosition) : null;
 
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
             {
@@ -187,12 +196,7 @@ namespace XenoKit.Engine.Vfx.Shape
                     SimdVector3 normal = GetTbindVertexNormal(row, rowFrames, rowIndex, autoOrientation);
                     SimdVector3 tangent = GetTbindVertexTangent(row, rowFrames, rowIndex, autoOrientation);
 
-                    if (usePathOffsetAsWidth && columnCount == 2)
-                    {
-                        SimdVector3 point = GetPathWidthPoint(shape[columnIndex], row.Scale, pathPoints[rowIndex], row.Transform);
-                        vertices[vertexIndex] = CreateTrailVertex(point, normal, tangent, color, uv.X, uv.Y);
-                    }
-                    else if (autoOrientation)
+                    if (autoOrientation)
                     {
                         SimdVector3 point = GetAutoOrientedPoint(shape[columnIndex], row.Scale, columnIndex, columnCount, rowFrames[rowIndex]);
                         vertices[vertexIndex] = CreateTrailVertex(point, normal, tangent, color, uv.X, uv.Y);
@@ -207,6 +211,7 @@ namespace XenoKit.Engine.Vfx.Shape
 
             if (columnCount > 2)
             {
+                SetTbindSurfaceNormals(vertices, shape, profiledSamples);
                 ushort[] indices = BuildTbindGridIndices(rowCount, columnCount);
                 return new EffectShapeMeshData(vertices, indices, PrimitiveType.TriangleStrip, Math.Max(0, indices.Length - 2));
             }

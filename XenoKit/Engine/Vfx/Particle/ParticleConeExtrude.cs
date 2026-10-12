@@ -33,19 +33,19 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             DrawThisFrame = true;
             EmissionData.Update();
-            ParticleUV.Update(ParticleSystem.CurrentFrameDelta);
 
             StartUpdate();
 
             if (State == NodeState.Active)
             {
+                UpdateUVs();
                 UpdateRotation();
                 UpdateScale();
                 UpdateColor();
                 UpdatePoints();
 
                 Matrix4x4 world = CreateConeWorld();
-                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildConeExtrudeRibbonMesh(points, world, ParticleUV.ScrollU, ParticleUV.ScrollV, ParticleUV.StepU, ParticleUV.StepV);
+                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildConeExtrudeRibbonMesh(points, world, ParticleUV.GetMapping(), TextureUV1.GetMapping());
                 mesh.SetMeshData(meshData);
             }
             else

@@ -9,169 +9,119 @@ namespace XenoKit.Engine.Vfx.Shape
 {
     public static partial class EffectShapeMeshBuilder
     {
-        private static List<EffectShapeSegment> BuildCurvedTrailSamples(IList<EffectShapeSegment> samples, int maxRenderSections, List<EffectShapeSegment> scratch)
+        private static void SetTbindSurfaceNormals(VertexPositionNormalColorTexture[] vertices, IList<EffectShapePoint> shape, IList<EffectShapeSegment> rows)
         {
-            if (samples.Count < 3)
-                return ApplyRenderBudget(samples, maxRenderSections, scratch);
+            int columnCount = shape.Count;
+            bool closed = AreClose(shape[0], shape[columnCount - 1]);
+            int sectionCount = closed ? columnCount - 1 : columnCount;
 
-            scratch.Clear();
-            int targetCapacity = ((samples.Count - 1) * TbindCurveSteps) + 1;
-
-            if (scratch.Capacity < targetCapacity)
-                scratch.Capacity = targetCapacity;
-
-            for (int sampleIndex = 0; sampleIndex < samples.Count - 1; sampleIndex++)
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
             {
-                EffectShapeSegment previous = samples[Math.Max(0, sampleIndex - 1)];
-                EffectShapeSegment current = samples[sampleIndex];
-                EffectShapeSegment next = samples[sampleIndex + 1];
-                EffectShapeSegment after = samples[Math.Min(samples.Count - 1, sampleIndex + 2)];
-                int stepCount = GetCurveStepCount(previous, current, next, after);
+                int previousRow = Math.Max(0, rowIndex - 1);
+                int nextRow = Math.Min(rows.Count - 1, rowIndex + 1);
 
-                if (sampleIndex == 0)
-                    scratch.Add(current);
-
-                for (int step = 1; step <= stepCount; step++)
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
                 {
-                    float factor = step / (float)stepCount;
-                    scratch.Add(InterpolateTrailSample(previous, current, next, after, factor));
+                    int sectionIndex = columnIndex % sectionCount;
+                    int previousColumn = closed ? (sectionIndex + sectionCount - 1) % sectionCount : Math.Max(0, sectionIndex - 1);
+                    int nextColumn = closed ? (sectionIndex + 1) % sectionCount : Math.Min(sectionCount - 1, sectionIndex + 1);
+                    Vector3 section = vertices[rowIndex * columnCount + nextColumn].Position - vertices[rowIndex * columnCount + previousColumn].Position;
+                    Vector3 length = vertices[nextRow * columnCount + columnIndex].Position - vertices[previousRow * columnCount + columnIndex].Position;
+                    SimdVector3 sectionDirection = new SimdVector3(section.X, section.Y, section.Z);
+                    SimdVector3 lengthDirection = new SimdVector3(length.X, length.Y, length.Z);
+
+                    if (!TryNormalize(lengthDirection, out lengthDirection))
+                        lengthDirection = GetTransformDirection(rows[rowIndex].Transform, SimdVector3.UnitZ);
+
+                    int vertexIndex = rowIndex * columnCount + columnIndex;
+                    SimdVector3 normal = SimdVector3.Cross(sectionDirection, lengthDirection);
+
+                    if (TryNormalize(normal, out normal))
+                        vertices[vertexIndex].Normal = new Vector3(normal.X, normal.Y, normal.Z);
+
+                    if (TryNormalize(sectionDirection, out sectionDirection))
+                        vertices[vertexIndex].Tangent = new Vector3(sectionDirection.X, sectionDirection.Y, sectionDirection.Z);
+                }
+            }
+        }
+
+        //The game draws each span between stored samples as a cubic Hermite spline with subRows extra rows (ETR node byte 0x59).
+        //The spline runs on the center and on the two axis points, so each row keeps a smooth frame. Other values blend linearly.
+        private static List<EffectShapeSegment> BuildHermiteRows(IList<EffectShapeSegment> samples, int subRows, List<EffectShapeSegment> rows)
+        {
+            rows.Clear();
+            SimdVector3[] centers = GetSamplePoints(samples, SimdVector3.Zero);
+            SimdVector3[] xPoints = GetSamplePoints(samples, SimdVector3.UnitX);
+            SimdVector3[] yPoints = GetSamplePoints(samples, SimdVector3.UnitY);
+            SimdVector3[] centerTangents = GetHermiteTangents(centers);
+            SimdVector3[] xTangents = GetHermiteTangents(xPoints);
+            SimdVector3[] yTangents = GetHermiteTangents(yPoints);
+
+            for (int i = 0; i < samples.Count - 1; i++)
+            {
+                rows.Add(CreateInterpolatedTrailSample(samples[i], samples[i], 0f, samples[i].Transform));
+
+                for (int step = 1; step <= subRows; step++)
+                {
+                    float factor = step / (float)(subRows + 1);
+                    SimdVector3 center = Hermite(centers[i], centers[i + 1], centerTangents[i], centerTangents[i + 1], factor);
+                    SimdVector3 xAxis = Hermite(xPoints[i], xPoints[i + 1], xTangents[i], xTangents[i + 1], factor) - center;
+                    SimdVector3 yAxis = Hermite(yPoints[i], yPoints[i + 1], yTangents[i], yTangents[i + 1], factor) - center;
+                    SimdVector3 zAxis = SimdVector3.Lerp(GetTransformDirection(samples[i].Transform, SimdVector3.UnitZ), GetTransformDirection(samples[i + 1].Transform, SimdVector3.UnitZ), factor);
+                    Matrix4x4 transform = new Matrix4x4(
+                        xAxis.X, xAxis.Y, xAxis.Z, 0f,
+                        yAxis.X, yAxis.Y, yAxis.Z, 0f,
+                        zAxis.X, zAxis.Y, zAxis.Z, 0f,
+                        center.X, center.Y, center.Z, 1f);
+
+                    rows.Add(CreateInterpolatedTrailSample(samples[i], samples[i + 1], factor, transform));
                 }
             }
 
-            CapInPlace(scratch, maxRenderSections);
-            return scratch;
+            EffectShapeSegment last = samples[samples.Count - 1];
+            rows.Add(CreateInterpolatedTrailSample(last, last, 0f, last.Transform));
+            return rows;
         }
 
-        private static int GetCurveStepCount(EffectShapeSegment previous, EffectShapeSegment current, EffectShapeSegment next, EffectShapeSegment after)
+        private static SimdVector3[] GetSamplePoints(IList<EffectShapeSegment> samples, SimdVector3 localPoint)
         {
-            float distance = SimdVector3.Distance(current.Transform.Translation, next.Transform.Translation);
-
-            if (distance < 0.05f)
-                return 1;
-
-            float currentAngle = GetBendAngle(previous.Transform.Translation, current.Transform.Translation, next.Transform.Translation);
-            float nextAngle = GetBendAngle(current.Transform.Translation, next.Transform.Translation, after.Transform.Translation);
-            float angle = Math.Max(currentAngle, nextAngle);
-
-            if (angle < 8f)
-                return 1;
-
-            if (angle < 25f)
-                return 2;
-
-            if (angle < 50f)
-                return 3;
-
-            return 4;
-        }
-
-        private static List<EffectShapeSegment> BuildPathProfileRows(IList<EffectShapeSegment> samples, int pathProfileCount, int maxRenderSections, List<EffectShapeSegment> scratch)
-        {
-            if (samples.Count < 2 || pathProfileCount <= 1)
-                return ApplyRenderBudget(samples, maxRenderSections, scratch);
-
-            float firstPosition = Math.Min(samples[0].NormalizedTrailPosition, samples[samples.Count - 1].NormalizedTrailPosition);
-            float lastPosition = Math.Max(samples[0].NormalizedTrailPosition, samples[samples.Count - 1].NormalizedTrailPosition);
-            List<float> rowPositions = new List<float>(samples.Count + pathProfileCount);
+            SimdVector3[] points = new SimdVector3[samples.Count];
 
             for (int i = 0; i < samples.Count; i++)
-                AddPathProfileRowPosition(rowPositions, samples[i].NormalizedTrailPosition);
+                points[i] = SimdVector3.Transform(localPoint, samples[i].Transform);
 
-            for (int i = 0; i < pathProfileCount; i++)
-            {
-                float pathPosition = i / (float)(pathProfileCount - 1);
-
-                if (pathPosition >= firstPosition - 0.0001f && pathPosition <= lastPosition + 0.0001f)
-                    AddPathProfileRowPosition(rowPositions, pathPosition);
-            }
-
-            rowPositions.Sort();
-
-            scratch.Clear();
-
-            if (scratch.Capacity < rowPositions.Count)
-                scratch.Capacity = rowPositions.Count;
-
-            float previousPosition = -1f;
-
-            for (int i = 0; i < rowPositions.Count; i++)
-            {
-                float rowPosition = MathHelper.Clamp(rowPositions[i], 0f, 1f);
-
-                if (i > 0 && Math.Abs(rowPosition - previousPosition) <= 0.0001f)
-                    continue;
-
-                scratch.Add(InterpolateTrailSampleAtPosition(samples, rowPosition));
-                previousPosition = rowPosition;
-            }
-
-            CapInPlace(scratch, maxRenderSections);
-            return scratch;
+            return points;
         }
 
-        private static void AddPathProfileRowPosition(List<float> rowPositions, float position)
+        //Chord weighted tangents, as the game computes them. The ends use the plain difference.
+        private static SimdVector3[] GetHermiteTangents(SimdVector3[] points)
         {
-            rowPositions.Add(MathHelper.Clamp(position, 0f, 1f));
-        }
+            int last = points.Length - 1;
+            SimdVector3[] tangents = new SimdVector3[points.Length];
+            tangents[0] = points[1] - points[0];
+            tangents[last] = points[last] - points[last - 1];
 
-        private static EffectShapeSegment InterpolateTrailSampleAtPosition(IList<EffectShapeSegment> samples, float normalizedPosition)
-        {
-            float clampedPosition = MathHelper.Clamp(normalizedPosition, 0f, 1f);
-
-            if (clampedPosition <= samples[0].NormalizedTrailPosition)
-                return CreatePathProfileRow(samples[0], clampedPosition);
-
-            int lastIndex = samples.Count - 1;
-
-            if (clampedPosition >= samples[lastIndex].NormalizedTrailPosition)
-                return CreatePathProfileRow(samples[lastIndex], clampedPosition);
-
-            for (int i = 0; i < lastIndex; i++)
+            for (int i = 1; i < last; i++)
             {
-                EffectShapeSegment current = samples[i];
-                EffectShapeSegment next = samples[i + 1];
-                float currentPosition = current.NormalizedTrailPosition;
-                float nextPosition = next.NormalizedTrailPosition;
-
-                if (clampedPosition < currentPosition || clampedPosition > nextPosition)
-                    continue;
-
-                if (Math.Abs(nextPosition - currentPosition) <= 0.0001f)
-                    return CreatePathProfileRow(current, clampedPosition);
-
-                EffectShapeSegment previous = samples[Math.Max(0, i - 1)];
-                EffectShapeSegment after = samples[Math.Min(lastIndex, i + 2)];
-                float factor = (clampedPosition - currentPosition) / (nextPosition - currentPosition);
-                return CreatePathProfileRow(InterpolateTrailSample(previous, current, next, after, factor), clampedPosition);
+                SimdVector3 before = points[i] - points[i - 1];
+                SimdVector3 after = points[i + 1] - points[i];
+                float total = before.Length() + after.Length();
+                float weight = total > 0f ? before.Length() / total : 0.5f;
+                tangents[i] = before + ((after - before) * weight);
             }
 
-            return CreatePathProfileRow(samples[lastIndex], clampedPosition);
+            return tangents;
         }
 
-        private static EffectShapeSegment CreatePathProfileRow(EffectShapeSegment sample, float normalizedPosition)
+        private static SimdVector3 Hermite(SimdVector3 start, SimdVector3 end, SimdVector3 startTangent, SimdVector3 endTangent, float factor)
         {
-            return new EffectShapeSegment
-            {
-                Transform = sample.Transform,
-                Age = sample.Age,
-                CreatedFrame = sample.CreatedFrame,
-                ExpireFrame = sample.ExpireFrame,
-                Life = sample.Life,
-                Scale = sample.Scale,
-                U = normalizedPosition,
-                V = sample.V,
-                UvBaseU = sample.UvBaseU,
-                UvBaseV = sample.UvBaseV,
-                NormalizedTrailPosition = normalizedPosition,
-                DistanceFromTail = sample.DistanceFromTail,
-                DistanceFromHead = sample.DistanceFromHead,
-                TrailLength = sample.TrailLength,
-                AlphaScale = sample.AlphaScale,
-                IsBootstrapSeed = sample.IsBootstrapSeed,
-                IsRenderOnlyHead = sample.IsRenderOnlyHead,
-                PrimaryColor = sample.PrimaryColor,
-                SecondaryColor = sample.SecondaryColor
-            };
+            float squared = factor * factor;
+            float cubed = squared * factor;
+
+            return (start * ((2f * cubed) - (3f * squared) + 1f)) +
+                (end * ((-2f * cubed) + (3f * squared))) +
+                (startTangent * (cubed - (2f * squared) + factor)) +
+                (endTangent * (cubed - squared));
         }
 
         private static List<EffectShapeSegment> ApplyRenderBudget(IList<EffectShapeSegment> samples, int maxRenderSections, List<EffectShapeSegment> scratch)
@@ -215,42 +165,6 @@ namespace XenoKit.Engine.Vfx.Shape
             return scratch;
         }
 
-        private static void CapInPlace(List<EffectShapeSegment> samples, int maxRenderSections)
-        {
-            int maxSamples = Math.Max(2, maxRenderSections + 1);
-
-            if (samples.Count <= maxSamples)
-                return;
-
-            EffectShapeSegment[] cappedSamples = new EffectShapeSegment[maxSamples];
-            int lastSourceIndex = samples.Count - 1;
-            int lastAddedIndex = -1;
-
-            for (int i = 0; i < maxSamples; i++)
-            {
-                float sourceIndex = i * lastSourceIndex / (float)(maxSamples - 1);
-                int roundedIndex = (int)Math.Round(sourceIndex);
-
-                if (roundedIndex == lastAddedIndex && roundedIndex < lastSourceIndex)
-                    roundedIndex++;
-
-                cappedSamples[i] = samples[roundedIndex];
-                lastAddedIndex = roundedIndex;
-            }
-
-            if (cappedSamples[cappedSamples.Length - 1] != samples[lastSourceIndex])
-                cappedSamples[cappedSamples.Length - 1] = samples[lastSourceIndex];
-
-            samples.Clear();
-            samples.AddRange(cappedSamples);
-        }
-
-        private static EffectShapeSegment InterpolateTrailSample(EffectShapeSegment previous, EffectShapeSegment current, EffectShapeSegment next, EffectShapeSegment after, float factor)
-        {
-            Matrix4x4 transform = InterpolateTrailTransform(previous.Transform, current.Transform, next.Transform, after.Transform, factor);
-            return CreateInterpolatedTrailSample(current, next, factor, transform);
-        }
-
         private static EffectShapeSegment CreateInterpolatedTrailSample(EffectShapeSegment current, EffectShapeSegment next, float factor, Matrix4x4 transform)
         {
             return new EffectShapeSegment
@@ -277,106 +191,13 @@ namespace XenoKit.Engine.Vfx.Shape
             };
         }
 
-        private static Matrix4x4 InterpolateTrailTransform(Matrix4x4 previous, Matrix4x4 current, Matrix4x4 next, Matrix4x4 after, float factor)
-        {
-            if (!Matrix4x4.Decompose(previous, out SimdVector3 previousScale, out System.Numerics.Quaternion previousRotation, out SimdVector3 previousPosition) ||
-                !Matrix4x4.Decompose(current, out SimdVector3 currentScale, out System.Numerics.Quaternion currentRotation, out SimdVector3 currentPosition) ||
-                !Matrix4x4.Decompose(next, out SimdVector3 nextScale, out System.Numerics.Quaternion nextRotation, out SimdVector3 nextPosition) ||
-                !Matrix4x4.Decompose(after, out SimdVector3 afterScale, out System.Numerics.Quaternion afterRotation, out SimdVector3 afterPosition))
-            {
-                return Matrix4x4.Lerp(current, next, factor);
-            }
-
-            SimdVector3 position = CatmullRom(previousPosition, currentPosition, nextPosition, afterPosition, factor);
-            SimdVector3 scale = CatmullRom(previousScale, currentScale, nextScale, afterScale, factor);
-            System.Numerics.Quaternion rotation = System.Numerics.Quaternion.Slerp(currentRotation, nextRotation, factor);
-
-            return Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
-        }
-
-        private static SimdVector3 CatmullRom(SimdVector3 previous, SimdVector3 current, SimdVector3 next, SimdVector3 after, float factor)
-        {
-            float squared = factor * factor;
-            float cubed = squared * factor;
-
-            return 0.5f * ((2f * current) +
-                ((next - previous) * factor) +
-                (((2f * previous) - (5f * current) + (4f * next) - after) * squared) +
-                ((-previous + (3f * current) - (3f * next) + after) * cubed));
-        }
-
-        private static EffectShapeSegment ApplyInterpolatedPathProfile(EffectShapeSegment segment, EffectPathPoint path, float normalizedPosition, float pathScale)
-        {
-            Matrix4x4 pathTransform = Matrix4x4.CreateTranslation(new SimdVector3(path.Offset2, 0f, -path.Offset));
-            Matrix4x4 transform = pathTransform * segment.Transform;
-
-            return new EffectShapeSegment
-            {
-                Transform = transform,
-                Age = segment.Age,
-                CreatedFrame = segment.CreatedFrame,
-                ExpireFrame = segment.ExpireFrame,
-                Life = segment.Life,
-                Scale = pathScale,
-                U = segment.U,
-                V = segment.V,
-                UvBaseU = segment.UvBaseU,
-                UvBaseV = segment.UvBaseV,
-                NormalizedTrailPosition = normalizedPosition,
-                DistanceFromTail = segment.DistanceFromTail,
-                DistanceFromHead = segment.DistanceFromHead,
-                TrailLength = segment.TrailLength,
-                AlphaScale = segment.AlphaScale,
-                IsBootstrapSeed = segment.IsBootstrapSeed,
-                IsRenderOnlyHead = segment.IsRenderOnlyHead,
-                PrimaryColor = segment.PrimaryColor,
-                SecondaryColor = segment.SecondaryColor
-            };
-        }
-
-        private static EffectShapeSegment ApplyPathScale(EffectShapeSegment segment, float normalizedPosition, float pathScale)
-        {
-            return new EffectShapeSegment
-            {
-                Transform = segment.Transform,
-                Age = segment.Age,
-                CreatedFrame = segment.CreatedFrame,
-                ExpireFrame = segment.ExpireFrame,
-                Life = segment.Life,
-                Scale = pathScale,
-                U = segment.U,
-                V = segment.V,
-                UvBaseU = segment.UvBaseU,
-                UvBaseV = segment.UvBaseV,
-                NormalizedTrailPosition = normalizedPosition,
-                DistanceFromTail = segment.DistanceFromTail,
-                DistanceFromHead = segment.DistanceFromHead,
-                TrailLength = segment.TrailLength,
-                AlphaScale = segment.AlphaScale,
-                IsBootstrapSeed = segment.IsBootstrapSeed,
-                IsRenderOnlyHead = segment.IsRenderOnlyHead,
-                PrimaryColor = segment.PrimaryColor,
-                SecondaryColor = segment.SecondaryColor
-            };
-        }
-
-        private static EffectPathPoint[] GetPathPoints(IList<EffectPathPoint> pathProfile, IList<float> pathPositions)
-        {
-            EffectPathPoint[] pathPoints = new EffectPathPoint[pathPositions.Count];
-
-            for (int i = 0; i < pathPoints.Length; i++)
-                pathPoints[i] = GetInterpolatedPathProfilePoint(pathProfile, pathPositions[i]);
-
-            return pathPoints;
-        }
-
-        private static TbindRowFrame[] BuildAutoOrientedRowFrames(IList<EffectShapeSegment> rows, SimdVector3 cameraViewForward)
+        //Each row faces the camera from its own position, as the game re-faces every segment each frame.
+        private static TbindRowFrame[] BuildAutoOrientedRowFrames(IList<EffectShapeSegment> rows, SimdVector3 cameraPosition)
         {
             TbindRowFrame[] frames = new TbindRowFrame[rows.Count];
             SimdVector3[] centers = new SimdVector3[rows.Count];
             SimdVector3 previousTangent = SimdVector3.Zero;
             SimdVector3 previousWidthAxis = SimdVector3.Zero;
-            SimdVector3 viewForward = NormalizeOrFallback(cameraViewForward, SimdVector3.UnitZ);
 
             for (int i = 0; i < rows.Count; i++)
                 centers[i] = rows[i].Transform.Translation;
@@ -385,6 +206,7 @@ namespace XenoKit.Engine.Vfx.Shape
             {
                 EffectShapeSegment row = rows[i];
                 SimdVector3 tangent = GetTrailTangentBasis(rows, centers, i, previousTangent);
+                SimdVector3 viewForward = NormalizeOrFallback(cameraPosition - centers[i], SimdVector3.UnitZ);
                 SimdVector3 widthAxis = GetAutoOrientedWidthAxis(row.Transform, tangent, viewForward, previousWidthAxis);
                 SimdVector3 heightAxis = SimdVector3.Cross(widthAxis, tangent);
 
@@ -471,14 +293,6 @@ namespace XenoKit.Engine.Vfx.Shape
             return rowFrame.Center + (rowFrame.WidthAxis * point.X * scale) + (rowFrame.HeightAxis * point.Y * scale);
         }
 
-        private static SimdVector3 GetPathWidthPoint(EffectShapePoint point, float scale, EffectPathPoint path, Matrix4x4 transform)
-        {
-            SimdVector3 basePoint = SimdVector3.Transform(new SimdVector3(0f, point.Y * scale, 0f), transform);
-            SimdVector3 offsetPoint = SimdVector3.Transform(new SimdVector3(path.Offset2, (point.Y * scale) + path.Offset, 0f), transform);
-            float factor = MathHelper.Clamp(point.X + 0.5f, 0f, 1f);
-            return SimdVector3.Lerp(basePoint, offsetPoint, factor);
-        }
-
         private static SimdVector3 NormalizeOrFallback(SimdVector3 value, SimdVector3 fallback)
         {
             return TryNormalize(value, out SimdVector3 normalized) ? normalized : fallback;
@@ -501,36 +315,6 @@ namespace XenoKit.Engine.Vfx.Shape
             return SimdVector3.TransformNormal(direction, transform);
         }
 
-        private static float[] GetEffectivePathPositions(IList<EffectShapeSegment> samples, float retractionProgress)
-        {
-            float[] pathPositions = new float[samples.Count];
-            bool shrinkPathProfile = retractionProgress > 0f;
-
-            for (int i = 0; i < samples.Count; i++)
-            {
-                float pathPosition = samples[i].NormalizedTrailPosition;
-                pathPositions[i] = shrinkPathProfile ? Lerp(pathPosition, 1f, retractionProgress) : pathPosition;
-            }
-
-            return pathPositions;
-        }
-
-        private static float[] GetPathScales(IList<EffectShapeSegment> samples, IList<EffectPathPoint> pathProfile, IList<float> pathPositions)
-        {
-            float[] scales = new float[samples.Count];
-
-            for (int i = 0; i < samples.Count; i++)
-                scales[i] = GetNormalPathScale(samples[i], pathProfile, pathPositions[i]);
-
-            return scales;
-        }
-
-        private static float GetNormalPathScale(EffectShapeSegment segment, IList<EffectPathPoint> pathProfile, float pathPosition)
-        {
-            EffectPathPoint path = GetInterpolatedPathProfilePoint(pathProfile, pathPosition);
-            return Math.Max(0.0001f, segment.Scale * (path.ScaleFactor + path.ScaleAdd));
-        }
-
         private static void SetTrailDistances(IList<EffectShapeSegment> samples)
         {
             if (samples == null || samples.Count == 0)
@@ -550,44 +334,6 @@ namespace XenoKit.Engine.Vfx.Shape
                 samples[i].TrailLength = totalDistance;
                 samples[i].DistanceFromHead = totalDistance - samples[i].DistanceFromTail;
             }
-        }
-
-        private static float GetBendAngle(SimdVector3 previous, SimdVector3 current, SimdVector3 next)
-        {
-            SimdVector3 first = current - previous;
-            SimdVector3 second = next - current;
-
-            if (first.LengthSquared() < MinLengthSquared || second.LengthSquared() < MinLengthSquared)
-                return 0f;
-
-            first = SimdVector3.Normalize(first);
-            second = SimdVector3.Normalize(second);
-            float dot = Math.Max(-1f, Math.Min(1f, SimdVector3.Dot(first, second)));
-            return MathHelper.ToDegrees((float)Math.Acos(dot));
-        }
-
-        private static EffectPathPoint GetInterpolatedPathProfilePoint(IList<EffectPathPoint> pathProfile, float normalizedPosition)
-        {
-            if (pathProfile == null || pathProfile.Count == 0)
-                return new EffectPathPoint(1f, 0f, 0f, 0f);
-
-            if (pathProfile.Count == 1)
-                return pathProfile[0];
-
-            float clamped = Math.Max(0f, Math.Min(1f, normalizedPosition));
-            float pathIndex = clamped * (pathProfile.Count - 1);
-            int lowerIndex = (int)Math.Floor(pathIndex);
-            int upperIndex = Math.Min(pathProfile.Count - 1, lowerIndex + 1);
-            float factor = pathIndex - lowerIndex;
-
-            EffectPathPoint lower = pathProfile[Math.Max(0, lowerIndex)];
-            EffectPathPoint upper = pathProfile[upperIndex];
-
-            return new EffectPathPoint(
-                Lerp(lower.ScaleFactor, upper.ScaleFactor, factor),
-                Lerp(lower.ScaleAdd, upper.ScaleAdd, factor),
-                Lerp(lower.Offset, upper.Offset, factor),
-                Lerp(lower.Offset2, upper.Offset2, factor));
         }
 
         private struct TbindRowFrame

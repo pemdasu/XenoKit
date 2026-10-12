@@ -153,10 +153,11 @@ namespace XenoKit.Engine.Vfx.Asset
 
         private float GetSegmentDelay(ETR_Node node)
         {
-            if (node.SegementFrameSize == 0)
+            //Distance mode only uses this for the first two segments. An interval of 0 or less spawns every frame.
+            if (node.Flags.HasFlag(ETR_Node.ExtrudeFlags.SpawnByDistance))
                 return 1f;
 
-            return System.Math.Max(0.1f, node.SegementFrameSize / 10f);
+            return System.Math.Max(1f, node.SegmentSpacing);
         }
 
         private bool UsesFiniteExtrusion(ETR_Node node)
@@ -270,14 +271,20 @@ namespace XenoKit.Engine.Vfx.Asset
         private static float GetSegmentV(ETR_Node node, float nodeFrame)
         {
             int timeline = System.Math.Max(1, GetTimelineLength(node));
-
-            if (node.Flags.HasFlag(ETR_Node.ExtrudeFlags.UVPauseOnExtrude) && node.ExtrudeDuration > 0 && nodeFrame <= node.ExtrudeDuration)
-                return 0f;
-
-            if (node.Flags.HasFlag(ETR_Node.ExtrudeFlags.UVPauseOnHold) && node.ExtrudeDuration >= 0 && nodeFrame > node.ExtrudeDuration)
-                return 1f;
-
             return MathHelper.Clamp(nodeFrame / timeline, 0f, 1f);
+        }
+
+        // The UV scroll clock only runs after the node starts. The UV pause flags hold it during or after extrusion.
+        private bool IsUvScrollClockRunning(ETR_Node node)
+        {
+            float nodeFrame = CurrentFrame - node.StartTime;
+
+            if (nodeFrame < 0f)
+                return false;
+
+            bool extruding = node.ExtrudeDuration < 0 || nodeFrame <= node.ExtrudeDuration;
+            ETR_Node.ExtrudeFlags pauseFlag = extruding ? ETR_Node.ExtrudeFlags.UVPauseOnExtrude : ETR_Node.ExtrudeFlags.UVPauseOnHold;
+            return !node.Flags.HasFlag(pauseFlag);
         }
 
         private static int GetTimelineLength(ETR_Node node)

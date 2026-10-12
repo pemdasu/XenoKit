@@ -36,11 +36,11 @@ namespace XenoKit.Engine.Vfx.Asset
                 samplers[i].name = ShaderManager.GetSamplerName(i);
                 samplers[i].state = new SamplerState
                 {
-                    AddressU = GetTextureAddressMode(node.TextureEntryRef[i].TextureRef?.RepetitionU),
-                    AddressV = GetTextureAddressMode(node.TextureEntryRef[i].TextureRef?.RepetitionV),
+                    AddressU = EmpSamplerSettings.GetAddressMode(node.TextureEntryRef[i].TextureRef?.RepetitionU),
+                    AddressV = EmpSamplerSettings.GetAddressMode(node.TextureEntryRef[i].TextureRef?.RepetitionV),
                     AddressW = TextureAddressMode.Wrap,
                     BorderColor = Color.White,
-                    Filter = GetTextureFilter(node.TextureEntryRef[i].TextureRef?.FilteringMin, node.TextureEntryRef[i].TextureRef?.FilteringMag),
+                    Filter = EmpSamplerSettings.GetFilter(node.TextureEntryRef[i].TextureRef?.FilteringMin, node.TextureEntryRef[i].TextureRef?.FilteringMag),
                     MaxAnisotropy = 1,
                     MaxMipLevel = 1
                 };
@@ -112,38 +112,6 @@ namespace XenoKit.Engine.Vfx.Asset
             scrollV = state.TextureScroll[0][1];
             stepU = state.TextureScroll[0][2] != 0f ? state.TextureScroll[0][2] : 1f;
             stepV = state.TextureScroll[0][3] != 0f ? state.TextureScroll[0][3] : 1f;
-        }
-
-        private static TextureFilter GetTextureFilter(EMP_TextureSamplerDef.TextureFiltering? min, EMP_TextureSamplerDef.TextureFiltering? mag)
-        {
-            if (min == EMP_TextureSamplerDef.TextureFiltering.Linear && mag == EMP_TextureSamplerDef.TextureFiltering.Linear)
-                return TextureFilter.Linear;
-
-            if (min == EMP_TextureSamplerDef.TextureFiltering.Linear && mag == EMP_TextureSamplerDef.TextureFiltering.Point)
-                return TextureFilter.MinLinearMagPointMipLinear;
-
-            if (min == EMP_TextureSamplerDef.TextureFiltering.Point && mag == EMP_TextureSamplerDef.TextureFiltering.Point)
-                return TextureFilter.PointMipLinear;
-
-            if (min == EMP_TextureSamplerDef.TextureFiltering.Point && mag == EMP_TextureSamplerDef.TextureFiltering.Linear)
-                return TextureFilter.MinPointMagLinearMipLinear;
-
-            return TextureFilter.Linear;
-        }
-
-        private static TextureAddressMode GetTextureAddressMode(EMP_TextureSamplerDef.TextureRepitition? mode)
-        {
-            switch (mode)
-            {
-                case EMP_TextureSamplerDef.TextureRepitition.Clamp:
-                case EMP_TextureSamplerDef.TextureRepitition.Border:
-                    return TextureAddressMode.Clamp;
-                case EMP_TextureSamplerDef.TextureRepitition.Mirror:
-                    return TextureAddressMode.Mirror;
-                case EMP_TextureSamplerDef.TextureRepitition.Wrap:
-                default:
-                    return TextureAddressMode.Wrap;
-            }
         }
 
         private static Color GetColor(float[] rgb, float alpha)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,14 +45,34 @@ namespace XenoKit.Engine.Vfx.Asset
                 BootstrapTrailSamples(node, state, segmentDelay, includeSecondSample, useContinuousTrail);
             }
 
-            while (nodeFrame >= state.NextEmitFrame && state.NextEmitFrame <= extrudeEnd)
+            if (node.Flags.HasFlag(ETR_Node.ExtrudeFlags.SpawnByDistance))
             {
-                AddOrReplaceDueSample(node, state, state.NextEmitFrame);
-                state.NextEmitFrame += segmentDelay;
+                if (nodeFrame >= state.NextEmitFrame && nodeFrame <= extrudeEnd)
+                    EmitByDistance(node, state, nodeFrame);
+            }
+            else
+            {
+                while (nodeFrame >= state.NextEmitFrame && state.NextEmitFrame <= extrudeEnd)
+                {
+                    AddOrReplaceDueSample(node, state, state.NextEmitFrame);
+                    state.NextEmitFrame += segmentDelay;
+                }
             }
 
             while (state.Samples.Count > MaxTrailSamples)
                 state.Samples.RemoveAt(0);
+        }
+
+        //The game adds at most one segment per update, once the head has moved the spacing distance from the last segment
+        private void EmitByDistance(ETR_Node node, TbindNodeState state, float nodeFrame)
+        {
+            TbindTrailSample head = CreateTrailSample(node, state, nodeFrame);
+            TbindTrailSample last = state.Samples[state.Samples.Count - 1];
+
+            if (last.IsBootstrapSeed)
+                state.Samples[state.Samples.Count - 1] = head;
+            else if (SimdVector3.Distance(head.Transform.Translation, last.Transform.Translation) >= node.SegmentSpacing)
+                state.Samples.Add(head);
         }
 
         private void BootstrapTrailSamples(ETR_Node node, TbindNodeState state, float segmentDelay, bool includeSecondSample, bool secondSampleIsSeed)
@@ -182,8 +202,11 @@ namespace XenoKit.Engine.Vfx.Asset
         {
             if (state.StopMode == TbindStopMode.Retract || state.IsRetracting)
             {
-                if (GetRetractionProgress(state, nodeFrame) >= 1f)
-                    state.Samples.Clear();
+                //The game removes the oldest segments first, so the trail shrinks from its tail
+                int keep = (int)System.Math.Ceiling(state.RetractionStartSampleCount * (1f - GetRetractionProgress(state, nodeFrame)));
+
+                if (state.Samples.Count > keep)
+                    state.Samples.RemoveRange(0, state.Samples.Count - keep);
 
                 return;
             }
@@ -324,7 +347,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private bool ShouldUseContinuousTrail(ETR_Node node)
         {
             // TRS and projectile TBINDs are trails from previous transforms. Dense samples keep motion history from collapsing to static ETR path points.
-            if (UsesExternalSpawn() || UsesTrsAttach(node))
+            if (UsesExternalSpawn() || UsesExternalAttach(node))
                 return true;
 
             return false;
@@ -347,22 +370,6 @@ namespace XenoKit.Engine.Vfx.Asset
                 points.Add(new EffectShapePoint(point.X, point.Y));
 
             return points;
-        }
-
-        private static List<EffectPathPoint> GetPathProfile(ETR_Node node)
-        {
-            List<EffectPathPoint> pathProfile = new List<EffectPathPoint>();
-
-            if (node.ExtrudePaths.Count == 0)
-            {
-                pathProfile.Add(new EffectPathPoint(1f, 0f, 0f, 0f));
-                return pathProfile;
-            }
-
-            foreach (ConeExtrudePoint point in node.ExtrudePaths)
-                pathProfile.Add(new EffectPathPoint(point.WorldScaleFactor, point.WorldScaleAdd, point.WorldOffsetFactor, point.WorldOffsetFactor2));
-
-            return pathProfile;
         }
 
     }

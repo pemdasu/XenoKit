@@ -25,12 +25,12 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             DrawThisFrame = true;
             EmissionData.Update();
-            ParticleUV.Update(ParticleSystem.CurrentFrameDelta);
 
             StartUpdate();
 
             if (State == NodeState.Active)
             {
+                UpdateUVs();
                 UpdateRotation();
                 UpdateScale();
                 UpdateColor();
@@ -45,20 +45,7 @@ namespace XenoKit.Engine.Vfx.Particle
                     : primary;
 
                 float depthWidth = GetShapeDrawDepthWidth(stripMode);
-                Vector2 uvStart = new Vector2(ParticleUV.ScrollU, ParticleUV.ScrollV);
-                Vector2 uvStep = new Vector2(ParticleUV.StepU, ParticleUV.StepV);
-                if (ParticleUV.TextureDef?.SymmetryU == EMP_TextureSamplerDef.SymmetryType.Inverted)
-                {
-                    uvStart.X += uvStep.X;
-                    uvStep.X = -uvStep.X;
-                }
-                if (ParticleUV.TextureDef?.SymmetryV == EMP_TextureSamplerDef.SymmetryType.Inverted)
-                {
-                    uvStart.Y += uvStep.Y;
-                    uvStep.Y = -uvStep.Y;
-                }
-                bool rotateUv = ((ParticleUV.TextureDef?.I_02_b ?? 0) & 1) != 0;
-                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildShapeDrawRibbonMesh(points, world, ScaleV, depthWidth, ScaleBase, ScaleU, uvStart.X, uvStart.Y, uvStep.X, uvStep.Y, primary, secondary, ShouldClose(points), stripMode, rotateUv);
+                EffectShapeMeshData meshData = EffectShapeMeshBuilder.BuildShapeDrawRibbonMesh(points, world, ScaleV, depthWidth, ScaleBase, ScaleU, ParticleUV.GetMapping(), TextureUV1.GetMapping(), primary, secondary, ShouldClose(points), stripMode);
                 mesh.SetMeshData(meshData);
             }
             else
@@ -134,7 +121,10 @@ namespace XenoKit.Engine.Vfx.Particle
         private Matrix4x4 CreateAxialBandWorldRaw()
         {
             float angle = RandomDirection ? -RotationAmount : RotationAmount;
-            return Matrix4x4.CreateRotationZ(MathHelper.ToRadians(angle)) * Rotation * GetParticlePositionWorld();
+            Matrix4x4.Decompose(Transform, out SimdVector3 scale, out _, out SimdVector3 translation);
+            Matrix4x4 world = Matrix4x4.CreateTranslation(translation) * Matrix4x4.CreateScale(scale) *
+                Matrix4x4.CreateScale(ParticleSystem.Scale) * GetAttachmentBone();
+            return Matrix4x4.CreateRotationZ(MathHelper.ToRadians(angle)) * Rotation * world;
         }
 
         private Matrix4x4 ApplyShapeDrawRenderDepth(Matrix4x4 world)

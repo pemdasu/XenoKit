@@ -39,8 +39,8 @@ namespace XenoKit.Engine.Vfx.Asset
             public List<EffectShapeSegment> SourceSegmentsScratch { get; } = new List<EffectShapeSegment>();
             public List<TbindTrailSample> RenderSamplesScratch { get; } = new List<TbindTrailSample>();
             public List<EffectShapeSegment> VisibleSegmentsScratch { get; } = new List<EffectShapeSegment>();
-            public List<EffectShapeSegment> ProfiledSegmentsScratch { get; } = new List<EffectShapeSegment>();
-            public List<EffectShapeSegment> CurvedSegmentsScratch { get; } = new List<EffectShapeSegment>();
+            public List<EffectShapeSegment> BudgetSegmentsScratch { get; } = new List<EffectShapeSegment>();
+            public List<EffectShapeSegment> RowSegmentsScratch { get; } = new List<EffectShapeSegment>();
             public Xv2ShaderEffect Material { get; }
             public SamplerInfo[] Samplers { get; }
             public Xv2Texture[] Textures { get; }
@@ -78,8 +78,8 @@ namespace XenoKit.Engine.Vfx.Asset
                 SourceSegmentsScratch.Clear();
                 RenderSamplesScratch.Clear();
                 VisibleSegmentsScratch.Clear();
-                ProfiledSegmentsScratch.Clear();
-                CurvedSegmentsScratch.Clear();
+                BudgetSegmentsScratch.Clear();
+                RowSegmentsScratch.Clear();
                 NextEmitFrame = 0f;
                 Started = false;
                 FinishedExtruding = false;

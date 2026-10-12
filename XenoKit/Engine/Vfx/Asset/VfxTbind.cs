@@ -52,7 +52,7 @@ namespace XenoKit.Engine.Vfx.Asset
             base.Update();
             if (!HasStarted || etrFile == null) return;
 
-            float frameDelta = ViewportInstance.IsPlaying ? EffectPart.UseTimeScale ? Actor?.ActiveTimeScale ?? 1f : 1f : 0f;
+            float frameDelta = ViewportInstance.IsPlaying ? FrameStep : 0f;
             UpdateTextureScroll(frameDelta);
             UpdateNodes();
 
@@ -138,8 +138,8 @@ namespace XenoKit.Engine.Vfx.Asset
                 state.SourceSegmentsScratch.Clear();
                 state.RenderSamplesScratch.Clear();
                 state.VisibleSegmentsScratch.Clear();
-                state.ProfiledSegmentsScratch.Clear();
-                state.CurvedSegmentsScratch.Clear();
+                state.BudgetSegmentsScratch.Clear();
+                state.RowSegmentsScratch.Clear();
                 state.MeshBuildKey = null;
                 state.HasRenderOnlyHead = false;
                 state.RenderOnlyHeadFrame = 0f;
@@ -188,7 +188,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private void UpdateTextureScroll(float frameDelta)
         {
             foreach (ETR_Node node in etrFile.Nodes)
-                UpdateTextureScroll(node, nodeStates[node], frameDelta);
+                UpdateTextureScroll(node, nodeStates[node], IsUvScrollClockRunning(node) ? frameDelta : 0f);
         }
 
 

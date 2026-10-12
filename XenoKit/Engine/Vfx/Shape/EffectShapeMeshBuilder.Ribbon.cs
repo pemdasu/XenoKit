@@ -20,24 +20,6 @@ namespace XenoKit.Engine.Vfx.Shape
             AddDoubleSidedQuad(vertices, startTop, endTop, startBottom, endBottom);
         }
 
-        private static List<float> GetShapeDistances(IList<EffectShapePoint> points, int pointCount, bool closed)
-        {
-            int segmentCount = closed ? pointCount : pointCount - 1;
-            List<float> distances = new List<float>(segmentCount + 1) { 0f };
-            float total = 0f;
-
-            for (int i = 0; i < segmentCount; i++)
-            {
-                int nextIndex = (i + 1) % pointCount;
-                float dx = points[nextIndex].X - points[i].X;
-                float dy = points[nextIndex].Y - points[i].Y;
-                total += (float)Math.Sqrt(dx * dx + dy * dy);
-                distances.Add(total);
-            }
-
-            return distances;
-        }
-
         private static SimdVector3 Get2DNormal(SimdVector3 start, SimdVector3 end)
         {
             SimdVector3 direction = end - start;
