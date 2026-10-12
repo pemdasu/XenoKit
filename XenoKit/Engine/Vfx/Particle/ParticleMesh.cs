@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using XenoKit.Editor;
 using XenoKit.Engine.Model;
+using XenoKit.Engine.Textures;
 using XenoKit.Engine.Vertex;
 using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
@@ -44,9 +45,14 @@ namespace XenoKit.Engine.Vfx.Particle
             if (vertices == null || vertices.Length != EmgSubmesh.Vertices.Length)
                 vertices = new VertexPositionNormalTextureBlend[EmgSubmesh.Vertices.Length];
 
+            ParticleUvMap primaryMap = ParticleUV.GetMapping();
+            ParticleUvMap secondaryMap = TextureUV1.GetMapping();
+
             for (int i = 0; i < EmgSubmesh.Vertices.Length; i++)
             {
                 vertices[i] = EmgSubmesh.Vertices[i];
+                vertices[i].TextureUV0 = primaryMap.Map(vertices[i].TextureUV0);
+                vertices[i].TextureUV1 = secondaryMap.Map(vertices[i].TextureUV1);
                 vertices[i].SetColor(PrimaryColor[2], PrimaryColor[1], PrimaryColor[0], PrimaryColor[3]); // Particle shaders read RGBA from the model vertex's BGRA color slot.
 
                 if ((Node.NodeFlags & NodeFlags1.EnableScaleXY) == NodeFlags1.EnableScaleXY)
@@ -66,12 +72,12 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             DrawThisFrame = EmgSubmesh != null;
             EmissionData.Update();
-            ParticleUV.Update(ParticleSystem.CurrentFrameDelta);
 
             StartUpdate();
 
             if (State == NodeState.Active)
             {
+                UpdateUVs();
                 UpdateRotation();
                 UpdateVertices();
 
@@ -98,10 +104,7 @@ namespace XenoKit.Engine.Vfx.Particle
                 {
                     GraphicsDevice.SamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
 
-                    if (EmissionData.Textures[i] != null)
-                    {
-                        GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
-                    }
+                    GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = Xv2Texture.GetTextureOrDefault(EmissionData.Textures[i]);
                 }
 
                 EmissionData.Material.World = AbsoluteTransform;

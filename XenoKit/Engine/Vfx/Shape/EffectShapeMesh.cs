@@ -133,10 +133,8 @@ namespace XenoKit.Engine.Vfx.Shape
             {
                 owner.GraphicsDevice.SamplerStates[samplers[i].samplerSlot] = samplers[i].state;
 
-                Xv2Texture texture = textures != null && i < textures.Length && textures[i] != null ? textures[i] : Xv2Texture.DefaultTexture;
-
-                if (texture != null)
-                    owner.GraphicsDevice.Textures[samplers[i].textureSlot] = texture.Texture;
+                Xv2Texture texture = textures != null && i < textures.Length ? textures[i] : null;
+                owner.GraphicsDevice.Textures[samplers[i].textureSlot] = Xv2Texture.GetTextureOrDefault(texture);
             }
 
             drawMaterial.World = System.Numerics.Matrix4x4.Identity;

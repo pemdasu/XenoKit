@@ -18,7 +18,7 @@ namespace XenoKit.Engine.Vfx.Particle
         public override void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
-            Batch = RenderSystem.ParticleBatcher.GetBatch(node, effectPart.NoGlare);
+            Batch = RenderSystem.ParticleBatcher.GetBatch(system, node, effectPart.NoGlare);
         }
 
         public override void Release()
@@ -42,21 +42,12 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             DrawThisFrame = true;
             EmissionData.Update();
-            ParticleUV.Update(ParticleSystem.CurrentFrameDelta);
-
-            if (Node.EmissionNode.VelocityOriented && Node.EmissionNode.BillboardType == ParticleBillboardType.Camera)
-            {
-                VelocityOrientedAdjustment = Matrix4x4.CreateTranslation(new SimdVector3(0, (ScaleV + ScaleV_Variance) / 2f, 0));
-            }
-            else
-            {
-                VelocityOrientedAdjustment = Matrix4x4.Identity;
-            }
 
             StartUpdate();
 
             if (State == NodeState.Active)
             {
+                UpdateUVs();
                 UpdateRotation();
                 UpdateScale();
                 UpdateColor();
@@ -75,52 +66,25 @@ namespace XenoKit.Engine.Vfx.Particle
             DrawBatch();
         }
 
+        public float GetHeight() => ScaleV;
+
         public void DrawBatch()
         {
-            if (!Viewport.Instance.DrawThisFrame || !DrawThisFrame) return;
-            if (EmissionData == null || ParticleSystem == null) return;
-            //if (!ParticleSystem.DrawThisFrame) return;
-            //if (!RenderSystem.CheckDrawPass(EmissionData.Material) || !ParticleSystem.DrawThisFrame) return;
+            if (!Viewport.Instance.DrawThisFrame) return;
+            if (EmissionData == null || ParticleSystem == null || State != NodeState.Active) return;
 
-            if (!FrustumIntersects(AbsoluteTransform, AABB))
-                return;
-
-            //RenderSystem.MeshDrawCalls++;
-
-            if (State == NodeState.Active && (Node.NodeFlags & NodeFlags1.Hide) != NodeFlags1.Hide)
+            if (Batch.IsDestroyed)
             {
-                if (Batch.IsDestroyed)
-                {
-                    Batch = RenderSystem.ParticleBatcher.GetBatch(Node, SourceEffectPart.NoGlare);
-                }
-
-                Batch.AddToBatch(CreateBatchItem());
-                /*
-                //Set samplers/textures
-                for (int i = 0; i < EmissionData.Samplers.Length; i++)
-                {
-                    GraphicsDevice.SamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
-                    GraphicsDevice.VertexSamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
-
-                    if (EmissionData.Textures[i] != null)
-                    {
-                        GraphicsDevice.VertexTextures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
-                        GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
-                    }
-                }
-
-                EmissionData.Material.World = AbsoluteTransform;
-
-                //Shader passes and vertex drawing
-                foreach (EffectPass pass in EmissionData.Material.CurrentTechnique.Passes)
-                {
-                    pass.Apply();
-
-                    GraphicsDevice.DrawUserPrimitives(PrimitiveType.TriangleList, Vertices, 0, 2);
-                }
-                */
+                Batch = RenderSystem.ParticleBatcher.GetBatch(ParticleSystem, Node, SourceEffectPart.NoGlare);
             }
 
+            //Live particles pick the group material even when they are culled or hidden.
+            Batch.MarkLive(Node);
+
+            if (!DrawThisFrame || !ParticleSystem.DrawThisFrame || (Node.NodeFlags & NodeFlags1.Hide) == NodeFlags1.Hide) return;
+            if (!FrustumIntersects(AbsoluteTransform, AABB)) return;
+
+            Batch.AddToBatch(CreateBatchItem());
         }
 
         private ParticleBatchItem CreateBatchItem()
@@ -132,6 +96,7 @@ namespace XenoKit.Engine.Vfx.Particle
             return new ParticleBatchItem()
             {
                 UV = ParticleUV,
+                UV1 = TextureUV1,
                 World = AbsoluteTransform,
                 ScaleU = ScaleU,
                 ScaleV = ScaleV,

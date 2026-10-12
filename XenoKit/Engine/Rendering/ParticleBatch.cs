@@ -1,9 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Shader;
+using XenoKit.Engine.Textures;
 using XenoKit.Engine.Vertex;
 using XenoKit.Engine.Vfx.Particle;
 using XenoKit.Helper.Find;
@@ -30,9 +32,16 @@ namespace XenoKit.Engine.Rendering
         private static readonly HashSet<Xv2ShaderEffect> incompatibleMaterials = new HashSet<Xv2ShaderEffect>();
         private static readonly BlendState subtractiveBlendState = CreateSubtractiveBlendState();
 
-        public readonly ParticleNode ParticleNode;
-        public readonly ParticleEmissionData EmissionData;
+        public readonly EMP_File EmpFile;
+        public readonly uint RenderGroupKey;
         public readonly bool NoGlare;
+
+        // Members are in file order. The whole group draws with the material and textures of the first member that has live particles.
+        private ParticleNode[] Members;
+        private ParticleEmissionData[] MemberData;
+        private int firstLiveMember = -1;
+
+        public ParticleEmissionData EmissionData => MemberData[firstLiveMember >= 0 ? firstLiveMember : 0];
 
         public int NumBatch { get; private set; }
         public int MaxBatchSinceLastSlowUpdate => _maxBatchNumSinceLastSlowUpdate;
@@ -49,13 +58,36 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        public ParticleBatch(ParticleEmissionData emissionData, ParticleNode particleNode, bool noGlare)
+        public ParticleBatch(EMP_File empFile, uint renderGroupKey, bool noGlare, ParticleNode particleNode)
         {
-            EmissionData = emissionData;
-            ParticleNode = particleNode;
+            EmpFile = empFile;
+            RenderGroupKey = renderGroupKey;
             NoGlare = noGlare;
             BatchItems = new ParticleBatchItem[MinBatchItemCount];
             Vertices = new VertexPositionTextureColor[MinBatchItemCount * 6];
+            LoadMembers();
+
+            if (!HasMember(particleNode))
+                throw new InvalidOperationException($"ParticleBatch: node \"{particleNode.Name}\" is not in render group {renderGroupKey} of its EMP file.");
+        }
+
+        public bool HasMember(ParticleNode node) => Array.IndexOf(Members, node) >= 0;
+
+        public void LoadMembers()
+        {
+            Members = EmpFile.GetAllParticleNodes()
+                .Where(node => node.IsEmission && node.EmissionNode.Texture.RenderGroupKey == RenderGroupKey)
+                .ToArray();
+            MemberData = Members.Select(node => CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(node)).ToArray();
+            firstLiveMember = -1;
+        }
+
+        public void MarkLive(ParticleNode node)
+        {
+            int memberIndex = Array.IndexOf(Members, node);
+
+            if (memberIndex >= 0 && (firstLiveMember < 0 || memberIndex < firstLiveMember))
+                firstLiveMember = memberIndex;
         }
 
         private void ExpandIfNeeded(int targetSize)
@@ -112,7 +144,10 @@ namespace XenoKit.Engine.Rendering
 
         public override void Update()
         {
-            EmissionData.Update();
+            for (int i = 0; i < MemberData.Length; i++)
+            {
+                MemberData[i].Update();
+            }
         }
 
         public override void Draw()
@@ -128,9 +163,14 @@ namespace XenoKit.Engine.Rendering
                 _maxBatchNumSinceLastSlowUpdate = batchIndex;
             }
 
-            if (!RenderSystem.CheckDrawPass(EmissionData.Material) || batchIndex == 0) return;
+            ParticleEmissionData data = EmissionData;
+            firstLiveMember = -1;
 
-            if (incompatibleMaterials.Contains(EmissionData.Material))
+            if (batchIndex == 0) return;
+
+            if (!RenderSystem.CheckDrawPass(data.Material)) return;
+
+            if (incompatibleMaterials.Contains(data.Material))
             {
                 batchIndex = 0;
                 return;
@@ -141,28 +181,24 @@ namespace XenoKit.Engine.Rendering
             RenderSystem.MeshDrawCalls++;
 
             //Set samplers/textures
-            for (int i = 0; i < EmissionData.Samplers.Length; i++)
+            for (int i = 0; i < data.Samplers.Length; i++)
             {
-                GraphicsDevice.SamplerStates[EmissionData.Samplers[i].samplerSlot] = EmissionData.Samplers[i].state;
+                GraphicsDevice.SamplerStates[data.Samplers[i].samplerSlot] = data.Samplers[i].state;
 
-                if (EmissionData.Textures[i] != null)
-                {
-                    GraphicsDevice.Textures[EmissionData.Samplers[i].textureSlot] = EmissionData.Textures[i].Texture;
-                }
+                GraphicsDevice.Textures[data.Samplers[i].textureSlot] = Xv2Texture.GetTextureOrDefault(data.Textures[i]);
             }
 
-            EmissionData.Material.World = Matrix4x4.Identity;
+            data.Material.World = Matrix4x4.Identity;
 
             //Shader passes and vertex drawing
-            foreach (EffectPass pass in EmissionData.Material.CurrentTechnique.Passes)
+            foreach (EffectPass pass in data.Material.CurrentTechnique.Passes)
             {
-                EmissionData.Material.SetGlareOutputAllowed(!NoGlare);
+                data.Material.SetGlareOutputAllowed(!NoGlare);
                 pass.Apply();
 
-                if (EmissionData.Material.MatParam.AlphaBlendType == 2)
+                if (data.Material.MatParam.AlphaBlendType == 2)
                 {
                     GraphicsDevice.BlendState = subtractiveBlendState;
-                    GraphicsDevice.DepthStencilState = DepthStencilState.None;
                 }
 
                 try
@@ -171,8 +207,8 @@ namespace XenoKit.Engine.Rendering
                 }
                 catch (Exception ex)
                 {
-                    incompatibleMaterials.Add(EmissionData.Material);
-                    Log.Add($"ParticleBatch: skipped drawing particles because material '{EmissionData.Material.Material?.Name}' is not compatible with the particle vertex format. {ex.Message}", LogType.Warning);
+                    incompatibleMaterials.Add(data.Material);
+                    Log.Add($"ParticleBatch: skipped drawing particles because material '{data.Material.Material?.Name}' is not compatible with the particle vertex format. {ex.Message}", LogType.Warning);
                     break;
                 }
             }
@@ -216,14 +252,17 @@ namespace XenoKit.Engine.Rendering
                 Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].Position.Z = 0f;
 
                 //UV
-                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV.X = BatchItems[i].UV.ScrollU;
-                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV.Y = BatchItems[i].UV.ScrollV;
-                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV.X = BatchItems[i].UV.ScrollU + BatchItems[i].UV.StepU;
-                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV.Y = BatchItems[i].UV.ScrollV;
-                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV.X = BatchItems[i].UV.ScrollU;
-                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV.Y = BatchItems[i].UV.ScrollV + BatchItems[i].UV.StepV;
-                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV.X = BatchItems[i].UV.ScrollU + BatchItems[i].UV.StepU;
-                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV.Y = BatchItems[i].UV.ScrollV + BatchItems[i].UV.StepV;
+                ParticleUvMap primaryMap = BatchItems[i].UV.GetMapping();
+                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV = primaryMap.Map(Vector2.Zero);
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV = primaryMap.Map(Vector2.UnitX);
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV = primaryMap.Map(Vector2.UnitY);
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV = primaryMap.Map(Vector2.One);
+
+                ParticleUvMap secondaryMap = BatchItems[i].UV1.GetMapping();
+                Vertices[vertIdx + VERTEX_TOP_LEFT].TextureUV1 = secondaryMap.Map(Vector2.Zero);
+                Vertices[vertIdx + VERTEX_TOP_RIGHT].TextureUV1 = secondaryMap.Map(Vector2.UnitX);
+                Vertices[vertIdx + VERTEX_BOTTOM_LEFT].TextureUV1 = secondaryMap.Map(Vector2.UnitY);
+                Vertices[vertIdx + VERTEX_BOTTOM_RIGHT].TextureUV1 = secondaryMap.Map(Vector2.One);
 
                 //Color
                 Vertices[vertIdx + VERTEX_TOP_LEFT].SetColor(BatchItems[i].TopColor);
@@ -252,6 +291,7 @@ namespace XenoKit.Engine.Rendering
         //Total size = 92 bytes
 
         public ParticleUV UV;
+        public ParticleUV UV1;
         public float ScaleU_First;
         public float ScaleU;
         public float ScaleV;

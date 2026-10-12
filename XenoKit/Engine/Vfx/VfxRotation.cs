@@ -66,10 +66,10 @@ namespace XenoKit.Engine.Vfx
             if (!Matrix4x4.Invert(view, out Matrix4x4 camera))
                 throw new InvalidOperationException("Cannot orient an effect with a singular camera view matrix.");
             camera.Translation = Vector3.Zero;
-            return camera;
+            return Matrix4x4.CreateRotationY((float)Math.PI) * camera;
         }
 
-        private static Matrix4x4 AlignDirection(Vector3 source, Vector3 direction)
+        internal static Matrix4x4 AlignDirection(Vector3 source, Vector3 direction)
         {
             // The game uses the normalized halfway vector and keeps its zero-vector result.
             Vector3 halfway = source + direction;

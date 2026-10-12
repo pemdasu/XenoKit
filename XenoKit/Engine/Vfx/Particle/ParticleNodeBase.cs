@@ -6,6 +6,7 @@ using XenoKit.Engine.Pool;
 using Xv2CoreLib;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EMP_NEW;
+using Xv2CoreLib.EMP_NEW.Keyframes;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector3 = System.Numerics.Vector3;
 
@@ -19,6 +20,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         public ParticleSystem ParticleSystem { get; private set; }
         public ParticleNode Node;
+        private ParticleNodeBase ParentNode;
         private EffectPart EffectPart;
 
         public int StartTime;
@@ -38,22 +40,14 @@ namespace XenoKit.Engine.Vfx.Particle
         protected float ActiveRotation_Variance = 0f;
         protected float RotationAmount = 0f;
         public SimdVector3 Velocity;
+        private SimdVector3 Position;
+        private SimdVector3 PreviousPositionCurve;
 
         public Matrix4x4 Rotation = Matrix4x4.Identity;
-        /// <summary>
-        /// Transform encasing all movement of this node (velocity).
-        /// </summary>
-        public Matrix4x4 MovementTransform = Matrix4x4.Identity;
-        //Transform = relative to ParticleSystem
-        /// <summary>
-        /// Where the node was created. Used for calculating current transform.
-        /// </summary>
-        protected Matrix4x4 EmitPointTransform;
         /// <summary>
         /// A snapshot of the attachment bone at the time this node was created. Used for calculating AbsoluteTransform, based on EEPK flags.
         /// </summary>
         private Matrix4x4 EmitBoneTransform;
-        protected Matrix4x4 VelocityOrientedAdjustment = Matrix4x4.Identity;
 
         public NodeState State { get; protected set; }
         public float CurrentFrame { get; private set; }
@@ -75,13 +69,13 @@ namespace XenoKit.Engine.Vfx.Particle
             Effect = new WeakReference(null);
         }
 
-        public ParticleNodeBase(Matrix4x4 emitPoint, ParticleSystem system, EffectPart effectPart)
+        public ParticleNodeBase(ParticleSystem system, EffectPart effectPart)
         {
-            EmitPointTransform = emitPoint;
             ParticleSystem = system;
             EffectPart = effectPart;
             Node = new ParticleNode();
             Node.Burst = 1;
+            Burst = 1;
         }
 
         public virtual void Initialize(Matrix4x4 emitPoint, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
@@ -91,8 +85,8 @@ namespace XenoKit.Engine.Vfx.Particle
             ParticleSystem = system;
             Node = node;
             EffectPart = effectPart;
-            EmitPointTransform = emitPoint;
             EmitBoneTransform = system.AttachmentBone;
+            CurrentTimeFactor = 0f;
 
             StartTime = node.StartTime + Xv2CoreLib.Random.Range(0, node.StartTime_Variance);
             Lifetime = node.Lifetime + Xv2CoreLib.Random.Range(0, node.Lifetime_Variance);
@@ -103,14 +97,20 @@ namespace XenoKit.Engine.Vfx.Particle
             PositionX_Variance = Xv2CoreLib.Random.Range(0, node.Position_Variance.X);
             PositionY_Variance = Xv2CoreLib.Random.Range(0, node.Position_Variance.Y);
             PositionZ_Variance = Xv2CoreLib.Random.Range(0, node.Position_Variance.Z);
+            float[] initialPosition = node.Position.Constant.Values;
+            PreviousPositionCurve = new SimdVector3(initialPosition[0], initialPosition[1], initialPosition[2]);
+            Position = emitPoint.Translation + PreviousPositionCurve +
+                new SimdVector3(PositionX_Variance, PositionY_Variance, PositionZ_Variance);
             RotationX_Variance = Xv2CoreLib.Random.Range(0, node.Rotation_Variance.X);
             RotationY_Variance = Xv2CoreLib.Random.Range(0, node.Rotation_Variance.Y);
             RotationZ_Variance = Xv2CoreLib.Random.Range(0, node.Rotation_Variance.Z);
+            UpdateTransform();
         }
 
         public override void ClearObjectState()
         {
             ParticleSystem = null;
+            ParentNode = null;
             EffectPart = null;
             State = NodeState.Created;
             CurrentFrame = 0f;
@@ -128,8 +128,9 @@ namespace XenoKit.Engine.Vfx.Particle
 
             Nodes.Clear();
             ActiveInstances.Clear();
-            MovementTransform = Matrix4x4.Identity;
-            VelocityOrientedAdjustment = Matrix4x4.Identity;
+            ActiveInstancesUpdatedThisFrame = false;
+            Position = SimdVector3.Zero;
+            PreviousPositionCurve = SimdVector3.Zero;
             Velocity = SimdVector3.Zero;
         }
 
@@ -207,10 +208,6 @@ namespace XenoKit.Engine.Vfx.Particle
                         CurrentFrame = 0f;
                         NullEmitter();
 
-                        //NOTE: Removed this code for now as this needs more research. Some EMPs seem to note follow how I had this documented, and caused a bug where particles were spawned endlessly
-                        //The nodes created on a previous loop don't count as active children of the node (as above, not always true?)
-                        //PreviousNodes.AddRange(Nodes);
-                        //Nodes.Clear();
                     }
                     else
                     {
@@ -227,57 +224,163 @@ namespace XenoKit.Engine.Vfx.Particle
                         return;
                     }
                 }
-
                 CurrentTimeFactor = CurrentFrame / Lifetime;
 
                 //Update movement
                 UpdateModifiers();
 
-                //Change position based on current velocity
-                MovementTransform *= Matrix4x4.CreateTranslation((Velocity / 60f) * ParticleSystem.CurrentFrameDelta);
-
                 //Update position and rotation
-                float[] position = Node.Position.GetInterpolatedValue(CurrentTimeFactor);
-                float[] rotation = Node.Rotation.GetInterpolatedValue(CurrentTimeFactor);
+                float[] positionValues = Node.Position.GetInterpolatedValue(CurrentTimeFactor);
+                SimdVector3 positionCurve = new SimdVector3(positionValues[0], positionValues[1], positionValues[2]);
+                Position += positionCurve - PreviousPositionCurve + Velocity * (ParticleSystem.CurrentFrameDelta / 60f);
+                PreviousPositionCurve = positionCurve;
+                UpdateTransform();
+            }
+        }
 
-                Transform = MovementTransform * VelocityOrientedAdjustment * EmitPointTransform;
-                //Transform *= Matrix.CreateFromQuaternion(GeneralHelpers.EulerAnglesToQuaternion(new Vector3(MathHelper.ToRadians(rotation[0] + RotationX_Variance), MathHelper.ToRadians(rotation[1] + RotationY_Variance), MathHelper.ToRadians(rotation[2] + RotationZ_Variance))));
-                Transform *= Matrix4x4.CreateTranslation(new SimdVector3(position[0] + PositionX_Variance, position[1] + PositionY_Variance, position[2] + PositionZ_Variance));
+        private void UpdateTransform()
+        {
+            Transform = Matrix4x4.CreateTranslation(Position);
 
-                //For now, splitting rotation out from Transform to fix an annoying bug with emissions.
-                //Rotation is only relevant for 2 things: 1. Its applied to emitted nodes (if this is an Emitter), rotating them. 2. For BillboardType=None, it rotates the texture in addition to the defined Rotation Axis
-                //It doesn't actually rotate the node, and so doesn't change the way position or a modifier is applied.
-                Rotation = VfxRotation.Create(
-                    MathHelper.ToRadians(rotation[0] + RotationX_Variance),
-                    MathHelper.ToRadians(rotation[1] + RotationY_Variance),
-                    MathHelper.ToRadians(rotation[2] + RotationZ_Variance));
-
-                /*
-                //AbsoluteTransform is used for Draw Order purposes only, so it only needs to be calculated on emission type nodes
-                if (Node.IsEmission)
-                {
-                    AbsoluteTransform = EffectPart.InstantUpdate ? Rotation * Transform * ParticleSystem.AttachmentBone : Rotation * Transform * EmitBoneTransform;
-                    AbsoluteTransform *= Matrix.CreateTranslation(CameraBase.TransformRelativeToCamera(AbsoluteTransform.Translation, Node.EmissionNode.Texture.RenderDepth));
-                }
-                */
+            if (!Node.IsEmission && (Node.NodeFlags & NodeFlags1.Unk5) != 0)
+            {
+                SimdVector3 direction = Velocity == SimdVector3.Zero ? SimdVector3.Zero : SimdVector3.Normalize(Velocity);
+                Rotation = VfxRotation.AlignDirection(SimdVector3.UnitY, direction);
+                return;
             }
 
+            float[] rotation = Node.Rotation.GetInterpolatedValue(CurrentTimeFactor);
+            Rotation = VfxRotation.Create(
+                MathHelper.ToRadians(rotation[0] + RotationX_Variance),
+                MathHelper.ToRadians(rotation[1] + RotationY_Variance),
+                MathHelper.ToRadians(rotation[2] + RotationZ_Variance));
         }
 
         private void UpdateModifiers()
         {
+            float deltaSeconds = ParticleSystem.CurrentFrameDelta / 60f;
+            if (deltaSeconds <= 0f)
+                return;
+
             foreach (EMP_Modifier modifier in Node.Modifiers)
             {
                 switch (modifier.EmpType)
                 {
+                    case EMP_Modifier.EmpModifierType.Translation:
                     case EMP_Modifier.EmpModifierType.Acceleration:
+                    case EMP_Modifier.EmpModifierType.AngleTranslation:
+                    case EMP_Modifier.EmpModifierType.AngleAcceleration:
+                    case EMP_Modifier.EmpModifierType.PointLoop:
                         {
-                            var values = modifier.Axis.GetInterpolatedValue(CurrentTimeFactor);
-                            Velocity += (new SimdVector3(values[0] / 60f, values[1] / 60f, values[2] / 60f) * modifier.Factor.GetInterpolatedValue(CurrentTimeFactor)) * ParticleSystem.CurrentFrameDelta;
+                            if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk1) != 0)
+                                break;
+
+                            SimdVector3 axis = GetVectorValue(modifier.Axis);
+                            bool isAngle = modifier.EmpType == EMP_Modifier.EmpModifierType.AngleTranslation ||
+                                modifier.EmpType == EMP_Modifier.EmpModifierType.AngleAcceleration;
+                            if (isAngle || modifier.EmpType == EMP_Modifier.EmpModifierType.PointLoop)
+                            {
+                                if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk2) != 0 && ParentNode?.State == NodeState.Active)
+                                    axis += ParentNode.Position;
+
+                                axis = isAngle ? Position - axis : axis - Position;
+                            }
+
+                            if (isAngle || modifier.EmpType == EMP_Modifier.EmpModifierType.Translation ||
+                                modifier.EmpType == EMP_Modifier.EmpModifierType.Acceleration)
+                            {
+                                if (axis != SimdVector3.Zero)
+                                    axis = SimdVector3.Normalize(axis);
+                            }
+
+                            SimdVector3 amount = axis * modifier.Factor.GetInterpolatedValue(CurrentTimeFactor);
+                            if (modifier.EmpType == EMP_Modifier.EmpModifierType.Translation ||
+                                modifier.EmpType == EMP_Modifier.EmpModifierType.AngleTranslation)
+                            {
+                                Position += amount * deltaSeconds;
+                            }
+                            else
+                            {
+                                ApplyAcceleration(amount, deltaSeconds);
+                            }
+                        }
+                        break;
+                    case EMP_Modifier.EmpModifierType.Drag:
+                        Velocity *= Math.Max(0f, 1f - modifier.DragStrength.GetInterpolatedValue(CurrentTimeFactor) * deltaSeconds);
+                        break;
+                    case EMP_Modifier.EmpModifierType.Jitter:
+                        {
+                            SimdVector3 axis = GetVectorValue(modifier.Axis);
+                            float strength = modifier.Factor.GetInterpolatedValue(CurrentTimeFactor) * deltaSeconds;
+                            Position += new SimdVector3(
+                                (Xv2CoreLib.Random.Range(0f, 1f) - 0.5f) * axis.X * strength,
+                                (Xv2CoreLib.Random.Range(0f, 1f) - 0.5f) * axis.Y * strength,
+                                (Xv2CoreLib.Random.Range(0f, 1f) - 0.5f) * axis.Z * strength);
+                        }
+                        break;
+                    case EMP_Modifier.EmpModifierType.Vortex:
+                        {
+                            if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk1) != 0)
+                                break;
+
+                            SimdVector3 direction = GetVectorValue(modifier.Direction);
+                            if (direction == SimdVector3.Zero)
+                                break;
+
+                            SimdVector3 center = GetVectorValue(modifier.Axis);
+                            SimdVector3 relativePosition = Position - center;
+                            if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk2) != 0 && ParentNode?.State == NodeState.Active)
+                                relativePosition -= ParentNode.Position;
+
+                            float angle = MathHelper.ToRadians(modifier.RotationRate.GetInterpolatedValue(CurrentTimeFactor) * deltaSeconds);
+                            SimdVector3 rotatedPosition = SimdVector3.Transform(relativePosition,
+                                Matrix4x4.CreateFromAxisAngle(SimdVector3.Normalize(direction), angle));
+                            SimdVector3 radialDirection = rotatedPosition - (Position - center);
+                            if (radialDirection != SimdVector3.Zero)
+                                radialDirection = SimdVector3.Normalize(radialDirection);
+
+                            Velocity += radialDirection * modifier.Radial.GetInterpolatedValue(CurrentTimeFactor) * deltaSeconds;
+                            Position = center + rotatedPosition;
+                        }
+                        break;
+                    case EMP_Modifier.EmpModifierType.Attract:
+                        {
+                            float remainingFrames = Lifetime - CurrentFrame;
+                            if (remainingFrames < 1f)
+                            {
+                                Velocity *= Math.Max(0f, remainingFrames);
+                                break;
+                            }
+
+                            if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk1) != 0 ||
+                                ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk2) != 0 && ParentNode?.State != NodeState.Active))
+                                break;
+
+                            SimdVector3 target = GetVectorValue(modifier.Axis);
+                            if ((modifier.Flags & EMP_Modifier.ModifierFlags.Unk2) != 0)
+                                target += ParentNode.Position;
+
+                            float remainingSeconds = remainingFrames * deltaSeconds;
+                            SimdVector3 delta = target - Position - Velocity * remainingSeconds;
+                            SimdVector3 acceleration = delta * modifier.Factor.GetInterpolatedValue(CurrentTimeFactor) /
+                                (0.5f * remainingSeconds * remainingSeconds);
+                            ApplyAcceleration(acceleration, deltaSeconds);
                         }
                         break;
                 }
             }
+        }
+
+        private SimdVector3 GetVectorValue(KeyframedVector3Value value)
+        {
+            float[] values = value.GetInterpolatedValue(CurrentTimeFactor);
+            return new SimdVector3(values[0], values[1], values[2]);
+        }
+
+        private void ApplyAcceleration(SimdVector3 acceleration, float deltaSeconds)
+        {
+            Position += acceleration * (0.5f * deltaSeconds * deltaSeconds);
+            Velocity += acceleration * deltaSeconds;
         }
 
         protected void UpdateRotation()
@@ -317,9 +420,6 @@ namespace XenoKit.Engine.Vfx.Particle
             }
         }
 
-        /// <summary>
-        /// End of particle update loop. Call this at the end of the Update() method.
-        /// </summary>
         protected void EndUpdate()
         {
             //Handle particle lifetime
@@ -333,9 +433,6 @@ namespace XenoKit.Engine.Vfx.Particle
             ActiveInstancesUpdatedThisFrame = false;
         }
 
-        /// <summary>
-        /// Update the number of active child instances. This method will only actually execute once per frame, any subsequent calls on the same frame will be skipped.
-        /// </summary>
         private void UpdateActiveInstancesCount()
         {
             if (!ActiveInstancesUpdatedThisFrame)
@@ -356,12 +453,9 @@ namespace XenoKit.Engine.Vfx.Particle
                             ActiveInstances[i]++;
                         }
                     }
-                    //ActiveInstances[i] = Nodes.Where(x => x.Node == Node.ChildParticleNodes[i]).Count();
                 }
             }
         }
-
-
         public virtual void Simulate()
         {
             StartUpdate();
@@ -370,16 +464,13 @@ namespace XenoKit.Engine.Vfx.Particle
         }
         #endregion
 
-        /// <summary>
-        /// Emit a burst of particles. 
-        /// </summary>
         protected virtual void Emit()
         {
             UpdateActiveInstancesCount();
 
             for (int i = 0; i < Node.ChildParticleNodes.Count; i++)
             {
-                for (int b = 0; b < Node.Burst; b++)
+                for (int burstIndex = 0; burstIndex < Burst; burstIndex++)
                 {
                     //Maximum amount of instances of this node reached, so cannot create more.
                     //If MaxInstances is 0, then there is no limit
@@ -392,23 +483,22 @@ namespace XenoKit.Engine.Vfx.Particle
                         return;
                     }
 
-                    //Position where the node is to be emitted. 
-                    SimdVector3 velocity = SimdVector3.Zero;
-                    Matrix4x4 emitTransform = GetEmitTransformationMatrix(ref velocity) * Rotation * Transform;
+                    SimdVector3 velocity = Velocity;
+                    Matrix4x4 emitTransform = GetEmitTransformationMatrix(ref velocity);
+                    if (Node.IsEmitter)
+                    {
+                        emitTransform *= Rotation;
+                        velocity = SimdVector3.TransformNormal(velocity, emitTransform);
+                    }
+                    emitTransform = Matrix4x4.CreateTranslation(emitTransform.Translation + Transform.Translation);
 
-                    //IF node is an emission (NOT an emitter), then any children nodes will inherit its velocity.
-                    if (Node.IsEmission)
-                        velocity = Velocity;
-
+                    ParticleNodeBase newNode;
                     if (Node.ChildParticleNodes[i].NodeType == ParticleNodeType.Emitter)
                     {
-                        Nodes.Add(ObjectPoolManager.GetParticleEmitter(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target));
-
+                        newNode = ObjectPoolManager.GetParticleEmitter(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
                     }
                     else if (Node.ChildParticleNodes[i].NodeType == ParticleNodeType.Emission)
                     {
-                        ParticleNodeBase newNode;
-
                         if (Node.ChildParticleNodes[i].EmissionNode.EmissionType == ParticleEmission.ParticleEmissionType.Plane)
                         {
                             newNode = ObjectPoolManager.GetParticlePlane(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
@@ -436,14 +526,15 @@ namespace XenoKit.Engine.Vfx.Particle
                             newNode = ObjectPoolManager.GetParticleNodeBase(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
                         }
 
-                        Nodes.Add(newNode);
                     }
                     else
                     {
                         //"null" node.
-                        Nodes.Add(ObjectPoolManager.GetParticleNodeBase(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target));
+                        newNode = ObjectPoolManager.GetParticleNodeBase(ref emitTransform, ref velocity, ParticleSystem, Node.ChildParticleNodes[i], EffectPart, ParticleSystem.Effect.Target);
                     }
 
+                    newNode.ParentNode = IsRootNode ? null : this;
+                    Nodes.Add(newNode);
                     ActiveInstances[i]++;
                 }
             }
@@ -453,7 +544,6 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             return Matrix4x4.Identity;
         }
-
         /// <summary>
         /// Terminate the node, according to <see cref="EffectPart.DeactivationMode"/>.
         /// </summary>

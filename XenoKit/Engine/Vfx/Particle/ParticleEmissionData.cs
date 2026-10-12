@@ -1,41 +1,26 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Specialized;
 using XenoKit.Engine.Shader;
 using XenoKit.Engine.Textures;
 using Xv2CoreLib.EMP_NEW;
-using static Xv2CoreLib.EMP_NEW.EMP_TextureSamplerDef;
 
 namespace XenoKit.Engine.Vfx.Particle
 {
     public class ParticleEmissionData : EngineObject, IDisposable
     {
-        private EMP_File empFile = null;
-        public EMP_File EmpFile
-        {
-            get => empFile;
-            set
-            {
-                if(empFile != value)
-                {
-                    empFile = value;
-                    SetTextureIndex();
-                }
-            }
-        }
-
         public readonly ParticleNode ParticleNode;
 
         public SamplerInfo[] Samplers { get; private set; }
         public Xv2Texture[] Textures { get; private set; }
         public Xv2ShaderEffect Material { get; private set; }
 
-        public int TextureIndex { get; private set; }
-
         private bool IsTexturesDirty { get; set; }
         private bool IsMaterialsDirty { get; set; }
 
-        private readonly EMP_TextureSamplerDef[] PreviousTextureDef = new EMP_TextureSamplerDef[2];
+        private TextureEntry_Ref[] ObservedTextureEntries = Array.Empty<TextureEntry_Ref>();
+        private EMP_TextureSamplerDef[] ObservedTextureDefs = Array.Empty<EMP_TextureSamplerDef>();
 
         public ParticleEmissionData(ParticleNode node)
         {
@@ -44,13 +29,16 @@ namespace XenoKit.Engine.Vfx.Particle
             SetMaterial();
 
             ParticleNode.EmissionNode.Texture.PropertyChanged += Texture_PropertyChanged;
-            ParticleNode.EmissionNode.Texture.TextureEntryRef[0].PropertyChanged += ParticleEmissionData_PropertyChanged;
-            ParticleNode.EmissionNode.Texture.TextureEntryRef[1].PropertyChanged += ParticleEmissionData_PropertyChanged;
+            ParticleNode.EmissionNode.Texture.TextureEntryRef.CollectionChanged += TextureEntries_CollectionChanged;
         }
 
-        private void ParticleEmissionData_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void TextureEntries_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            
+            IsTexturesDirty = true;
+        }
+
+        private void TextureResource_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
             IsTexturesDirty = true;
         }
 
@@ -60,86 +48,70 @@ namespace XenoKit.Engine.Vfx.Particle
                 IsMaterialsDirty = true;
         }
 
-        private void TextureChangedOnNode_Event(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            IsTexturesDirty = true;
-        }
-
         public void Dispose()
         {
             ParticleNode.EmissionNode.Texture.PropertyChanged -= Texture_PropertyChanged;
-            ParticleNode.EmissionNode.Texture.TextureEntryRef[0].PropertyChanged -= ParticleEmissionData_PropertyChanged;
-            ParticleNode.EmissionNode.Texture.TextureEntryRef[1].PropertyChanged -= ParticleEmissionData_PropertyChanged;
+            ParticleNode.EmissionNode.Texture.TextureEntryRef.CollectionChanged -= TextureEntries_CollectionChanged;
+            UnsubscribeTextureEntries();
+        }
 
-            if (PreviousTextureDef[0] != null)
-                PreviousTextureDef[0].PropertyChanged -= TextureChangedOnNode_Event;
+        private void UnsubscribeTextureEntries()
+        {
+            foreach (TextureEntry_Ref entry in ObservedTextureEntries)
+                entry?.PropertyChanged -= TextureResource_PropertyChanged;
 
-            if (PreviousTextureDef[1] != null)
-                PreviousTextureDef[1].PropertyChanged -= TextureChangedOnNode_Event;
+            foreach (EMP_TextureSamplerDef textureDef in ObservedTextureDefs)
+                textureDef?.PropertyChanged -= TextureResource_PropertyChanged;
         }
 
         private void SetSamplers()
         {
+            int textureCount = ParticleNode.EmissionNode.Texture.TextureEntryRef.Count;
+            if (textureCount > 4)
+                throw new NotSupportedException($"EMP node '{ParticleNode.Name}' has {textureCount} texture slots; XenoKit supports up to four image samplers.");
+
+            UnsubscribeTextureEntries();
+
+            SamplerInfo[] samplers = new SamplerInfo[textureCount];
+            Xv2Texture[] textures = new Xv2Texture[textureCount];
+            ObservedTextureEntries = new TextureEntry_Ref[textureCount];
+            ObservedTextureDefs = new EMP_TextureSamplerDef[textureCount];
+
+            for (int index = 0; index < textureCount; index++)
+            {
+                TextureEntry_Ref entry = ParticleNode.EmissionNode.Texture.TextureEntryRef[index];
+                if (entry == null)
+                    throw new InvalidOperationException($"EMP node '{ParticleNode.Name}' has a null texture entry at slot {index}.");
+
+                ObservedTextureEntries[index] = entry;
+                entry.PropertyChanged += TextureResource_PropertyChanged;
+
+                samplers[index].type = SamplerType.Sampler2D;
+                samplers[index].textureSlot = index;
+                samplers[index].samplerSlot = index;
+                samplers[index].name = ShaderManager.GetSamplerName(index);
+                samplers[index].state = new SamplerState { Name = samplers[index].name };
+
+                EMP_TextureSamplerDef textureDef = entry.TextureRef;
+                ObservedTextureDefs[index] = textureDef;
+                if (textureDef == null)
+                    continue;
+
+                textureDef.PropertyChanged += TextureResource_PropertyChanged;
+                samplers[index].state.AddressU = EmpSamplerSettings.GetAddressMode(textureDef.RepetitionU);
+                samplers[index].state.AddressV = EmpSamplerSettings.GetAddressMode(textureDef.RepetitionV);
+                samplers[index].state.AddressW = TextureAddressMode.Wrap;
+                samplers[index].state.BorderColor = Color.White;
+                samplers[index].state.Filter = EmpSamplerSettings.GetFilter(textureDef.FilteringMin, textureDef.FilteringMag);
+                samplers[index].state.MaxAnisotropy = 1;
+                samplers[index].state.MaxMipLevel = 1;
+                samplers[index].parameter = textureDef.EmbIndex;
+                textures[index] = CompiledObjectManager.GetCompiledObject<Xv2Texture>(textureDef.TextureRef);
+            }
+
+            Samplers = samplers;
+            Textures = textures;
             IsTexturesDirty = false;
-
-            if(PreviousTextureDef[0] != null)
-                PreviousTextureDef[0].PropertyChanged -= TextureChangedOnNode_Event;
-            
-            if(PreviousTextureDef[1] != null)
-                PreviousTextureDef[1].PropertyChanged -= TextureChangedOnNode_Event;
-
-            Samplers = new SamplerInfo[ParticleNode.EmissionNode.Texture.TextureEntryRef.Count];
-            Textures = new Xv2Texture[ParticleNode.EmissionNode.Texture.TextureEntryRef.Count];
-
-            for (int i = 0; i < ParticleNode.EmissionNode.Texture.TextureEntryRef.Count; i++)
-            {
-                if (i == 2) return;
-
-                Samplers[i].type = SamplerType.Sampler2D;
-                Samplers[i].textureSlot = i;
-                Samplers[i].samplerSlot = i;
-
-                Samplers[i].state = new SamplerState();
-
-                if (ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef != null)
-                {
-                    Samplers[i].state.AddressU = GetTextureAddressMode(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.RepetitionU);
-                    Samplers[i].state.AddressV = GetTextureAddressMode(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.RepetitionV);
-                    Samplers[i].state.AddressW = TextureAddressMode.Wrap;
-                    Samplers[i].state.BorderColor = new Color(1, 1, 1, 1);
-                    Samplers[i].state.Filter = GetTextureFilter(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.FilteringMin, ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.FilteringMag);
-                    Samplers[i].state.MaxAnisotropy = 1;
-                    Samplers[i].state.MaxMipLevel = 1;
-
-                    Samplers[i].name = ShaderManager.GetSamplerName(i);
-                    Samplers[i].state.Name = Samplers[i].name;
-                    Samplers[i].parameter = ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.EmbIndex;
-
-                    if (ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef != null)
-                    {
-                        Textures[i] = CompiledObjectManager.GetCompiledObject<Xv2Texture>(ParticleNode.EmissionNode.Texture.TextureEntryRef[i].TextureRef.TextureRef);
-                    }
-                }
-            }
-
-            if(EmpFile != null)
-            {
-                SetTextureIndex();
-            }
-
-            PreviousTextureDef[0] = ParticleNode.EmissionNode.Texture.TextureEntryRef[0].TextureRef;
-            PreviousTextureDef[1] = ParticleNode.EmissionNode.Texture.TextureEntryRef[1].TextureRef;
-
-            if (PreviousTextureDef[0] != null)
-                PreviousTextureDef[0].PropertyChanged += TextureChangedOnNode_Event;
-
-            if(PreviousTextureDef[1] != null)
-                PreviousTextureDef[1].PropertyChanged += TextureChangedOnNode_Event;
-        }
-
-        public void SetTextureIndex()
-        {
-            TextureIndex = EmpFile.Textures.IndexOf(ParticleNode.EmissionNode.Texture.TextureEntryRef[0].TextureRef);
         }
 
         private void SetMaterial()
@@ -155,43 +127,6 @@ namespace XenoKit.Engine.Vfx.Particle
             }
 
             Material = compiledMat;
-        }
-
-        private TextureFilter GetTextureFilter(TextureFiltering min, TextureFiltering mag)
-        {
-            //Mip always linear
-            if (min == TextureFiltering.Linear && mag == TextureFiltering.Linear)
-            {
-                return TextureFilter.Linear;
-            }
-            else if (min == TextureFiltering.Linear && mag == TextureFiltering.Point)
-            {
-                return TextureFilter.MinLinearMagPointMipLinear;
-            }
-            else if (min == TextureFiltering.Point && mag == TextureFiltering.Point)
-            {
-                return TextureFilter.PointMipLinear;
-            }
-            else if (min == TextureFiltering.Point && mag == TextureFiltering.Linear)
-            {
-                return TextureFilter.MinPointMagLinearMipLinear;
-            }
-
-            return TextureFilter.Linear;
-        }
-
-        private TextureAddressMode GetTextureAddressMode(TextureRepitition mode)
-        {
-            switch (mode)
-            {
-                case TextureRepitition.Clamp:
-                    return TextureAddressMode.Clamp;
-                case TextureRepitition.Mirror:
-                    return TextureAddressMode.Mirror;
-                case TextureRepitition.Wrap:
-                default:
-                    return TextureAddressMode.Wrap;
-            }
         }
 
         public override void Update()

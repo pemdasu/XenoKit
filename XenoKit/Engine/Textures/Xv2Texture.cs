@@ -11,6 +11,11 @@ namespace XenoKit.Engine.Textures
         #region DefaultTexture
         public static Xv2Texture DefaultTexture { get; private set; }
 
+        public static Texture2D GetTextureOrDefault(Xv2Texture texture)
+        {
+            return (texture ?? DefaultTexture)?.Texture;
+        }
+
         public static void InitDefaultTexture()
         {
             if(DefaultTexture == null)

@@ -14,6 +14,7 @@ namespace XenoKit.Engine.Vfx.Particle
         private float SizeVariance;
         private float Size2Variance;
         private float EdgeIncrement;
+        private float PointAngleVariance;
 
         public override void Initialize(Matrix4x4 emitLocalMatrix, SimdVector3 velocity, ParticleSystem system, ParticleNode node, EffectPart effectPart, object effect)
         {
@@ -37,6 +38,8 @@ namespace XenoKit.Engine.Vfx.Particle
             SizeVariance = Xv2CoreLib.Random.Range(0, Node.EmitterNode.Size_Variance);
             Size2Variance = Xv2CoreLib.Random.Range(0, Node.EmitterNode.Size2_Variance);
             EdgeIncrement = 0f;
+            PointAngleVariance = Node.EmitterNode.Shape == Xv2CoreLib.EMP_NEW.ParticleEmitter.ParticleEmitterShape.Point
+                ? Xv2CoreLib.Random.Range(0, Node.EmitterNode.Angle_Variance) : 0f;
         }
 
         public override void Update()
@@ -297,45 +300,17 @@ namespace XenoKit.Engine.Vfx.Particle
 
         private Matrix4x4 GetEmitOnPointMatrix()
         {
-            //Repurposed from cirlce. NOT quite 100% accurate, but close enough for now
-
-            float radius = 1f;
-            float angle = Node.EmitterNode.Angle.GetInterpolatedValue(CurrentTimeFactor) + Xv2CoreLib.Random.Range(0, Node.EmitterNode.Angle_Variance);
+            float angle = MathHelper.ToRadians(Node.EmitterNode.Angle.GetInterpolatedValue(CurrentTimeFactor) + PointAngleVariance);
             float positionOffset = Node.EmitterNode.Position.GetInterpolatedValue(CurrentTimeFactor) + Xv2CoreLib.Random.Range(0, Node.EmitterNode.Position_Variance);
-
-            if (angle > 0)
-                angle = Xv2CoreLib.Random.Range(5, angle);
-            else
-                angle = Xv2CoreLib.Random.Range(angle, -5);
-
-            //Random position in circle
-            float randomPosition = Xv2CoreLib.Random.Range(0, radius);
-
-            // Generate a random angle within the specified range
-            float randomAngle = Xv2CoreLib.Random.Range(0, 360);
-            float randomAngleRadians = MathHelper.ToRadians(randomAngle);
-
-            // Calculate the position based on the random angle and radius
-            SimdVector3 position = new SimdVector3(
-                    randomPosition * (float)Math.Cos(randomAngleRadians),
-                    0f,
-                    randomPosition * (float)Math.Sin(randomAngleRadians)
-                );
-
-            SimdVector3 positionOffsetVector = new SimdVector3(0, positionOffset, 0);
-
-            // Calculate the rotation based on the specified angle
-            float rotation = MathHelper.ToRadians(-angle);
-
-            // Determine the rotation axis based on the position within the circle
-            SimdVector3 rotationAxis = new SimdVector3(-position.Z, 0f, position.X);
-            rotationAxis = SimdVector3.Normalize(rotationAxis);
-
-            // Create the transformation matrix using the position and rotation
-            Matrix4x4 transform = Matrix4x4.CreateTranslation(positionOffsetVector)
-                * Matrix4x4.CreateFromAxisAngle(rotationAxis, rotation);
-
-            return  transform;
+            float coneY = (float)Math.Cos(angle);
+            float directionY = coneY + Xv2CoreLib.Random.Range(0f, 1f) * (1f - coneY);
+            float radial = (float)Math.Sqrt(Math.Max(0f, 1f - directionY * directionY));
+            float azimuth = Xv2CoreLib.Random.Range(0f, MathHelper.TwoPi);
+            SimdVector3 direction = SimdVector3.Normalize(new SimdVector3(
+                (float)Math.Cos(azimuth) * radial, directionY, (float)Math.Sin(azimuth) * radial));
+            Matrix4x4 transform = VfxRotation.AlignDirection(SimdVector3.UnitY, direction);
+            transform.Translation = direction * positionOffset;
+            return transform;
         }
 
 

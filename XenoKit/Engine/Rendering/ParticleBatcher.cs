@@ -60,18 +60,42 @@ namespace XenoKit.Engine.Rendering
             }
         }
 
-        public ParticleBatch GetBatch(ParticleNode particleNode, bool noGlare)
+        public ParticleBatch GetBatch(ParticleSystem particleSystem, ParticleNode particleNode, bool noGlare)
         {
-            for(int i = 0; i < _batches.Count; i++)
+            EMP_File empFile = particleSystem.EmpFile;
+            uint renderGroupKey = particleNode.EmissionNode.Texture.RenderGroupKey;
+            int insertIndex = _batches.Count;
+
+            //Instances of the same EMP share one batch per key, and those batches draw in ascending key order.
+            //Batches of different EMP files keep the order they were created in.
+            for (int i = 0; i < _batches.Count; i++)
             {
-                if (_batches[i].ParticleNode == particleNode && _batches[i].NoGlare == noGlare)
-                    return _batches[i];
+                ParticleBatch batch = _batches[i];
+
+                if (!ReferenceEquals(batch.EmpFile, empFile))
+                    continue;
+
+                if (batch.RenderGroupKey > renderGroupKey && insertIndex == _batches.Count)
+                    insertIndex = i;
+
+                if (batch.RenderGroupKey == renderGroupKey && batch.NoGlare == noGlare)
+                {
+                    //A miss means the file was edited after the batch was built.
+                    if (!batch.HasMember(particleNode))
+                    {
+                        batch.LoadMembers();
+
+                        if (!batch.HasMember(particleNode))
+                            throw new InvalidOperationException($"ParticleBatcher: node \"{particleNode.Name}\" is not in render group {renderGroupKey} of its EMP file.");
+                    }
+
+                    return batch;
+                }
             }
 
-            //Create batch and return it
-            ParticleBatch batch = new ParticleBatch(CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(particleNode), particleNode, noGlare);
-            _batches.Add(batch);
-            return batch;
+            ParticleBatch newBatch = new ParticleBatch(empFile, renderGroupKey, noGlare, particleNode);
+            _batches.Insert(insertIndex, newBatch);
+            return newBatch;
         }
     }
 }

@@ -18,6 +18,8 @@ namespace XenoKit.Engine.Vfx.Particle
 
         protected ParticleEmissionData EmissionData;
         protected ParticleUV ParticleUV = new ParticleUV();
+        protected ParticleUV SecondaryUV = new ParticleUV();
+        protected ParticleUV TextureUV1 => SecondaryUV.TextureDef != null ? SecondaryUV : ParticleUV;
 
         protected float ColorR_Variance = 0f;
         protected float ColorG_Variance = 0f;
@@ -54,7 +56,6 @@ namespace XenoKit.Engine.Vfx.Particle
         {
             base.Initialize(emitPoint, velocity, system, node, effectPart, effect);
             EmissionData = CompiledObjectManager.GetCompiledObject<ParticleEmissionData>(node);
-            EmissionData.EmpFile = system.EmpFile;
             SetValues();
         }
 
@@ -89,16 +90,16 @@ namespace XenoKit.Engine.Vfx.Particle
                 RandomRotZ = Xv2CoreLib.Random.Range(0, 1f);
             }
 
-            if(Node.EmissionNode.Texture.TextureEntryRef[0].TextureRef != null)
-            {
-                ParticleUV.SetTexture(Node.EmissionNode.Texture.TextureEntryRef[0].TextureRef);
-            }
+            var textureRefs = Node.EmissionNode.Texture.TextureEntryRef;
+            ParticleUV.SetTexture(textureRefs.Count > 0 ? textureRefs[0]?.TextureRef : null);
+            SecondaryUV.SetTexture(textureRefs.Count > 1 ? textureRefs[1]?.TextureRef : null);
+        }
 
-            if (Node.EmissionNode.Texture.TextureEntryRef[1].TextureRef != null)
-            {
-                //Only a grand total of 2 EMPs use the second texture slot, hardly worth the effort of supporting it
-                Log.Add($"WARNING: Particle Node ({Node.Name}) uses 2 textures. This is not supported and wont be reflected in the viewport!", LogType.Warning);
-            }
+        protected void UpdateUVs()
+        {
+            ParticleUV.Update(ParticleSystem.CurrentFrameDelta);
+            if (SecondaryUV.TextureDef != null)
+                SecondaryUV.Update(ParticleSystem.CurrentFrameDelta);
         }
 
         protected void UpdateScale()
@@ -183,9 +184,7 @@ namespace XenoKit.Engine.Vfx.Particle
 
         protected Matrix4x4 GetParticlePositionWorld()
         {
-            Matrix4x4.Decompose(Transform, out SimdVector3 scale, out _, out SimdVector3 translation);
-            return Matrix4x4.CreateTranslation(translation) * Matrix4x4.CreateScale(scale) *
-                   Matrix4x4.CreateScale(ParticleSystem.Scale) * GetAttachmentBone();
+            return Transform * Matrix4x4.CreateScale(ParticleSystem.Scale) * GetAttachmentBone();
         }
 
         public Matrix4x4 GetParticleAttachmentBone()

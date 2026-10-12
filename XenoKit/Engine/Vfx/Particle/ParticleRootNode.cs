@@ -8,7 +8,7 @@ namespace XenoKit.Engine.Vfx.Particle
         private EMP_File EmpFile;
         protected override bool IsRootNode => true;
 
-        public ParticleRootNode(EMP_File empFile, ParticleSystem particleSystem, EffectPart effectPart) : base(particleSystem.AttachmentBone, particleSystem, effectPart)
+        public ParticleRootNode(EMP_File empFile, ParticleSystem particleSystem, EffectPart effectPart) : base(particleSystem, effectPart)
         {
             EmpFile = empFile;
             Node.ChildParticleNodes = EmpFile.ParticleNodes;

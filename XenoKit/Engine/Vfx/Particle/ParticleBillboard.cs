@@ -22,12 +22,14 @@ namespace XenoKit.Engine.Vfx.Particle
 
                 if (velocityOriented)
                 {
-                    Matrix4x4 baseWorld = particle.Transform * attachBone;
-                    Matrix4x4 billboard = CreateVelocityRotation(baseWorld, particle.Camera.ViewMatrix);
+                    SimdVector3 velocity = SimdVector3.TransformNormal(particle.Velocity, attachBone);
+                    Matrix4x4 billboard = CreateVelocityRotation(velocity, particle.Camera.ViewMatrix);
 
                     world = billboard *
                             Matrix4x4.CreateScale(particle.ParticleSystem.Scale);
                     world.Translation = worldTranslation.Translation;
+                    if (particle is ParticlePlane plane)
+                        world.Translation += billboard.GetUp() * plane.GetHeight() * particle.ParticleSystem.Scale;
                 }
                 else
                 {
@@ -62,21 +64,31 @@ namespace XenoKit.Engine.Vfx.Particle
             return ApplyRenderDepth(particle, world, renderDepth);
         }
 
-        internal static Matrix4x4 CreateVelocityRotation(Matrix4x4 particleWorld, Matrix4x4 viewMatrix)
+        internal static Matrix4x4 CreateVelocityRotation(SimdVector3 velocity, Matrix4x4 viewMatrix)
         {
             SimdVector3 cameraBack = SimdVector3.Normalize(new SimdVector3(viewMatrix.M13, viewMatrix.M23, viewMatrix.M33));
             SimdVector3 cameraFront = -cameraBack;
-            SimdVector3 particleUp = particleWorld.GetUp();
-            SimdVector3 screenUp = particleUp - SimdVector3.Dot(particleUp, cameraBack) * cameraBack;
-            if (screenUp.LengthSquared() < 0.000001f)
-                screenUp = new SimdVector3(viewMatrix.M12, viewMatrix.M22, viewMatrix.M32);
-            screenUp = SimdVector3.Normalize(screenUp);
-            SimdVector3 screenRight = SimdVector3.Normalize(SimdVector3.Cross(screenUp, cameraFront));
+            SimdVector3 particleUp = velocity.LengthSquared() > 0f ? SimdVector3.Normalize(velocity) : SimdVector3.Zero;
+
+            // The length stays along the 3D direction, so a streak that points at the camera
+            // is foreshortened. Only the width axis faces the camera. When the direction is
+            // parallel to the view, the width is zero and the streak is not visible.
+            SimdVector3 right = SimdVector3.Cross(particleUp, cameraFront);
+            SimdVector3 front = cameraFront;
+            if (right.LengthSquared() < 0.000001f)
+            {
+                right = SimdVector3.Zero;
+            }
+            else
+            {
+                right = SimdVector3.Normalize(right);
+                front = SimdVector3.Cross(right, particleUp);
+            }
 
             return new Matrix4x4(
-                screenRight.X, screenRight.Y, screenRight.Z, 0f,
-                screenUp.X, screenUp.Y, screenUp.Z, 0f,
-                cameraFront.X, cameraFront.Y, cameraFront.Z, 0f,
+                right.X, right.Y, right.Z, 0f,
+                particleUp.X, particleUp.Y, particleUp.Z, 0f,
+                front.X, front.Y, front.Z, 0f,
                 0f, 0f, 0f, 1f);
         }
 
