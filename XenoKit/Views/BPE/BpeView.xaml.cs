@@ -157,6 +157,13 @@ namespace XenoKit.Views
         {
             if (args.UndoContext != file) return;
 
+            //The live hue preview raises this from a timer thread
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => Undo(sender, args));
+                return;
+            }
+
             entries.Items.Refresh();
             Preview.SetEntry(Entry);
             ShowEntry(SelectedRow?.Keyframe, SelectedRow?.Layer);
@@ -297,7 +304,7 @@ namespace XenoKit.Views
 
         private void Recolor(bool hueSet)
         {
-            RecolorAll recolor = new RecolorAll(file, GetColorKeyframes(), hueSet, Application.Current.MainWindow);
+            RecolorAll recolor = new RecolorAll(file, GetColorKeyframes(), hueSet) { Owner = Application.Current.MainWindow };
 
             if (recolor.Initialize())
                 recolor.ShowDialog();

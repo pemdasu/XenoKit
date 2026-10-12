@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Windows.Media;
 using Xv2CoreLib.BPE;
-using Xv2CoreLib;
 using Xv2CoreLib.Resource.UndoRedo;
 
 namespace XenoKit.ViewModel.BPE
@@ -59,7 +58,7 @@ namespace XenoKit.ViewModel.BPE
         /// </summary>
         public static Color GetColor(object target, string red, string green, string blue, string alpha = null)
         {
-            byte GetChannel(string property) => Xv2ColorConverter.ConvertColor((float)target.GetType().GetProperty(property).GetValue(target));
+            byte GetChannel(string property) => (byte)(Math.Max(0f, Math.Min(1f, (float)target.GetType().GetProperty(property).GetValue(target))) * 255f);
             return Color.FromArgb(alpha != null ? GetChannel(alpha) : (byte)255, GetChannel(red), GetChannel(green), GetChannel(blue));
         }
 
@@ -67,7 +66,7 @@ namespace XenoKit.ViewModel.BPE
         {
             //A channel the picker did not change keeps its exact float, so picking a color does not round the other channels.
             Color current = GetColor(target, red, green, blue, alpha);
-            IUndoRedo SetChannel(string property, byte oldValue, byte newValue) => oldValue != newValue ? Change(target, property, Xv2ColorConverter.ConvertColor(newValue)) : null;
+            IUndoRedo SetChannel(string property, byte oldValue, byte newValue) => oldValue != newValue ? Change(target, property, newValue / 255f) : null;
 
             Commit(message,
                 SetChannel(red, current.R, value.R),

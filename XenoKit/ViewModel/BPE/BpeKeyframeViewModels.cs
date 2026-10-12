@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows.Media;
 using Xv2CoreLib.BPE;
-using Xv2CoreLib.HslColor;
+using Xv2CoreLib.Color;
 
 namespace XenoKit.ViewModel.BPE
 {
@@ -50,8 +50,8 @@ namespace XenoKit.ViewModel.BPE
 
         private static string FormatColor(object keyframe)
         {
-            RgbColor color = BpeColors.GetColor(keyframe);
-            return $"#{color.R_int:X2}{color.G_int:X2}{color.B_int:X2}";
+            Xv2Color color = BpeColors.GetColor(keyframe);
+            return $"#{color.R_Byte:X2}{color.G_Byte:X2}{color.B_Byte:X2}";
         }
     }
 
