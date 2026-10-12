@@ -1,0 +1,290 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+                    xmlns:vm="clr-namespace:XenoKit.ViewModel.BPE">
+
+    <!-- One label and value pair, sized like the BAC editor fields. -->
+    <Style x:Key="BpeField" TargetType="HeaderedContentControl">
+        <Setter Property="Margin" Value="3,3,0,0"/>
+        <Setter Property="Width" Value="250"/>
+        <Setter Property="IsTabStop" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="HeaderedContentControl">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- A Label hides the underscore in raw names like F_24, so this uses a TextBlock. -->
+                        <TextBlock Text="{TemplateBinding Header}" VerticalAlignment="Center" Margin="5,0,0,0" TextWrapping="Wrap"/>
+                        <ContentPresenter Grid.Column="1"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="BpeNumber" TargetType="controls:NumericUpDown" BasedOn="{StaticResource {x:Type controls:NumericUpDown}}">
+        <Setter Property="StringFormat" Value="0.###"/>
+        <Setter Property="Interval" Value="0.05"/>
+    </Style>
+
+    <!-- Raw fields with no known meaning. -->
+    <DataTemplate x:Key="BpeUnknownGroup">
+        <StackPanel>
+            <StackPanel Margin="10,8,10,2" Width="500" HorizontalAlignment="Left">
+                <Label Content="Unknown" HorizontalContentAlignment="Center" FontSize="10" FontWeight="SemiBold"/>
+                <Separator/>
+            </StackPanel>
+            <ItemsControl ItemsSource="{Binding}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <HeaderedContentControl Style="{StaticResource BpeField}" Header="{Binding Label}">
+                            <controls:NumericUpDown Value="{Binding Number}" StringFormat="{Binding Format}" Interval="{Binding Interval}"/>
+                        </HeaderedContentControl>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Color fields are 0 to 1 floats. Keyframes with no alpha field ignore the picker alpha. -->
+    <DataTemplate x:Key="BpeColorRow">
+        <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="105"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Label Content="Color"/>
+            <controls:ColorPicker Grid.Column="1" IsRecentColorPaletteVisible="False" AutomationProperties.Name="Color"
+                                  SelectedColor="{Binding Color, UpdateSourceTrigger=LostFocus}"/>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeEntryViewModel}">
+        <Expander Header="Post Effect" IsExpanded="True" Margin="0,2,0,0">
+            <StackPanel Margin="0,5">
+                <WrapPanel>
+                    <HeaderedContentControl Style="{StaticResource BpeField}" Header="ID">
+                        <controls:NumericUpDown Value="{Binding Id}" Minimum="0" Maximum="32766"/>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BpeField}" Header="Duration">
+                        <controls:NumericUpDown Value="{Binding Duration}" Minimum="0" Maximum="65535"/>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BpeField}" Header="Playback">
+                        <ComboBox ItemsSource="{x:Static vm:BpeEntryViewModel.PlaybackChoices}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding Playback}" controls:TextBoxHelper.Watermark="{Binding PlaybackText}"/>
+                    </HeaderedContentControl>
+                </WrapPanel>
+                <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+            </StackPanel>
+        </Expander>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeKeyframeRow}">
+        <Expander Header="Activation" IsExpanded="True" Margin="0,2,0,0">
+            <WrapPanel Margin="0,5">
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Start Time">
+                    <controls:NumericUpDown Value="{Binding Start}" Minimum="0"/>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Duration">
+                    <controls:NumericUpDown Value="{Binding Duration}" Minimum="0"/>
+                </HeaderedContentControl>
+            </WrapPanel>
+        </Expander>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeLayerViewModel}">
+        <Expander Header="Layer" IsExpanded="False" Margin="0,2,0,0" ToolTip="All keyframes of this type share the layer. If the end frame is before the start frame, the layer lasts until the post effect ends.">
+            <StackPanel Margin="0,5">
+                <WrapPanel>
+                    <HeaderedContentControl Style="{StaticResource BpeField}" Header="Start Frame">
+                        <controls:NumericUpDown Value="{Binding Start}" Minimum="0" Maximum="65535"/>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BpeField}" Header="End Frame">
+                        <controls:NumericUpDown Value="{Binding End}" Minimum="0" Maximum="65535"/>
+                    </HeaderedContentControl>
+                </WrapPanel>
+                <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+            </StackPanel>
+        </Expander>
+    </DataTemplate>
+
+    <!-- Keyframe values. BpeView puts these in an expander named after the layer type. -->
+    <DataTemplate DataType="{x:Type vm:BpeBlurViewModel}">
+        <WrapPanel Margin="0,5">
+            <HeaderedContentControl Style="{StaticResource BpeField}" Header="Blur Amount">
+                <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Amount}"/>
+            </HeaderedContentControl>
+        </WrapPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeWhiteShineViewModel}">
+        <StackPanel Margin="0,5">
+            <WrapPanel>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Intensity">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Intensity}"/>
+                </HeaderedContentControl>
+            </WrapPanel>
+            <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeType2ViewModel}">
+        <StackPanel Margin="0,5">
+            <WrapPanel>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Hue">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Hue}" ToolTip="Rotates the screen hue by this many degrees."/>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Saturation">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Saturation}" ToolTip="1 keeps the colors. 0 makes the screen gray."/>
+                </HeaderedContentControl>
+            </WrapPanel>
+            <Grid Margin="3,5,0,0" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Gain"/>
+                <Label Grid.Column="1" Content="R"/>
+                <controls:NumericUpDown Grid.Column="2" StringFormat="0.###" Interval="0.05" Value="{Binding GainR}"/>
+                <Label Grid.Column="3" Content="G"/>
+                <controls:NumericUpDown Grid.Column="4" StringFormat="0.###" Interval="0.05" Value="{Binding GainG}"/>
+                <Label Grid.Column="5" Content="B"/>
+                <controls:NumericUpDown Grid.Column="6" StringFormat="0.###" Interval="0.05" Value="{Binding GainB}"/>
+            </Grid>
+            <Grid Margin="3,5,0,0" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Contrast"/>
+                <Label Grid.Column="1" Content="R"/>
+                <controls:NumericUpDown Grid.Column="2" StringFormat="0.###" Interval="0.05" Value="{Binding ContrastR}"/>
+                <Label Grid.Column="3" Content="G"/>
+                <controls:NumericUpDown Grid.Column="4" StringFormat="0.###" Interval="0.05" Value="{Binding ContrastG}"/>
+                <Label Grid.Column="5" Content="B"/>
+                <controls:NumericUpDown Grid.Column="6" StringFormat="0.###" Interval="0.05" Value="{Binding ContrastB}"/>
+            </Grid>
+            <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Add Color"/>
+                <controls:ColorPicker Grid.Column="1" IsRecentColorPaletteVisible="False" AutomationProperties.Name="Add Color"
+                                      SelectedColor="{Binding Color, UpdateSourceTrigger=LostFocus}"/>
+            </Grid>
+            <CheckBox Margin="8,5,0,0" Content="Use Stage Filter" IsChecked="{Binding UseStageFilter}" ToolTip="Uses the color filter of the stage instead of the values of this keyframe."/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeZoomViewModel}">
+        <StackPanel Margin="0,5">
+            <WrapPanel>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Zoom Level">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding ZoomLevel}"/>
+                </HeaderedContentControl>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Area Size">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding AreaSize}"/>
+                </HeaderedContentControl>
+            </WrapPanel>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource BpeColorRow}"/>
+            <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeHueViewModel}">
+        <StackPanel Margin="0,5">
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource BpeColorRow}"/>
+            <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeBodyOutlineViewModel}">
+        <StackPanel Margin="0,5">
+            <Grid Margin="3,3,0,0" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Fade Distance"/>
+                <Label Grid.Column="1" Content="Near"/>
+                <controls:NumericUpDown Grid.Column="2" StringFormat="0.###" Interval="0.05" Value="{Binding NearFade}"/>
+                <Label Grid.Column="3" Content="Far"/>
+                <controls:NumericUpDown Grid.Column="4" StringFormat="0.###" Interval="0.05" Value="{Binding FarFade}"/>
+            </Grid>
+            <WrapPanel>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Transparency">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Transparency}"/>
+                </HeaderedContentControl>
+            </WrapPanel>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource BpeColorRow}"/>
+            <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeFogViewModel}">
+        <StackPanel Margin="0,5">
+            <Grid Margin="3,3,0,0" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="40"/>
+                    <ColumnDefinition Width="100"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Fog Distance"/>
+                <Label Grid.Column="1" Content="Near"/>
+                <controls:NumericUpDown Grid.Column="2" StringFormat="0.###" Interval="0.5" Value="{Binding NearDistance}"/>
+                <Label Grid.Column="3" Content="Far"/>
+                <controls:NumericUpDown Grid.Column="4" StringFormat="0.###" Interval="0.5" Value="{Binding FarDistance}"/>
+            </Grid>
+            <WrapPanel>
+                <HeaderedContentControl Style="{StaticResource BpeField}" Header="Fog Curve">
+                    <controls:NumericUpDown Style="{StaticResource BpeNumber}" Value="{Binding Curve}" ToolTip="Power of the fog falloff between the near and far distance."/>
+                </HeaderedContentControl>
+            </WrapPanel>
+            <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Fog Color" ToolTip="The alpha is the most fog that can cover the screen."/>
+                <controls:ColorPicker Grid.Column="1" IsRecentColorPaletteVisible="False" AutomationProperties.Name="Fog Color"
+                                      SelectedColor="{Binding FogColor, UpdateSourceTrigger=LostFocus}"/>
+            </Grid>
+            <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="105"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Add Color" ToolTip="Added to the fog color, scaled by its own alpha."/>
+                <controls:ColorPicker Grid.Column="1" IsRecentColorPaletteVisible="False" AutomationProperties.Name="Add Color"
+                                      SelectedColor="{Binding AddColor, UpdateSourceTrigger=LostFocus}"/>
+            </Grid>
+            <ContentControl Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BpeUnknownKeyframeViewModel}">
+        <ContentControl Margin="0,5" Content="{Binding Unknown}" ContentTemplate="{StaticResource BpeUnknownGroup}"/>
+    </DataTemplate>
+</ResourceDictionary>

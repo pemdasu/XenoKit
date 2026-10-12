@@ -34,7 +34,8 @@ namespace XenoKit.Engine.Shader
             YBS_Merge5,
             YBS_Merge8,
             YBS_SceneMerge,
-            LB_AxisCorrection
+            LB_AxisCorrection,
+            LB_ColorMatrix
         }
 
         public PostProccessShader Shader { get; private set; }
@@ -92,6 +93,7 @@ namespace XenoKit.Engine.Shader
                     break;
                 case PostProccessShader.YBS_Copy:
                 case PostProccessShader.YBS_Dim:
+                case PostProccessShader.LB_ColorMatrix:
                     ImageSampler[0] = CreateSampler(TextureAddressMode.Mirror, TextureAddressMode.Clamp, TextureFilter.MinLinearMagPointMipPoint, 0);
                     break;
                 case PostProccessShader.YBS_CopyRegion:
@@ -153,6 +155,20 @@ namespace XenoKit.Engine.Shader
             afRGBA_Offset = Parameters["afRGBA_Offset"];
         }
 
+        /// <summary>
+        /// Sets the matrix of the LB_ColorMatrix shader. Rows 1 to 3 map input red, green and blue, and row 4 is added.
+        /// </summary>
+        public void SetColorMatrix(System.Numerics.Matrix4x4 matrix)
+        {
+            Parameters["afRGBA_Modulate"].SetValue(new[]
+            {
+                new Vector4(matrix.M11, matrix.M12, matrix.M13, 0f),
+                new Vector4(matrix.M21, matrix.M22, matrix.M23, 0f),
+                new Vector4(matrix.M31, matrix.M32, matrix.M33, 0f),
+                new Vector4(matrix.M41, matrix.M42, matrix.M43, 0f)
+            });
+        }
+
         protected override void OnApply()
         {
             //Reload parameters
@@ -194,10 +210,13 @@ namespace XenoKit.Engine.Shader
             switch (Shader)
             {
                 case PostProccessShader.EDGELINE_VFX:
+                    //The shader samples at lerp(xy, zw, width) UV offsets. The target is low resolution and keeps its size,
+                    //but the source is super sampled, so its step scales to keep the outline width on screen.
+                    float superSample = Viewport.Instance.RenderSystem.SuperSampleFactor;
                     float inverseTargetWidth = 1f / Viewport.Instance.RenderSystem.CurrentRT_Width;
                     float inverseTargetHeight = 1f / Viewport.Instance.RenderSystem.CurrentRT_Height;
-                    float inverseSourceWidth = 1f / Viewport.Instance.RenderSystem.RenderWidth;
-                    float inverseSourceHeight = 1f / Viewport.Instance.RenderSystem.RenderHeight;
+                    float inverseSourceWidth = superSample / Viewport.Instance.RenderSystem.RenderWidth;
+                    float inverseSourceHeight = superSample / Viewport.Instance.RenderSystem.RenderHeight;
                     g_vParam0_PS?.SetValue(new Vector4(
                         inverseTargetWidth,
                         inverseTargetHeight,

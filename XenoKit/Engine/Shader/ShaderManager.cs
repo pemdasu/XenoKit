@@ -105,6 +105,7 @@ namespace XenoKit.Engine.Shader
                 ExtShaders.Add(LoadExtShader("YBS_Merge5", "Merge5", "Merge5", ShaderProgramSource.External));
                 ExtShaders.Add(LoadExtShader("YBS_Merge8", "Merge8", "Merge8", ShaderProgramSource.External));
                 ExtShaders.Add(LoadExtShader("YBS_SceneMerge", "SceneMerge", "SceneMerge", ShaderProgramSource.External));
+                ExtShaders.Add(LoadExtShader("LB_ColorMatrix", "Copy", "ColorMatrix", ShaderProgramSource.External));
             }
 #if !DEBUG
             catch (Exception ex)

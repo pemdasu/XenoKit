@@ -37,6 +37,10 @@ namespace XenoKit.Editor
             {
                 TabManager.GetSelectedDynamicTab().Context.Save();
             }
+            else if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+            {
+                window?.PostEffectsEditor?.Save();
+            }
             else if (SceneManager.CurrentSceneState == EditorTabs.FPF)
             {
                 window?.fpfTabView?.SaveContextFile();
@@ -121,6 +125,10 @@ namespace XenoKit.Editor
             {
                 DynamicTab tab = TabManager.GetSelectedDynamicTab();
                 return tab.Context.CanSave();
+            }
+            else if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+            {
+                return window?.PostEffectsEditor?.CanSave() == true;
             }
             else if (SceneManager.CurrentSceneState == EditorTabs.FPF)
             {

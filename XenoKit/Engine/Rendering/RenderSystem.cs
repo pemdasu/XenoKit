@@ -122,6 +122,7 @@ namespace XenoKit.Engine.Rendering
         private PostShaderEffect DTMAP_BLEND_CST_MUL;
         private PostShaderEffect DTMAP_BLEND_CST_HUE;
         private PostShaderEffect DTMAP_BLEND_CST_HSV;
+        private PostShaderEffect ColorFilter;
         private PostShaderEffect DepthToColor;
         private PostShaderEffect AddTex; //Merge up to 2 textures into a RenderTarget
 
@@ -176,6 +177,7 @@ namespace XenoKit.Engine.Rendering
             DTMAP_BLEND_CST_MUL = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DTMAP_BLEND_CST_MUL"));
             DTMAP_BLEND_CST_HUE = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DTMAP_BLEND_CST_HUE"));
             DTMAP_BLEND_CST_HSV = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetShaderProgram("DTMAP_BLEND_CST_HSV"));
+            ColorFilter = CompiledObjectManager.GetCompiledObject<PostShaderEffect>(ShaderManager.GetExtShaderProgram("LB_ColorMatrix"), ShaderType.PostFilter);
 
             //Create RTs
             ReflectionRT = new RenderTargetWrapper(this, 0.25f, SurfaceFormat.Color, true, "ReflectionRT");
@@ -233,6 +235,21 @@ namespace XenoKit.Engine.Rendering
             RegisterRenderTarget(ScreenshotRT);
             RegisterRenderTarget(SmallSceneRT);
 
+        }
+
+        /// <summary>
+        /// Lines and thin shapes are one pixel wide or less in the supersampled render target, so they get faint when it is scaled down.
+        /// If you draw them once with each of these projections (each shifted by whole pixels), they stay about one screen pixel wide.
+        /// </summary>
+        public IEnumerable<Matrix> GetLineProjections(Matrix projection)
+        {
+            int lineWidth = Math.Max(1, (int)Math.Ceiling(SuperSampleFactor));
+
+            for (int x = 0; x < lineWidth; x++)
+            {
+                for (int y = 0; y < lineWidth; y++)
+                    yield return projection * Matrix.CreateTranslation(x * 2f / RenderResolution[0], y * 2f / RenderResolution[1], 0f);
+            }
         }
 
         private void SetRenderResolution()

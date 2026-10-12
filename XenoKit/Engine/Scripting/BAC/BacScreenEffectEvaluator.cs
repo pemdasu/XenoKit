@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Xv2CoreLib.BPE;
 using SimdVector4 = System.Numerics.Vector4;
+using SimdVector3 = System.Numerics.Vector3;
+using Matrix4x4 = System.Numerics.Matrix4x4;
 
 namespace XenoKit.Engine.Scripting.BAC
 {
@@ -140,6 +142,7 @@ namespace XenoKit.Engine.Scripting.BAC
 
         private bool TryUpdateBodyOutline(BPE_Entry bpeEntry, int frame)
         {
+            if (character == null) return false;
             BPE_SubEntry bodyOutline = bpeEntry?.SubEntries?.FirstOrDefault(x => x.BpeType == BpeType.BodyOutline);
 
             if (bodyOutline?.Type9 == null || bodyOutline.Type9.Count == 0 ||
@@ -253,45 +256,57 @@ namespace XenoKit.Engine.Scripting.BAC
 
         private static void UpdateType2State(BPE_SubEntry subEntry, int frame, BacScreenEffectState state)
         {
-            BPE_Type2 previous;
-            BPE_Type2 next;
-            float factor;
-
-            if (!TryGetInterpolated(subEntry.Type2, frame, x => x.I_00, out previous, out next, out factor))
+            if (!TryGetInterpolated(subEntry.Type2, frame, x => x.I_00, out BPE_Type2 previous, out BPE_Type2 next, out float factor))
                 return;
 
-            SimdVector4 multiplier = new SimdVector4(
-                MathHelper.Lerp(previous.F_12, next.F_12, factor),
-                MathHelper.Lerp(previous.F_16, next.F_16, factor),
-                MathHelper.Lerp(previous.F_20, next.F_20, factor),
-                MathHelper.Lerp(previous.F_24, next.F_24, factor));
-            float amount = Math.Max(
-                Math.Abs(MathHelper.Lerp(previous.F_40, next.F_40, factor)),
-                Math.Max(
-                    Math.Abs(MathHelper.Lerp(previous.F_44, next.F_44, factor)),
-                    Math.Abs(MathHelper.Lerp(previous.F_48, next.F_48, factor))));
-
-            if (amount < 0.0001f)
-                amount = 1f;
-
-            if (multiplier != SimdVector4.One)
+            //Use Stage Filter keeps the stage color filter, and the preview has no stage filter
+            if (previous.I_04 != 0)
             {
-                SimdVector4 blendedMultiplier = SimdVector4.Lerp(SimdVector4.One, multiplier, MathHelper.Clamp(amount, 0f, 1f));
-                state.ColorMultiply = SimdVector4.Multiply(state.ColorMultiply, blendedMultiplier);
-                state.HasColorMultiply = true;
+                state.ColorFilter = Matrix4x4.Identity;
+                state.HasColorFilter = false;
+                return;
             }
 
-            SimdVector4 color = new SimdVector4(
-                MathHelper.Lerp(previous.F_28, next.F_28, factor),
-                MathHelper.Lerp(previous.F_32, next.F_32, factor),
-                MathHelper.Lerp(previous.F_36, next.F_36, factor),
-                0f);
+            float Lerp(float from, float to) => MathHelper.Lerp(from, to, factor);
 
-            if (color.X != 0f || color.Y != 0f || color.Z != 0f)
-            {
-                state.ColorAdd += color * MathHelper.Clamp(amount, 0f, 1f);
-                state.HasColorAdd = true;
-            }
+            state.ColorFilter = BuildColorFilter(
+                Lerp(previous.F_08, next.F_08),
+                Lerp(previous.F_12, next.F_12),
+                new SimdVector3(Lerp(previous.F_40, next.F_40), Lerp(previous.F_44, next.F_44), Lerp(previous.F_48, next.F_48)),
+                new SimdVector3(Lerp(previous.F_16, next.F_16), Lerp(previous.F_20, next.F_20), Lerp(previous.F_24, next.F_24)),
+                new SimdVector3(Lerp(previous.F_28, next.F_28), Lerp(previous.F_32, next.F_32), Lerp(previous.F_36, next.F_36)));
+            state.HasColorFilter = true;
+        }
+
+        /// <summary>
+        /// The game color filter as one matrix: hue rotation, saturation, gain, contrast around 0.5, then the add color.
+        /// Rows are input channels and columns are output channels, so a color is transformed as a row vector.
+        /// </summary>
+        private static Matrix4x4 BuildColorFilter(float hueDegrees, float saturation, SimdVector3 gain, SimdVector3 contrast, SimdVector3 add)
+        {
+            float angle = MathHelper.ToRadians(hueDegrees);
+            float cos = (float)Math.Cos(angle);
+            float sin = (float)Math.Sin(angle);
+
+            //Rotates the hue and keeps the brightness
+            Matrix4x4 hue = new Matrix4x4(
+                0.213f + cos * 0.787f - sin * 0.213f, 0.213f - cos * 0.213f + sin * 0.143f, 0.213f - cos * 0.213f - sin * 0.787f, 0f,
+                0.715f - cos * 0.715f - sin * 0.715f, 0.715f + cos * 0.285f + sin * 0.140f, 0.715f - cos * 0.715f + sin * 0.715f, 0f,
+                0.072f - cos * 0.072f + sin * 0.928f, 0.072f - cos * 0.072f - sin * 0.283f, 0.072f + cos * 0.928f + sin * 0.072f, 0f,
+                0f, 0f, 0f, 1f);
+
+            //Mixes each channel with the brightness. 1 keeps the color and 0 is gray.
+            float gray = 1f - saturation;
+            Matrix4x4 saturate = new Matrix4x4(
+                gray * 0.2126f + saturation, gray * 0.2126f, gray * 0.2126f, 0f,
+                gray * 0.7152f, gray * 0.7152f + saturation, gray * 0.7152f, 0f,
+                gray * 0.0722f, gray * 0.0722f, gray * 0.0722f + saturation, 0f,
+                0f, 0f, 0f, 1f);
+
+            Matrix4x4 contrastAroundHalf = Matrix4x4.CreateScale(contrast);
+            contrastAroundHalf.Translation = (SimdVector3.One - contrast) * 0.5f;
+
+            return hue * saturate * Matrix4x4.CreateScale(gain) * contrastAroundHalf * Matrix4x4.CreateTranslation(add);
         }
 
         private static void UpdateType3State(BPE_SubEntry subEntry, int frame, BacScreenEffectState state)

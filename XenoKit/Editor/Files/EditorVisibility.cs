@@ -17,6 +17,7 @@ namespace XenoKit.Editor
         public Visibility IsInspector => type == OutlinerItemType.Inspector ? Visibility.Visible : Visibility.Collapsed;
 
         public Visibility UseSecondSeperator => type == OutlinerItemType.Inspector ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility PostEffectsVisibility => type == OutlinerItemType.Inspector ? Visibility.Collapsed : Visibility.Visible;
 
         //MainTabs:
         public Visibility BcsVisibility { get; private set; } = Visibility.Collapsed;

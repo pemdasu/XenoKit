@@ -117,7 +117,7 @@ namespace XenoKit
 
         private void Files_SelectedMoveChanged(object sender, EventArgs e)
         {
-            mainTabControl.Visibility = Files.Instance.SelectedItem != null ? Visibility.Visible : Visibility.Hidden;
+            mainTabControl.Visibility = Files.Instance.SelectedItem != null || PostEffectsEditor != null ? Visibility.Visible : Visibility.Hidden;
 
             //Change tabs based on selected item type
             if (Files.Instance.SelectedItem != null)

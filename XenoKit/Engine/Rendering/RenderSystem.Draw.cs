@@ -68,8 +68,12 @@ namespace XenoKit.Engine.Rendering
                 CopyRenderTarget(NormalPassRT1, BodyOutlineSourceRT);
 
             //Color Pass (Chara + Stage Enviroment)
-            SetRenderTargets(ColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
+            //Start from the color the frame is shown on, so additive and subtractive effects have a destination color to change.
+            SetRenderTargets(ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
             GraphicsDevice.Clear(Color.Transparent);
+            GraphicsDevice.SetRenderTarget(ColorPassRT0.RenderTarget);
+            GraphicsDevice.Clear(GetSceneClearColor());
+            SetRenderTargets(ColorPassRT0.RenderTarget, ColorPassRT1.RenderTarget, NormalPassRT1.RenderTarget);
             GraphicsDevice.SetDepthBuffer(DepthBuffer.RenderTarget);
             DrawEntity(Characters, LOW_REZ_NONE);
 
@@ -243,6 +247,8 @@ namespace XenoKit.Engine.Rendering
 
             if (SceneManager.IsOnTab(EditorTabs.Projectile))
                 ApplyScreenEffects(BsaEffectPreviewController.Instance.ScreenEffectState);
+            if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+                ApplyScreenEffects(SceneManager.BpePreview?.State);
         }
 
         private void ApplyScreenEffects(BacScreenEffectState state)
@@ -255,6 +261,7 @@ namespace XenoKit.Engine.Rendering
                                    state.HasColorMultiply ||
                                    state.HasColorAdd ||
                                    state.HasHue ||
+                                   state.HasColorFilter ||
                                    Math.Abs(state.ZoomLevel) > 0.0001f;
             if (!hasScreenEffect)
                 return;
@@ -284,6 +291,12 @@ namespace XenoKit.Engine.Rendering
 
             if (state.HasHue)
                 ApplyHuePass(ref source, ref target, state);
+
+            if (state.HasColorFilter)
+            {
+                ColorFilter.SetColorMatrix(state.ColorFilter);
+                ApplyScreenEffectPass(ref source, ref target, ColorFilter);
+            }
 
             if (Math.Abs(state.ZoomLevel) > 0.0001f)
             {

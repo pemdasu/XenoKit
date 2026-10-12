@@ -30,6 +30,15 @@ namespace XenoKit.Engine.Rendering
             return ScreenshotRequested;
         }
 
+        //Screenshots composite the scene over their own background and need the scene alpha, so screenshot frames keep it.
+        private Color GetSceneClearColor()
+        {
+            if (!ScreenshotRequested)
+                return ViewportInstance.BackgroundColor;
+
+            return ScreenshotType == ScreenshotType.CustomBackgroundColor ? Viewport.ScreenshotBackgroundColor : Color.Transparent;
+        }
+
         public void ProcessPendingScreenshot(RenderTarget2D sceneRenderTarget, RenderTarget2D effectRenderTarget)
         {
             if (!ScreenshotRequested)

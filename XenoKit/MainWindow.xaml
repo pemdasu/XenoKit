@@ -170,6 +170,9 @@
                     <eepkView:EepkEditor Grid.Row="1" x:Name="eepkEditor" effectContainerFile="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.SelectedEepk.File}" Margin="0,5"/>
                 </Grid>
             </Controls:MetroTabItem>
+            <Controls:MetroTabItem Header="Post Effects" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.PostEffectsVisibility}">
+                <ContentControl x:Name="postEffectsContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            </Controls:MetroTabItem>
             <Controls:MetroTabItem Header="Audio" Controls:HeaderedControlHelper.HeaderFontSize="14" Visibility="{Binding Source={x:Static editor:Files.Instance}, Path=SelectedItem.Visibilities.AudioVisibility}">
                 <_views:AudioTab x:Name="audioControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 

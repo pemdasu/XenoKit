@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using XenoKit.Editor;
@@ -10,6 +10,8 @@ namespace XenoKit
     {
         private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (e.OriginalSource != mainTabControl && e.OriginalSource != bcsTabControl &&
+                e.OriginalSource != audioControl?.audioTabControl && e.OriginalSource != eepkEditor?.tabControl) return;
             UpdateSelectedTab();
             Files.Instance.SelectedItemOrTabChanged(sender, e);
         }
