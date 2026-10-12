@@ -16,9 +16,7 @@ namespace XenoKit.ViewModel.BCM
     /// </summary>
     public class BcmEntryViewModel : ObservableObject, IDisposable
     {
-        private const uint OpponentSizeFamilyMask = 0x000F0000;
-        private const uint OpponentSizeUnknownMask = 0x0000000F;
-        private const uint OpponentSizeUpgradeMask = 0xFF000000;
+        private const byte OpponentSizeMask = 0x0F;
 
         // Narrowed from the old 0xFFFF so picking an option cannot wipe bits no choice covers.
         private const uint ActivatorModeMask = 0x0000001F;
@@ -127,28 +125,41 @@ namespace XenoKit.ViewModel.BCM
             }
         }
 
-        /// <summary>Mode 1 repurposes OpponentSizeConditions as a skill upgrade level.</summary>
+        /// <summary>Mode 1 repurposes I_19 as a skill upgrade level.</summary>
         public bool IsUpgradeLevelMode => entry.I_00 == 1;
         public Visibility UpgradeLevelVisibility => IsUpgradeLevelMode ? Visibility.Visible : Visibility.Collapsed;
         public Visibility OpponentSizeVisibility => IsUpgradeLevelMode ? Visibility.Collapsed : Visibility.Visible;
 
-        public uint OpponentSizeFamily { get => entry.OpponentSizeConditions & OpponentSizeFamilyMask; set => SetOpponentSizeBits(OpponentSizeFamilyMask, value, "BCM Opponent Size"); }
-        public uint OpponentSizeUnknown { get => entry.OpponentSizeConditions & OpponentSizeUnknownMask; set => SetOpponentSizeBits(OpponentSizeUnknownMask, value, "BCM Opponent Size Unknown"); }
+        public ushort PriorityLayer { get => entry.PriorityLayer; set => SetValue(nameof(entry.PriorityLayer), entry.PriorityLayer, value, v => entry.PriorityLayer = v, "BCM Priority Layer"); }
 
-        public uint UpgradeLevel
+        public uint OpponentSize
         {
-            get => (entry.OpponentSizeConditions & OpponentSizeUpgradeMask) >> 24;
-            set => SetOpponentSizeBits(OpponentSizeUpgradeMask, (value << 24) & OpponentSizeUpgradeMask, "BCM Upgrade Level");
+            get => (uint)(entry.I_18 & OpponentSizeMask);
+            set
+            {
+                byte newValue = (byte)((entry.I_18 & ~OpponentSizeMask) | (value & OpponentSizeMask));
+                SetValue(nameof(entry.I_18), entry.I_18, newValue, v => entry.I_18 = v, "BCM Opponent Size");
+            }
         }
 
-        public string OpponentSizeConditionsHex => $"0x{entry.OpponentSizeConditions:X}";
+        public byte UpgradeLevel { get => entry.I_19; set => SetValue(nameof(entry.I_19), entry.I_19, value, v => entry.I_19 = v, "BCM Upgrade Level"); }
         #endregion
 
         #region Loop, Resource, User State
         public ushort MinimumLoopDuration { get => entry.MinimumLoopDuration; set => SetValue(nameof(entry.MinimumLoopDuration), entry.MinimumLoopDuration, value, v => entry.MinimumLoopDuration = v, "BCM Minimum Loop Duration"); }
         public ushort MaximumLoopDuration { get => entry.MaximumLoopDuration; set => SetValue(nameof(entry.MaximumLoopDuration), entry.MaximumLoopDuration, value, v => entry.MaximumLoopDuration = v, "BCM Maximum Loop Duration"); }
 
-        public uint ReceiverLinkID { get => entry.ReceiverLinkID; set => SetValue(nameof(entry.ReceiverLinkID), entry.ReceiverLinkID, value, v => entry.ReceiverLinkID = v, "BCM Receiver Link Id"); }
+        public uint MoveCategory
+        {
+            get => entry.MoveCategory;
+            set
+            {
+                SetValue(nameof(entry.MoveCategory), entry.MoveCategory, value, v => entry.MoveCategory = v, "BCM Move Category");
+                RaisePropertyChanged(() => MoveCategoryUnknownLabel);
+            }
+        }
+
+        public string MoveCategoryUnknownLabel => Xv2CoreLib.ValuesDictionary.BCM.MoveCategory.ContainsKey(MoveCategory) ? null : $"Unknown ({MoveCategory})";
 
         public uint KiCost { get => entry.I_64; set => SetValue(nameof(entry.I_64), entry.I_64, value, v => entry.I_64 = v, "BCM Ki Cost"); }
         public uint StaminaCost { get => entry.StaminaCost; set => SetValue(nameof(entry.StaminaCost), entry.StaminaCost, value, v => entry.StaminaCost = v, "BCM Stamina Cost"); }
@@ -330,15 +341,6 @@ namespace XenoKit.ViewModel.BCM
 
             SetValue(nameof(entry.HoldDownConditions), entry.HoldDownConditions, newValue, v => entry.HoldDownConditions = v, "BCM Hold Down Conditions", viewModelProperty);
             RaisePropertyChanged(() => HoldDownConditionsHex);
-        }
-
-        private void SetOpponentSizeBits(uint mask, uint value, string undoName, [CallerMemberName] string viewModelProperty = null)
-        {
-            uint newValue = (entry.OpponentSizeConditions & ~mask) | (value & mask);
-            if (newValue == entry.OpponentSizeConditions) return;
-
-            SetValue(nameof(entry.OpponentSizeConditions), entry.OpponentSizeConditions, newValue, v => entry.OpponentSizeConditions = v, undoName, viewModelProperty);
-            RaisePropertyChanged(() => OpponentSizeConditionsHex);
         }
 
         private void SetLink(string modelProperty, string oldValue, string newText, string structuralIndex, Action<string> assign, string undoName, [CallerMemberName] string viewModelProperty = null)

@@ -215,9 +215,14 @@
                             <ComboBox ItemsSource="{x:Static bcmDic:BCM.CharacterCondition}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding CharacterCondition, UpdateSourceTrigger=Default}" ToolTip="Select a character class for this state."/>
                         </DockPanel>
 
+                        <DockPanel Style="{StaticResource BcmRow}">
+                            <TextBlock Style="{StaticResource BcmLabel}" Text="Priority Layer" ToolTip="The game checks entries in two passes. It checks layer 0 entries before layer 1, so a layer 0 entry wins when both match on the same frame."/>
+                            <Controls:NumericUpDown Minimum="0" Maximum="65535" Value="{Binding PriorityLayer, UpdateSourceTrigger=Default}"/>
+                        </DockPanel>
+
                         <StackPanel Visibility="{Binding UpgradeLevelVisibility}">
                             <DockPanel Style="{StaticResource BcmRow}">
-                                <TextBlock Style="{StaticResource BcmLabel}" Text="Upgrade Level" ToolTip="Opponent Size Conditions mapped as 0x1000000 per level. Level 0 = 0x0, Level 4 = 0x4000000"/>
+                                <TextBlock Style="{StaticResource BcmLabel}" Text="Upgrade Level"/>
                                 <Controls:NumericUpDown Minimum="0" Maximum="255" Value="{Binding UpgradeLevel, UpdateSourceTrigger=Default}"/>
                             </DockPanel>
                         </StackPanel>
@@ -225,15 +230,7 @@
                         <StackPanel Visibility="{Binding OpponentSizeVisibility}">
                             <DockPanel Style="{StaticResource BcmRow}">
                                 <TextBlock Style="{StaticResource BcmLabel}" Text="Opponent Size" ToolTip="Requirements based on character CMS size entries."/>
-                                <ComboBox ItemsSource="{x:Static bcmDic:BCM.OpponentSize}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding OpponentSizeFamily}"/>
-                            </DockPanel>
-                            <DockPanel Style="{StaticResource BcmRow}">
-                                <TextBlock Style="{StaticResource BcmLabel}" Text="Size Unknown" ToolTip="Low unknown bits for opponent size conditions."/>
-                                <ComboBox ItemsSource="{x:Static bcmDic:BCM.OpponentSizeUnknown}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding OpponentSizeUnknown}"/>
-                            </DockPanel>
-                            <DockPanel Style="{StaticResource BcmRow}">
-                                <TextBlock Style="{StaticResource BcmLabel}" Text="Size Raw Value"/>
-                                <TextBox IsReadOnly="True" Text="{Binding OpponentSizeConditionsHex, Mode=OneWay}"/>
+                                <ComboBox ItemsSource="{x:Static bcmDic:BCM.OpponentSize}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding OpponentSize}"/>
                             </DockPanel>
                         </StackPanel>
 
@@ -246,12 +243,13 @@
                             <Controls:NumericUpDown Minimum="0" Maximum="65535" Value="{Binding MaximumLoopDuration, UpdateSourceTrigger=Default}"/>
                         </DockPanel>
 
-                        <GroupBox Style="{StaticResource BcmGroup}" Header="BCM Callback">
-                            <DockPanel Style="{StaticResource BcmRow}">
-                                <TextBlock Style="{StaticResource BcmLabel}" Text="Receiver Link Id" ToolTip="Matches the BCM Callback link value. Combos = 0x1, Supers = 0x2, Ultimate / Awoken / Evasive = 0x4."/>
-                                <ComboBox ItemsSource="{x:Static bcmDic:BCM.ReceiverLinkId}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding ReceiverLinkID}"/>
-                            </DockPanel>
-                        </GroupBox>
+                        <DockPanel Style="{StaticResource BcmRow}">
+                            <TextBlock Style="{StaticResource BcmLabel}" Text="Move Category (BcmCallback)" ToolTip="The BAC BcmCallback cancel bit that must be open for this entry to start."/>
+                            <Grid>
+                                <ComboBox ItemsSource="{x:Static bcmDic:BCM.MoveCategory}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding MoveCategory}"/>
+                                <TextBlock IsHitTestVisible="False" VerticalAlignment="Center" Margin="7,0,20,0" Foreground="{DynamicResource MahApps.Brushes.Text}" TextTrimming="CharacterEllipsis" Text="{Binding MoveCategoryUnknownLabel}"/>
+                            </Grid>
+                        </DockPanel>
 
                         <GroupBox Style="{StaticResource BcmGroup}" Header="Resource">
                             <StackPanel>
@@ -477,7 +475,7 @@
                         <DockPanel Style="{StaticResource BcmRow}">
                             <TextBlock Style="{StaticResource BcmLabel}" Text="I_104 known flag" ToolTip="This checkbox edits the one I_104 flag with a confirmed meaning. Other bits stay in the raw value."/>
                             <StackPanel>
-                                <CheckBox Content="Minimum skill upgrade level (0x1)" IsChecked="{Binding I104_MinimumSkillUpgradeLevel}" ToolTip="Requires the skill's upgrade level to meet the threshold in the upper byte of Opponent Size Conditions."/>
+                                <CheckBox Content="Minimum skill upgrade level (0x1)" IsChecked="{Binding I104_MinimumSkillUpgradeLevel}" ToolTip="Requires the skill's upgrade level to meet the threshold in the Upgrade Level value."/>
                             </StackPanel>
                         </DockPanel>
                     </StackPanel>
