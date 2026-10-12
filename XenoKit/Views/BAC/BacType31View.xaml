@@ -18,24 +18,24 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I__08"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.I_08, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Filter"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bacDic:BAC.ProjectileCallbackFilterMode}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.FilterMode, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I__12"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.I_12, UpdateSourceTrigger=Default}"/>
+                        <Label Content="BAC Entry Jump" ToolTip="The BAC entry to play when a matching projectile is found."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.BacEntryJump, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="BAC Entry Pass"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.BACEntryPass, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Bone" ToolTip="Bone index where the check is done."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.BoneLink, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     
                 </WrapPanel>
@@ -79,17 +79,23 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Hitbox Size"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.HitboxSize, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
+                        <Label Content="Range" ToolTip="A projectile must be this close to the bone."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.Range, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="F__28"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.F_28, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
+                        <Label Content="Cone Angle" ToolTip="Half angle in degrees around the bone direction. A negative value flips the direction."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.ConeAngle, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
                     </Grid>
+                </WrapPanel>
+                <StackPanel Margin="10,8,10,2" Width="500" HorizontalAlignment="Left">
+                    <Label Content="Unknown" HorizontalContentAlignment="Center" FontSize="10" FontWeight="SemiBold"/>
+                    <Separator/>
+                </StackPanel>
+                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -98,8 +104,6 @@
                         <Label Content="I__32"/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.I_32, UpdateSourceTrigger=Default}"/>
                     </Grid>
-                </WrapPanel>
-                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -124,8 +128,6 @@
                         <Label Content="I__44"/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.I_44, UpdateSourceTrigger=Default}"/>
                     </Grid>
-                </WrapPanel>
-                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -150,8 +152,6 @@
                         <Label Content="I__56"/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType31View}}, Path=BacViewModel.I_56, UpdateSourceTrigger=Default}"/>
                     </Grid>
-                </WrapPanel>
-                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

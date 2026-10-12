@@ -1,4 +1,4 @@
-﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight;
 using System;
 using System.Collections.Generic;
 using System.Windows.Media;
@@ -13,6 +13,8 @@ namespace XenoKit.ViewModel.BAC
     public class BACType23ViewModel : ObservableObject, IDisposable
     {
         private BAC_Type23 bacType;
+
+        public string DrawTypeLabel => Enum.IsDefined(typeof(DrawTypeEnum), DrawType) ? DrawType.ToString() : $"Unknown ({(byte)DrawType})";
 
         public byte HorizontalLineSize
         {
@@ -53,7 +55,7 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => HorizontalLineSpacing);
             }
         }
-        public ushort VerticalLineSpacing
+        public byte VerticalLineSpacing
         {
             get
             {
@@ -66,33 +68,55 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => VerticalLineSpacing);
             }
         }
-        public byte I_14
+        public byte HorizontalPatternShift
+        {
+            get => bacType.HorizontalPatternShift;
+            set
+            {
+                if (bacType.HorizontalPatternShift == value) return;
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.HorizontalPatternShift), bacType, bacType.HorizontalPatternShift, value, "Horizontal Pattern Shift"));
+                bacType.HorizontalPatternShift = value;
+                RaisePropertyChanged(() => HorizontalPatternShift);
+            }
+        }
+        public float StripeBrightness
+        {
+            get => bacType.StripeBrightness;
+            set
+            {
+                if (bacType.StripeBrightness == value) return;
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.StripeBrightness), bacType, bacType.StripeBrightness, value, "Stripe Brightness"));
+                bacType.StripeBrightness = value;
+                RaisePropertyChanged(() => StripeBrightness);
+            }
+        }
+        public byte VerticalPatternShift
         {
             get
             {
-                return bacType.I_14;
+                return bacType.VerticalPatternShift;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.I_14), bacType, bacType.I_14, value, "Transparency I_14"));
-                bacType.I_14 = value;
-                RaisePropertyChanged(() => I_14);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.VerticalPatternShift), bacType, bacType.VerticalPatternShift, value, "Vertical Pattern Shift"));
+                bacType.VerticalPatternShift = value;
+                RaisePropertyChanged(() => VerticalPatternShift);
             }
         }
-        public byte I_15
+        public byte StripeHeight
         {
             get
             {
-                return bacType.I_15;
+                return bacType.StripeHeight;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.I_15), bacType, bacType.I_15, value, "Transparency I_15"));
-                bacType.I_15 = value;
-                RaisePropertyChanged(() => I_15);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.StripeHeight), bacType, bacType.StripeHeight, value, "Stripe Height"));
+                bacType.StripeHeight = value;
+                RaisePropertyChanged(() => StripeHeight);
             }
         }
-        
+
         public Color Tint
         {
             get
@@ -127,43 +151,43 @@ namespace XenoKit.ViewModel.BAC
         }
 
         //Unknown floats
-        public float F_36
+        public float Desaturation
         {
             get
             {
-                return bacType.F_36;
+                return bacType.Desaturation;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.F_36), bacType, bacType.F_36, value, "Transparency F_36"));
-                bacType.F_36 = value;
-                RaisePropertyChanged(() => F_36);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.Desaturation), bacType, bacType.Desaturation, value, "Transparency Desaturation"));
+                bacType.Desaturation = value;
+                RaisePropertyChanged(() => Desaturation);
             }
         }
-        public float F_40
+        public float RimTintStrength
         {
             get
             {
-                return bacType.F_40;
+                return bacType.RimTintStrength;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.F_40), bacType, bacType.F_40, value, "Transparency F_40"));
-                bacType.F_40 = value;
-                RaisePropertyChanged(() => F_40);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.RimTintStrength), bacType, bacType.RimTintStrength, value, "Rim Tint Strength"));
+                bacType.RimTintStrength = value;
+                RaisePropertyChanged(() => RimTintStrength);
             }
         }
-        public float F_44
+        public float RimTintPower
         {
             get
             {
-                return bacType.F_44;
+                return bacType.RimTintPower;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.F_44), bacType, bacType.F_44, value, "Transparency F_44"));
-                bacType.F_44 = value;
-                RaisePropertyChanged(() => F_44);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.RimTintPower), bacType, bacType.RimTintPower, value, "Rim Tint Power"));
+                bacType.RimTintPower = value;
+                RaisePropertyChanged(() => RimTintPower);
             }
         }
         public float F_48
@@ -181,17 +205,19 @@ namespace XenoKit.ViewModel.BAC
         }
 
         //Shader Path Options
-        public ShaderPathOptions ShaderOptions
+        public DrawTypeEnum DrawType
         {
             get
             {
-                return bacType.ShaderOptions;
+                return bacType.DrawType;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.ShaderOptions), bacType, bacType.ShaderOptions, value, "Shader Path Options"));
-                bacType.ShaderOptions = value;
-                RaisePropertyChanged(() => ShaderOptions);
+                if (bacType.DrawType == value) return;
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type23>(nameof(bacType.DrawType), bacType, bacType.DrawType, value, "Draw Type"));
+                bacType.DrawType = value;
+                RaisePropertyChanged(() => DrawType);
+                RaisePropertyChanged(() => DrawTypeLabel);
             }
         }
 
@@ -227,14 +253,17 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => VerticalLineSize);
             RaisePropertyChanged(() => HorizontalLineSpacing);
             RaisePropertyChanged(() => VerticalLineSpacing);
-            RaisePropertyChanged(() => I_14);
-            RaisePropertyChanged(() => I_15);
-            RaisePropertyChanged(() => F_36);
-            RaisePropertyChanged(() => F_40);
-            RaisePropertyChanged(() => F_44);
+            RaisePropertyChanged(() => HorizontalPatternShift);
+            RaisePropertyChanged(() => StripeBrightness);
+            RaisePropertyChanged(() => VerticalPatternShift);
+            RaisePropertyChanged(() => StripeHeight);
+            RaisePropertyChanged(() => Desaturation);
+            RaisePropertyChanged(() => RimTintStrength);
+            RaisePropertyChanged(() => RimTintPower);
             RaisePropertyChanged(() => F_48);
             RaisePropertyChanged(() => Tint);
-            RaisePropertyChanged(() => ShaderOptions);
+            RaisePropertyChanged(() => DrawType);
+            RaisePropertyChanged(() => DrawTypeLabel);
         }
     }
 }

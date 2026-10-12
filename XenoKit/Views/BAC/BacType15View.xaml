@@ -31,7 +31,9 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param1Name, UpdateSourceTrigger=Default}" ToolTip="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param1ToolTip, UpdateSourceTrigger=Default}"/>
+                        <Label ToolTip="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param1ToolTip, UpdateSourceTrigger=Default}">
+                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param1Name}" TextWrapping="Wrap"/>
+                        </Label>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param1, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250" IsEnabled="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.IsParam2Enabled, UpdateSourceTrigger=Default}" Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Params2Visibility, UpdateSourceTrigger=Default}">
@@ -39,7 +41,9 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param2Name, UpdateSourceTrigger=Default}" ToolTip="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param2ToolTip, UpdateSourceTrigger=Default}"/>
+                        <Label ToolTip="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param2ToolTip, UpdateSourceTrigger=Default}">
+                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param2Name}" TextWrapping="Wrap"/>
+                        </Label>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param2, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250" Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Params2SkillIdVisibility, UpdateSourceTrigger=Default}">
@@ -63,7 +67,9 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param3Name, UpdateSourceTrigger=Default}"/>
+                        <Label>
+                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param3Name}" TextWrapping="Wrap"/>
+                        </Label>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.Param3, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250" IsEnabled="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType15View}}, Path=BacViewModel.IsParam4Enabled, UpdateSourceTrigger=Default}">

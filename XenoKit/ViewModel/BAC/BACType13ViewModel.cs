@@ -27,11 +27,11 @@ namespace XenoKit.ViewModel.BAC
         {
             get
             {
-                return bacType.Visibility == BcsPartVisibilitySwitch.Off;
+                return bacType.Visibility == BcsPartVisibilitySwitch.Hide;
             }
             set
             {
-                BcsPartVisibilitySwitch visiblity = value ? BcsPartVisibilitySwitch.Off : BcsPartVisibilitySwitch.On;
+                BcsPartVisibilitySwitch visiblity = value ? BcsPartVisibilitySwitch.Hide : BcsPartVisibilitySwitch.Show;
 
                 if(bacType.Visibility != visiblity)
                 {

@@ -1,4 +1,4 @@
-﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight;
 using System;
 using Xv2CoreLib;
 using Xv2CoreLib.BAC;
@@ -21,10 +21,17 @@ namespace XenoKit.ViewModel.BAC
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type11>(nameof(bacType.AcbType), bacType, bacType.AcbType, (AcbType)value, "Sound AcbType"));
                 bacType.AcbType = (AcbType)value;
                 RaisePropertyChanged(() => AcbType);
+                RaisePropertyChanged(() => AcbToolTip);
                 RaisePropertyChanged(() => CueId);
                 bacType.RefreshType();
             }
         }
+        public string AcbToolTip => AcbType == (ushort)Xv2CoreLib.BAC.AcbType.Footsteps
+            ? "Uses CAR_BTL_BKG_CMN.acb in data/sound/SE/Battle/Field. Preview uses ground material 1."
+            : AcbType == (ushort)Xv2CoreLib.BAC.AcbType.Mission_SE
+                ? "Uses CAR_Mission_DB_SE.acb in data/sound/SE/Battle/Mission."
+                : null;
+
         public ushort CueId
         {
             get
@@ -54,28 +61,28 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk1);
             }
         }
-        public bool Flag_Unk2
+        public bool Flag_FadeAtRowEnd
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk2);
+                return bacType.SoundFlags.HasFlag(SoundFlags.FadeAtRowEnd);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk2, value);
-                RaisePropertyChanged(() => Flag_Unk2);
+                SetSoundFlags(SoundFlags.FadeAtRowEnd, value);
+                RaisePropertyChanged(() => Flag_FadeAtRowEnd);
             }
         }
-        public bool Flag_Unk3
+        public bool Flag_RandomPickSameStart
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk3);
+                return bacType.SoundFlags.HasFlag(SoundFlags.RandomPickSameStart);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk3, value);
-                RaisePropertyChanged(() => Flag_Unk3);
+                SetSoundFlags(SoundFlags.RandomPickSameStart, value);
+                RaisePropertyChanged(() => Flag_RandomPickSameStart);
             }
         }
         public bool Flag_StopWhenParentEnds
@@ -114,16 +121,16 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk6);
             }
         }
-        public bool Flag_Unk7
+        public bool Flag_FadeOnStateChange
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk7);
+                return bacType.SoundFlags.HasFlag(SoundFlags.FadeOnStateChange);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk7, value);
-                RaisePropertyChanged(() => Flag_Unk7);
+                SetSoundFlags(SoundFlags.FadeOnStateChange, value);
+                RaisePropertyChanged(() => Flag_FadeOnStateChange);
             }
         }
         public bool Flag_Unk8
@@ -138,52 +145,52 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk8);
             }
         }
-        public bool Flag_Unk9
+        public bool Flag_Mark
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk9);
+                return bacType.SoundFlags.HasFlag(SoundFlags.Mark);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk9, value);
-                RaisePropertyChanged(() => Flag_Unk9);
+                SetSoundFlags(SoundFlags.Mark, value);
+                RaisePropertyChanged(() => Flag_Mark);
             }
         }
-        public bool Flag_Unk10
+        public bool Flag_FadeAllMarked
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk10);
+                return bacType.SoundFlags.HasFlag(SoundFlags.FadeAllMarked);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk10, value);
-                RaisePropertyChanged(() => Flag_Unk10);
+                SetSoundFlags(SoundFlags.FadeAllMarked, value);
+                RaisePropertyChanged(() => Flag_FadeAllMarked);
             }
         }
-        public bool Flag_Unk11
+        public bool Flag_FadeMarked
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk11);
+                return bacType.SoundFlags.HasFlag(SoundFlags.FadeMarked);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk11, value);
-                RaisePropertyChanged(() => Flag_Unk11);
+                SetSoundFlags(SoundFlags.FadeMarked, value);
+                RaisePropertyChanged(() => Flag_FadeMarked);
             }
         }
-        public bool Flag_Unk12
+        public bool Flag_FadeOnStateChangeExceptState12
         {
             get
             {
-                return bacType.SoundFlags.HasFlag(SoundFlags.Unk12);
+                return bacType.SoundFlags.HasFlag(SoundFlags.FadeOnStateChangeExceptState12);
             }
             set
             {
-                SetSoundFlags(SoundFlags.Unk12, value);
-                RaisePropertyChanged(() => Flag_Unk12);
+                SetSoundFlags(SoundFlags.FadeOnStateChangeExceptState12, value);
+                RaisePropertyChanged(() => Flag_FadeOnStateChangeExceptState12);
             }
         }
         public bool Flag_Unk13
@@ -264,19 +271,20 @@ namespace XenoKit.ViewModel.BAC
         {
             //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => AcbType);
+            RaisePropertyChanged(() => AcbToolTip);
             RaisePropertyChanged(() => CueId);
             RaisePropertyChanged(() => Flag_Unk1);
-            RaisePropertyChanged(() => Flag_Unk2);
-            RaisePropertyChanged(() => Flag_Unk3);
+            RaisePropertyChanged(() => Flag_FadeAtRowEnd);
+            RaisePropertyChanged(() => Flag_RandomPickSameStart);
             RaisePropertyChanged(() => Flag_StopWhenParentEnds);
             RaisePropertyChanged(() => Flag_Unk5);
             RaisePropertyChanged(() => Flag_Unk6);
-            RaisePropertyChanged(() => Flag_Unk7);
+            RaisePropertyChanged(() => Flag_FadeOnStateChange);
             RaisePropertyChanged(() => Flag_Unk8);
-            RaisePropertyChanged(() => Flag_Unk9);
-            RaisePropertyChanged(() => Flag_Unk10);
-            RaisePropertyChanged(() => Flag_Unk11);
-            RaisePropertyChanged(() => Flag_Unk12);
+            RaisePropertyChanged(() => Flag_Mark);
+            RaisePropertyChanged(() => Flag_FadeAllMarked);
+            RaisePropertyChanged(() => Flag_FadeMarked);
+            RaisePropertyChanged(() => Flag_FadeOnStateChangeExceptState12);
             RaisePropertyChanged(() => Flag_Unk13);
             RaisePropertyChanged(() => Flag_Unk14);
             RaisePropertyChanged(() => Flag_Unk15);

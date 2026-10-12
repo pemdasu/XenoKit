@@ -9,34 +9,34 @@ namespace XenoKit.ViewModel.BAC
     {
         private BAC_Type31 bacType;
 
-        public int I_08
+        public int FilterMode
         {
-            get => bacType.I_08;
+            get => bacType.FilterMode;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.I_08), bacType, bacType.I_08, value, "ProjectileCallback I_08"));
-                bacType.I_08 = value;
-                RaisePropertyChanged(() => I_08);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.FilterMode), bacType, bacType.FilterMode, value, "ProjectileCallback FilterMode"));
+                bacType.FilterMode = value;
+                RaisePropertyChanged(() => FilterMode);
             }
         }
-        public int I_12
+        public int BacEntryJump
         {
-            get => bacType.I_12;
+            get => bacType.BacEntryJump;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.I_12), bacType, bacType.I_12, value, "ProjectileCallback I_12"));
-                bacType.I_12 = value;
-                RaisePropertyChanged(() => I_12);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.BacEntryJump), bacType, bacType.BacEntryJump, value, "ProjectileCallback BacEntryJump"));
+                bacType.BacEntryJump = value;
+                RaisePropertyChanged(() => BacEntryJump);
             }
         }
-        public ushort BACEntryPass
+        public ushort BoneLink
         {
-            get => bacType.I_16;
+            get => bacType.BoneLink;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.I_16), bacType, bacType.I_16, value, "ProjectileCallback BACEntryPass"));
-                bacType.I_16 = value;
-                RaisePropertyChanged(() => BACEntryPass);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.BoneLink), bacType, bacType.BoneLink, value, "ProjectileCallback Bone"));
+                bacType.BoneLink = value;
+                RaisePropertyChanged(() => BoneLink);
             }
         }
         public byte I_18
@@ -84,24 +84,24 @@ namespace XenoKit.ViewModel.BAC
             }
         }
 
-        public float HitboxSize
+        public float Range
         {
-            get => bacType.F_24;
+            get => bacType.Range;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.F_24), bacType, bacType.F_24, value, "ProjectileCallback Hitbox Size"));
-                bacType.F_24 = value;
-                RaisePropertyChanged(() => HitboxSize);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.Range), bacType, bacType.Range, value, "ProjectileCallback Range"));
+                bacType.Range = value;
+                RaisePropertyChanged(() => Range);
             }
         }
-        public float F_28
+        public float ConeAngle
         {
-            get => bacType.F_28;
+            get => bacType.ConeAngle;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.F_28), bacType, bacType.F_28, value, "ProjectileCallback F_28"));
-                bacType.F_28 = value;
-                RaisePropertyChanged(() => F_28);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type31>(nameof(bacType.ConeAngle), bacType, bacType.ConeAngle, value, "ProjectileCallback ConeAngle"));
+                bacType.ConeAngle = value;
+                RaisePropertyChanged(() => ConeAngle);
             }
         }
         public int I_32
@@ -213,15 +213,15 @@ namespace XenoKit.ViewModel.BAC
         private void UpdateProperties()
         {
             //Needed for updating properties when undo/redo is called
-            RaisePropertyChanged(() => I_08);
-            RaisePropertyChanged(() => I_12);
-            RaisePropertyChanged(() => BACEntryPass);
+            RaisePropertyChanged(() => FilterMode);
+            RaisePropertyChanged(() => BacEntryJump);
+            RaisePropertyChanged(() => BoneLink);
             RaisePropertyChanged(() => I_18);
             RaisePropertyChanged(() => SkillType);
             RaisePropertyChanged(() => SkillID);
             RaisePropertyChanged(() => I_22);
-            RaisePropertyChanged(() => HitboxSize);
-            RaisePropertyChanged(() => F_28);
+            RaisePropertyChanged(() => Range);
+            RaisePropertyChanged(() => ConeAngle);
             RaisePropertyChanged(() => I_32);
             RaisePropertyChanged(() => I_36);
             RaisePropertyChanged(() => I_40);

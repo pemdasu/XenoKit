@@ -89,17 +89,21 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => LeftEyeRotationPercent);
             }
         }
-        public ushort I_10
+        public bool AllowLoop
         {
             get
             {
-                return bacType.I_10;
+                return bacType.AllowLoop;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type21>(nameof(bacType.I_10), bacType, bacType.I_10, value, "I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                if (bacType.AllowLoop != value)
+                {
+                    ushort newValue = (ushort)(value ? (bacType.I_10 | 0x1) : (bacType.I_10 & ~0x1));
+                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type21>(nameof(bacType.I_10), bacType, bacType.I_10, newValue, "Eye Movement Allow Loop"));
+                    bacType.AllowLoop = value;
+                    RaisePropertyChanged(() => AllowLoop);
+                }
             }
         }
 
@@ -137,7 +141,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => EyeMovementDuration);
             RaisePropertyChanged(() => RightEyeRotationPercent);
             RaisePropertyChanged(() => LeftEyeRotationPercent);
-            RaisePropertyChanged(() => I_10);
+            RaisePropertyChanged(() => AllowLoop);
         }
 
 

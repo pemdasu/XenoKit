@@ -63,17 +63,62 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => FunctionDuration);
             }
         }
-        public ushort Function
+        public bool Function_UseMaskAndDuration
         {
             get
             {
-                return bacType.Function;
+                return (bacType.FunctionFlags & 0x1) != 0;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type27>(nameof(bacType.Function), bacType, bacType.Function, value, "Function"));
-                bacType.Function = value;
-                RaisePropertyChanged(() => Function);
+                SetFunctionFlag(0x1, value);
+                RaisePropertyChanged(() => Function_UseMaskAndDuration);
+            }
+        }
+        public bool Function_Mask1
+        {
+            get
+            {
+                return (bacType.FunctionFlags & 0x4) != 0;
+            }
+            set
+            {
+                SetFunctionFlag(0x4, value);
+                RaisePropertyChanged(() => Function_Mask1);
+            }
+        }
+        public bool Function_Mask2
+        {
+            get
+            {
+                return (bacType.FunctionFlags & 0x8) != 0;
+            }
+            set
+            {
+                SetFunctionFlag(0x8, value);
+                RaisePropertyChanged(() => Function_Mask2);
+            }
+        }
+        public bool Function_Mask4
+        {
+            get
+            {
+                return (bacType.FunctionFlags & 0x10) != 0;
+            }
+            set
+            {
+                SetFunctionFlag(0x10, value);
+                RaisePropertyChanged(() => Function_Mask4);
+            }
+        }
+        private void SetFunctionFlag(ushort flag, bool state)
+        {
+            ushort newFlags = (ushort)(state ? (bacType.FunctionFlags | flag) : (bacType.FunctionFlags & ~flag));
+
+            if (newFlags != bacType.FunctionFlags)
+            {
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type27>(nameof(bacType.FunctionFlags), bacType, bacType.FunctionFlags, newFlags, "Function Flags"));
+                bacType.FunctionFlags = newFlags;
             }
         }
         public ushort I_18
@@ -149,7 +194,10 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => SkillType);
             RaisePropertyChanged(() => EffectID);
             RaisePropertyChanged(() => FunctionDuration);
-            RaisePropertyChanged(() => Function);
+            RaisePropertyChanged(() => Function_UseMaskAndDuration);
+            RaisePropertyChanged(() => Function_Mask1);
+            RaisePropertyChanged(() => Function_Mask2);
+            RaisePropertyChanged(() => Function_Mask4);
             RaisePropertyChanged(() => I_18);
             RaisePropertyChanged(() => I_20);
             RaisePropertyChanged(() => I_22);

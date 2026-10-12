@@ -10,7 +10,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="1000" d:DesignWidth="520">
     <Grid>
-        <Expander Header="BAC Type29" IsExpanded="True">
+        <Expander Header="Material Parameter" IsExpanded="True">
             <StackPanel>
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
@@ -18,98 +18,75 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I__08"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.I_08, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Model Index" ToolTip="Which model of the actor is changed."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.ModelIndex, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I__10"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.I_10, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Material Index" ToolTip="Which material of that model is changed."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.MaterialIndex, UpdateSourceTrigger=Default}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I__12"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.I_12, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Shader Parameter ID" ToolTip="ID of the EMM shader parameter that is changed."/>
+                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.ShaderParamId, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
+                <Grid Margin="3,5,0,0" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="105"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Start Values" ToolTip="Values set when the row starts. The values change smoothly to the end values during the row."/>
+                    <Label Grid.Column="1" Content="1"/>
+                    <controls:NumericUpDown Grid.Column="2" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.StartValue1, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="3" Content="2"/>
+                    <controls:NumericUpDown Grid.Column="4" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.StartValue2, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="5" Content="3"/>
+                    <controls:NumericUpDown Grid.Column="6" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.StartValue3, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="7" Content="4"/>
+                    <controls:NumericUpDown Grid.Column="8" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.StartValue4, UpdateSourceTrigger=Default}"/>
+                </Grid>
+                <Grid Margin="3,5,0,0" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="105"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="End Values" ToolTip="Values set when the row ends."/>
+                    <Label Grid.Column="1" Content="1"/>
+                    <controls:NumericUpDown Grid.Column="2" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.EndValue1, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="3" Content="2"/>
+                    <controls:NumericUpDown Grid.Column="4" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.EndValue2, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="5" Content="3"/>
+                    <controls:NumericUpDown Grid.Column="6" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.EndValue3, UpdateSourceTrigger=Default}"/>
+                    <Label Grid.Column="7" Content="4"/>
+                    <controls:NumericUpDown Grid.Column="8" StringFormat="0.0######" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.EndValue4, UpdateSourceTrigger=Default}"/>
+                </Grid>
+                <StackPanel Margin="10,8,10,2" Width="500" HorizontalAlignment="Left">
+                    <Label Content="Unknown" HorizontalContentAlignment="Center" FontSize="10" FontWeight="SemiBold"/>
+                    <Separator/>
+                </StackPanel>
                 <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__16"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_16, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__20"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_20, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__24"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_24, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__28"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_28, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                </WrapPanel>
-
-                <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__32"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_32, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__36"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_36, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__40"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_40, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F__44"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType29View}}, Path=BacViewModel.F_44, UpdateSourceTrigger=Default}" StringFormat="0.0######"/>
-                    </Grid>
-                </WrapPanel>
-                
-                <WrapPanel>
-
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

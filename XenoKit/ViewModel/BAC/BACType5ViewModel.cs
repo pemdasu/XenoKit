@@ -27,39 +27,39 @@ namespace XenoKit.ViewModel.BAC
         }
 
         //TrackingFlags
-        public bool TrackingFlag_Unk1
+        public bool TrackingFlag_AimAtLockedTarget
         {
             get
             {
-                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.Unk1);
+                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.AimAtLockedTarget);
             }
             set
             {
-                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.Unk1, value);
+                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.AimAtLockedTarget, value);
 
                 if (flags != bacType.TrackingFlags)
                 {
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type5>(nameof(bacType.TrackingFlags), bacType, bacType.TrackingFlags, flags, "TrackingFlag"));
                     bacType.TrackingFlags = flags;
-                    RaisePropertyChanged(() => TrackingFlag_Unk1);
+                    RaisePropertyChanged(() => TrackingFlag_AimAtLockedTarget);
                 }
             }
         }
-        public bool TrackingFlag_Unk9
+        public bool TrackingFlag_NoYaw
         {
             get
             {
-                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.Unk9);
+                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.NoYaw);
             }
             set
             {
-                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.Unk9, value);
+                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.NoYaw, value);
 
                 if (flags != bacType.TrackingFlags)
                 {
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type5>(nameof(bacType.TrackingFlags), bacType, bacType.TrackingFlags, flags, "TrackingFlag"));
                     bacType.TrackingFlags = flags;
-                    RaisePropertyChanged(() => TrackingFlag_Unk9);
+                    RaisePropertyChanged(() => TrackingFlag_NoYaw);
                 }
             }
         }
@@ -117,39 +117,39 @@ namespace XenoKit.ViewModel.BAC
                 }
             }
         }
-        public bool TrackingFlag_Unk13
+        public bool TrackingFlag_ReverseYaw
         {
             get
             {
-                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.Unk13);
+                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.ReverseYaw);
             }
             set
             {
-                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.Unk13, value);
+                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.ReverseYaw, value);
 
                 if (flags != bacType.TrackingFlags)
                 {
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type5>(nameof(bacType.TrackingFlags), bacType, bacType.TrackingFlags, flags, "TrackingFlag"));
                     bacType.TrackingFlags = flags;
-                    RaisePropertyChanged(() => TrackingFlag_Unk13);
+                    RaisePropertyChanged(() => TrackingFlag_ReverseYaw);
                 }
             }
         }
-        public bool TrackingFlag_Unk14
+        public bool TrackingFlag_ReversePitch
         {
             get
             {
-                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.Unk14);
+                return bacType.TrackingFlags.HasFlag(TrackingFlagsEnum.ReversePitch);
             }
             set
             {
-                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.Unk14, value);
+                TrackingFlagsEnum flags = bacType.TrackingFlags.SetFlag(TrackingFlagsEnum.ReversePitch, value);
 
                 if (flags != bacType.TrackingFlags)
                 {
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type5>(nameof(bacType.TrackingFlags), bacType, bacType.TrackingFlags, flags, "TrackingFlag"));
                     bacType.TrackingFlags = flags;
-                    RaisePropertyChanged(() => TrackingFlag_Unk14);
+                    RaisePropertyChanged(() => TrackingFlag_ReversePitch);
                 }
             }
         }
@@ -184,12 +184,12 @@ namespace XenoKit.ViewModel.BAC
         {
             //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => Tracking);
-            RaisePropertyChanged(() => TrackingFlag_Unk1);
-            RaisePropertyChanged(() => TrackingFlag_Unk9);
+            RaisePropertyChanged(() => TrackingFlag_AimAtLockedTarget);
+            RaisePropertyChanged(() => TrackingFlag_NoYaw);
             RaisePropertyChanged(() => TrackingFlag_Unk10);
             RaisePropertyChanged(() => TrackingFlag_Unk12);
-            RaisePropertyChanged(() => TrackingFlag_Unk13);
-            RaisePropertyChanged(() => TrackingFlag_Unk14);
+            RaisePropertyChanged(() => TrackingFlag_ReverseYaw);
+            RaisePropertyChanged(() => TrackingFlag_ReversePitch);
             RaisePropertyChanged(() => TrackingFlag_TrackForwardAndBackward);
         }
 

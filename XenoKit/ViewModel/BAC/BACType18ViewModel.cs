@@ -37,30 +37,30 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => EanID);
             }
         }
-        public ushort I_10
+        public ushort PartMask
         {
             get
             {
-                return bacType.I_10;
+                return bacType.PartMask;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.I_10), bacType, bacType.I_10, value, "PhysicsObjectControl I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.PartMask), bacType, bacType.PartMask, value, "PhysicsObjectControl PartMask"));
+                bacType.PartMask = value;
+                RaisePropertyChanged(() => PartMask);
             }
         }
-        public ushort I_14
+        public ushort StartFrame
         {
             get
             {
-                return bacType.I_14;
+                return bacType.StartFrame;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.I_14), bacType, bacType.I_14, value, "PhysicsObjectControl I_14"));
-                bacType.I_14 = value;
-                RaisePropertyChanged(() => I_14);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.StartFrame), bacType, bacType.StartFrame, value, "PhysicsObjectControl StartFrame"));
+                bacType.StartFrame = value;
+                RaisePropertyChanged(() => StartFrame);
             }
         }
         public float F_16
@@ -89,17 +89,17 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => F_20);
             }
         }
-        public float F_24
+        public float VectorScale
         {
             get
             {
-                return bacType.F_24;
+                return bacType.VectorScale;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.F_24), bacType, bacType.F_24, value, "PhysicsObjectControl F_24"));
-                bacType.F_24 = value;
-                RaisePropertyChanged(() => F_24);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type18>(nameof(bacType.VectorScale), bacType, bacType.VectorScale, value, "PhysicsObjectControl VectorScale"));
+                bacType.VectorScale = value;
+                RaisePropertyChanged(() => VectorScale);
             }
         }
 
@@ -132,14 +132,14 @@ namespace XenoKit.ViewModel.BAC
 
         private void UpdateProperties()
         {
-            //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => PhysicsFunction);
             RaisePropertyChanged(() => EanID);
-            RaisePropertyChanged(() => I_10);
-            RaisePropertyChanged(() => I_14);
+            RaisePropertyChanged(() => PartMask);
+            RaisePropertyChanged(() => StartFrame);
             RaisePropertyChanged(() => F_16);
             RaisePropertyChanged(() => F_20);
-            RaisePropertyChanged(() => F_24);
+            RaisePropertyChanged(() => VectorScale);
+            bacType.RefreshType();
         }
 
     }

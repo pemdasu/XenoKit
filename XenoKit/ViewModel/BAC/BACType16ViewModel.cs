@@ -80,16 +80,16 @@ namespace XenoKit.ViewModel.BAC
         }
 
         //Flags
-        public bool Flag_Unk1
+        public bool Flag_NotFocusActorOnly
         {
             get
             {
-                return bacType.ScreenEffectFlags.HasFlag(ScreenEffectFlagsEnum.Unk1);
+                return bacType.ScreenEffectFlags.HasFlag(ScreenEffectFlagsEnum.NotFocusActorOnly);
             }
             set
             {
-                SetScreenEffectFlag(ScreenEffectFlagsEnum.Unk1, value);
-                RaisePropertyChanged(() => Flag_Unk1);
+                SetScreenEffectFlag(ScreenEffectFlagsEnum.NotFocusActorOnly, value);
+                RaisePropertyChanged(() => Flag_NotFocusActorOnly);
             }
         }
         public bool Flag_DisableEffect
@@ -104,16 +104,16 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_DisableEffect);
             }
         }
-        public bool Flag_Unk4
+        public bool Flag_AllowLoop
         {
             get
             {
-                return bacType.ScreenEffectFlags.HasFlag(ScreenEffectFlagsEnum.Unk4);
+                return bacType.ScreenEffectFlags.HasFlag(ScreenEffectFlagsEnum.AllowLoop);
             }
             set
             {
-                SetScreenEffectFlag(ScreenEffectFlagsEnum.Unk4, value);
-                RaisePropertyChanged(() => Flag_Unk4);
+                SetScreenEffectFlag(ScreenEffectFlagsEnum.AllowLoop, value);
+                RaisePropertyChanged(() => Flag_AllowLoop);
             }
         }
         public bool Flag_Unk5
@@ -163,8 +163,8 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => PositionX);
             RaisePropertyChanged(() => PositionY);
             RaisePropertyChanged(() => PositionZ);
-            RaisePropertyChanged(() => Flag_Unk1);
-            RaisePropertyChanged(() => Flag_Unk4);
+            RaisePropertyChanged(() => Flag_NotFocusActorOnly);
+            RaisePropertyChanged(() => Flag_AllowLoop);
             RaisePropertyChanged(() => Flag_Unk5);
             RaisePropertyChanged(() => Flag_DisableEffect);
         }

@@ -1,139 +1,162 @@
-﻿<UserControl x:Class="XenoKit.Views.BAC.BacType23View"
+<UserControl x:Class="XenoKit.Views.BAC.BacType23View"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:local="clr-namespace:XenoKit.Views.BAC"
-             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:bac="clr-namespace:Xv2CoreLib.BAC;assembly=Xv2CoreLib"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:bacDic="clr-namespace:Xv2CoreLib.ValuesDictionary;assembly=Xv2CoreLib" d:DataContext="{d:DesignInstance Type=local:BacType23View}"
-             mc:Ignorable="d" 
-             d:DesignHeight="1000" d:DesignWidth="520">
+             mc:Ignorable="d" d:DesignHeight="1000" d:DesignWidth="650">
     <UserControl.Resources>
-        <ObjectDataProvider x:Key="ShaderPathEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+        <ObjectDataProvider x:Key="DrawTypeEnum" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="bac:BAC_Type23+ShaderPathOptions"/>
+                <x:Type TypeName="bac:BAC_Type23+DrawTypeEnum"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
     </UserControl.Resources>
-    <Grid>
-        <StackPanel>
-            <Expander Header="Transparency Effect" IsExpanded="True">
-                <StackPanel>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Shader Options"/>
-                        <ComboBox Grid.Column="1" SelectedItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.ShaderOptions, UpdateSourceTrigger=Default}" ItemsSource="{Binding Source={StaticResource ResourceKey=ShaderPathEnum}}"/>
-                    </Grid>
-                    <WrapPanel MaxWidth="550" HorizontalAlignment="Left">
-                        <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Content="Horizontal Line Size"/>
-                            <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.HorizontalLineSize, UpdateSourceTrigger=Default}"/>
-                        </Grid>
-                        <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Content="Vertical Line Size" FontSize="11"/>
-                            <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.VerticalLineSize, UpdateSourceTrigger=Default}"/>
-                        </Grid>
-                        <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Content="Horizontal Line Spacing" FontSize="11"/>
-                            <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.HorizontalLineSpacing, UpdateSourceTrigger=Default}"/>
-                        </Grid>
-                        <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Label Content="Vertical Line Spacing"/>
-                            <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.VerticalLineSpacing, UpdateSourceTrigger=Default}"/>
-                        </Grid>
-
-
-
-                    </WrapPanel>
-
+    <StackPanel>
+        <Expander Header="Transparency Effect" IsExpanded="True">
+            <StackPanel>
+                <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="175"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Draw Type"/>
+                    <ComboBox Grid.Column="1" IsEditable="False" AutomationProperties.Name="Draw Type"
+                              SelectedItem="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.DrawType}"
+                              ItemsSource="{Binding Source={StaticResource DrawTypeEnum}}"
+                              controls:TextBoxHelper.Watermark="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.DrawTypeLabel}"/>
+                </Grid>
+                <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="175"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Tint Color"/>
+                    <controls:ColorPicker Grid.Column="1" DefaultColor="White" IsRecentColorPaletteVisible="False"
+                                          SelectedColor="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.Tint, UpdateSourceTrigger=LostFocus}"/>
+                </Grid>
+                <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="125"/>
+                            <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Tint Color"/>
-                        <controls:ColorPicker Grid.Column="1" DefaultColor="White" TabIndex="1" IsRecentColorPaletteVisible="False"
-                                              SelectedColor="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.Tint, UpdateSourceTrigger=LostFocus}" />
+                        <Label Content="Desaturation" ToolTip="0 keeps the original color. 1 removes its color."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Desaturation" StringFormat="0.000" Interval="0.01"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.Desaturation}"/>
                     </Grid>
-                </StackPanel>
-            </Expander>
-            <Expander Header="Unknown Values" IsExpanded="False">
-                <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="_I_14"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.I_14, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Rim Tint Strength" ToolTip="Adds the tint color around the edge of the actor."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Rim Tint Strength" StringFormat="0.000" Interval="0.01"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.RimTintStrength}"/>
                     </Grid>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="_I_15"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.I_15, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="_F_36"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.F_36, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="_F_40"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.F_40, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="_F_44"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.F_44, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-
-                    <Grid Margin="3,5,0,0" Width="250" HorizontalAlignment="Left">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="_F_48"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.F_48, UpdateSourceTrigger=Default}"/>
+                        <Label Content="Rim Tint Power" ToolTip="Higher values make the rim narrower."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Rim Tint Power" StringFormat="0.000" Interval="0.01"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.RimTintPower}"/>
                     </Grid>
                 </WrapPanel>
-
-            </Expander>
-
-        </StackPanel>
-    </Grid>
+            </StackPanel>
+        </Expander>
+        <Expander Header="Line Pattern" IsExpanded="True">
+            <WrapPanel>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Horizontal Line Size"/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Horizontal Line Size" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.HorizontalLineSize}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Vertical Line Size"/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Vertical Line Size" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.VerticalLineSize}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Horizontal Line Spacing"/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Horizontal Line Spacing" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.HorizontalLineSpacing}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Vertical Line Spacing"/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Vertical Line Spacing" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.VerticalLineSpacing}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Horizontal Pattern Shift" ToolTip="Shifts the horizontal pattern across each vertical pattern segment."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Horizontal Pattern Shift" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.HorizontalPatternShift}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Vertical Pattern Shift" ToolTip="Shifts the vertical pattern across each horizontal pattern segment."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Vertical Pattern Shift" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.VerticalPatternShift}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Stripe Height" ToolTip="Height of alternating bright and dark horizontal stripes."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Stripe Height" Minimum="0" Maximum="255"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.StripeHeight}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Stripe Brightness" ToolTip="Brightness of every other stripe. 0 hides those stripes. 1 keeps their normal brightness."/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="Stripe Brightness" StringFormat="0.000" Interval="0.01"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.StripeBrightness}"/>
+                    </Grid>
+            </WrapPanel>
+        </Expander>
+        <Expander Header="Unknown" IsExpanded="False">
+            <WrapPanel>
+                    <Grid Margin="3,5,0,0" Width="300" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="F__48"/>
+                        <controls:NumericUpDown Grid.Column="1" AutomationProperties.Name="F_48" StringFormat="0.000" Interval="0.01"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType23View}}, Path=BacViewModel.F_48}"/>
+                    </Grid>
+            </WrapPanel>
+        </Expander>
+    </StackPanel>
 </UserControl>

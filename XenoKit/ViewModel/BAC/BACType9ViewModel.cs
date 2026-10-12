@@ -391,19 +391,19 @@ namespace XenoKit.ViewModel.BAC
                 }
             }
         }
-        public int UniqueID
+        public int RegisterMinCount
         {
             get
             {
-                return bacType.UniqueID;
+                return bacType.RegisterMinCount;
             }
             set
             {
-                if (bacType.UniqueID != value)
+                if (bacType.RegisterMinCount != value)
                 {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type9>(nameof(bacType.UniqueID), bacType, bacType.UniqueID, value, "Projectile UniqueID"));
-                    bacType.UniqueID = value;
-                    RaisePropertyChanged(() => UniqueID);
+                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type9>(nameof(bacType.RegisterMinCount), bacType, bacType.RegisterMinCount, value, "Projectile RegisterMinCount"));
+                    bacType.RegisterMinCount = value;
+                    RaisePropertyChanged(() => RegisterMinCount);
                 }
             }
         }
@@ -463,7 +463,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => RotationY);
             RaisePropertyChanged(() => RotationZ);
             RaisePropertyChanged(() => Health);
-            RaisePropertyChanged(() => UniqueID);
+            RaisePropertyChanged(() => RegisterMinCount);
         }
 
 

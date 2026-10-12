@@ -9,114 +9,114 @@ namespace XenoKit.ViewModel.BAC
     {
         private BAC_Type29 bacType;
 
-        public ushort I_08
+        public ushort ModelIndex
         {
-            get => bacType.I_08;
+            get => bacType.ModelIndex;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.I_08), bacType, bacType.I_08, value, "I_08"));
-                bacType.I_08 = value;
-                RaisePropertyChanged(() => I_08);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.ModelIndex), bacType, bacType.ModelIndex, value, "ModelIndex"));
+                bacType.ModelIndex = value;
+                RaisePropertyChanged(() => ModelIndex);
             }
         }
-        public ushort I_10
+        public ushort MaterialIndex
         {
-            get => bacType.I_10;
+            get => bacType.MaterialIndex;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.I_10), bacType, bacType.I_10, value, "I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.MaterialIndex), bacType, bacType.MaterialIndex, value, "MaterialIndex"));
+                bacType.MaterialIndex = value;
+                RaisePropertyChanged(() => MaterialIndex);
             }
         }
-        public int I_12
+        public int ShaderParamId
         {
-            get => bacType.I_12;
+            get => bacType.ShaderParamId;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.I_12), bacType, bacType.I_12, value, "I_12"));
-                bacType.I_12 = value;
-                RaisePropertyChanged(() => I_12);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.ShaderParamId), bacType, bacType.ShaderParamId, value, "ShaderParamId"));
+                bacType.ShaderParamId = value;
+                RaisePropertyChanged(() => ShaderParamId);
             }
         }
-        public float F_16
+        public float StartValue1
         {
-            get => bacType.F_16;
+            get => bacType.StartValue1;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_16), bacType, bacType.F_16, value, "F_16"));
-                bacType.F_16 = value;
-                RaisePropertyChanged(() => F_16);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.StartValue1), bacType, bacType.StartValue1, value, "StartValue1"));
+                bacType.StartValue1 = value;
+                RaisePropertyChanged(() => StartValue1);
             }
         }
-        public float F_20
+        public float StartValue2
         {
-            get => bacType.F_20;
+            get => bacType.StartValue2;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_20), bacType, bacType.F_20, value, "F_20"));
-                bacType.F_20 = value;
-                RaisePropertyChanged(() => F_20);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.StartValue2), bacType, bacType.StartValue2, value, "StartValue2"));
+                bacType.StartValue2 = value;
+                RaisePropertyChanged(() => StartValue2);
             }
         }
-        public float F_24
+        public float StartValue3
         {
-            get => bacType.F_24;
+            get => bacType.StartValue3;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_24), bacType, bacType.F_24, value, "F_24"));
-                bacType.F_24 = value;
-                RaisePropertyChanged(() => F_24);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.StartValue3), bacType, bacType.StartValue3, value, "StartValue3"));
+                bacType.StartValue3 = value;
+                RaisePropertyChanged(() => StartValue3);
             }
         }
-        public float F_28
+        public float StartValue4
         {
-            get => bacType.F_28;
+            get => bacType.StartValue4;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_28), bacType, bacType.F_28, value, "F_28"));
-                bacType.F_28 = value;
-                RaisePropertyChanged(() => F_28);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.StartValue4), bacType, bacType.StartValue4, value, "StartValue4"));
+                bacType.StartValue4 = value;
+                RaisePropertyChanged(() => StartValue4);
             }
         }
-        public float F_32
+        public float EndValue1
         {
-            get => bacType.F_32;
+            get => bacType.EndValue1;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_32), bacType, bacType.F_32, value, "F_32"));
-                bacType.F_32 = value;
-                RaisePropertyChanged(() => F_32);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.EndValue1), bacType, bacType.EndValue1, value, "EndValue1"));
+                bacType.EndValue1 = value;
+                RaisePropertyChanged(() => EndValue1);
             }
         }
-        public float F_36
+        public float EndValue2
         {
-            get => bacType.F_36;
+            get => bacType.EndValue2;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_36), bacType, bacType.F_36, value, "F_36"));
-                bacType.F_36 = value;
-                RaisePropertyChanged(() => F_36);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.EndValue2), bacType, bacType.EndValue2, value, "EndValue2"));
+                bacType.EndValue2 = value;
+                RaisePropertyChanged(() => EndValue2);
             }
         }
-        public float F_40
+        public float EndValue3
         {
-            get => bacType.F_40;
+            get => bacType.EndValue3;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_40), bacType, bacType.F_40, value, "F_40"));
-                bacType.F_40 = value;
-                RaisePropertyChanged(() => F_40);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.EndValue3), bacType, bacType.EndValue3, value, "EndValue3"));
+                bacType.EndValue3 = value;
+                RaisePropertyChanged(() => EndValue3);
             }
         }
-        public float F_44
+        public float EndValue4
         {
-            get => bacType.F_44;
+            get => bacType.EndValue4;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.F_44), bacType, bacType.F_44, value, "F_44"));
-                bacType.F_44 = value;
-                RaisePropertyChanged(() => F_44);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type29>(nameof(bacType.EndValue4), bacType, bacType.EndValue4, value, "EndValue4"));
+                bacType.EndValue4 = value;
+                RaisePropertyChanged(() => EndValue4);
             }
         }
         public int I_48
@@ -179,17 +179,17 @@ namespace XenoKit.ViewModel.BAC
         private void UpdateProperties()
         {
             //Needed for updating properties when undo/redo is called
-            RaisePropertyChanged(() => I_08);
-            RaisePropertyChanged(() => I_10);
-            RaisePropertyChanged(() => I_12);
-            RaisePropertyChanged(() => F_16);
-            RaisePropertyChanged(() => F_20);
-            RaisePropertyChanged(() => F_24);
-            RaisePropertyChanged(() => F_28);
-            RaisePropertyChanged(() => F_32);
-            RaisePropertyChanged(() => F_36);
-            RaisePropertyChanged(() => F_40);
-            RaisePropertyChanged(() => F_44);
+            RaisePropertyChanged(() => ModelIndex);
+            RaisePropertyChanged(() => MaterialIndex);
+            RaisePropertyChanged(() => ShaderParamId);
+            RaisePropertyChanged(() => StartValue1);
+            RaisePropertyChanged(() => StartValue2);
+            RaisePropertyChanged(() => StartValue3);
+            RaisePropertyChanged(() => StartValue4);
+            RaisePropertyChanged(() => EndValue1);
+            RaisePropertyChanged(() => EndValue2);
+            RaisePropertyChanged(() => EndValue3);
+            RaisePropertyChanged(() => EndValue4);
             RaisePropertyChanged(() => I_48);
             RaisePropertyChanged(() => I_52);
             RaisePropertyChanged(() => I_56);

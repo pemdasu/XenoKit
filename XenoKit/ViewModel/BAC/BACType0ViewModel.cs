@@ -1,4 +1,4 @@
-﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight;
 using System;
 using XenoKit.Editor;
 using XenoKit.Engine;
@@ -14,6 +14,8 @@ namespace XenoKit.ViewModel.BAC
     {
         private BAC_Type0 bacType;
 
+        public string EanTypeLabel => Xv2CoreLib.ValuesDictionary.BAC.GetAnimationEanTypeName(EanType);
+
         public ushort EanType
         {
             get
@@ -22,9 +24,11 @@ namespace XenoKit.ViewModel.BAC
             }
             set
             {
+                if ((ushort)bacType.EanType == value) return;
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type0>(nameof(bacType.EanType), bacType, bacType.EanType, (BAC_Type0.EanTypeEnum)value, "Animation EanType"), UndoGroup.Action, "Animation", bacType);
                 bacType.EanType = (BAC_Type0.EanTypeEnum)value;
                 RaisePropertyChanged(() => EanType);
+                RaisePropertyChanged(() => EanTypeLabel);
                 RaisePropertyChanged(() => SpecifiedEan);
                 RaisePropertyChanged(() => UseEanList);
                 RaisePropertyChanged(() => EanIndex);
@@ -62,7 +66,7 @@ namespace XenoKit.ViewModel.BAC
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type0>(nameof(bacType.StartFrame), bacType, bacType.StartFrame, value, "Animation Start Frame"), UndoGroup.Action, "Animation", bacType);
                     bacType.StartFrame = value;
                     RaisePropertyChanged(() => StartFrame);
-                    UpdateBacPlayer(); 
+                    UpdateBacPlayer();
                     UndoManager.Instance.ForceEventCall(UndoGroup.Action, "Animation", bacType);
                 }
             }
@@ -154,19 +158,19 @@ namespace XenoKit.ViewModel.BAC
                 }
             }
         }
-        public ushort I_14
+        public ushort StopFaceLayer
         {
             get
             {
-                return bacType.I_14;
+                return bacType.StopFaceLayer;
             }
             set
             {
-                if (bacType.I_14 != value)
+                if (bacType.StopFaceLayer != value)
                 {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type0>(nameof(bacType.I_14), bacType, bacType.I_14, value, "Animation Face Animation from EAN"));
-                    bacType.I_14 = value;
-                    RaisePropertyChanged(() => I_14);
+                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type0>(nameof(bacType.StopFaceLayer), bacType, bacType.StopFaceLayer, value, "Animation Face Animation from EAN"));
+                    bacType.StopFaceLayer = value;
+                    RaisePropertyChanged(() => StopFaceLayer);
                     UpdateBacPlayer();
                 }
             }
@@ -422,21 +426,21 @@ namespace XenoKit.ViewModel.BAC
                 }
             }
         }
-        public bool Flags_Unk14
+        public bool Flags_KeepDuringFaceOverride
         {
             get
             {
-                return bacType.AnimFlags.HasFlag(AnimationFlags.Unk14);
+                return bacType.AnimFlags.HasFlag(AnimationFlags.KeepDuringFaceOverride);
             }
             set
             {
-                AnimationFlags flags = bacType.AnimFlags.SetFlag(AnimationFlags.Unk14, value);
+                AnimationFlags flags = bacType.AnimFlags.SetFlag(AnimationFlags.KeepDuringFaceOverride, value);
 
                 if (bacType.AnimFlags != flags)
                 {
                     UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type0>(nameof(bacType.AnimFlags), bacType, bacType.AnimFlags, flags, "AnimationFlags"));
                     bacType.AnimFlags = flags;
-                    RaisePropertyChanged(() => Flags_Unk14);
+                    RaisePropertyChanged(() => Flags_KeepDuringFaceOverride);
                 }
             }
         }
@@ -518,12 +522,14 @@ namespace XenoKit.ViewModel.BAC
         private void BacType_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             RaisePropertyChanged(e.PropertyName);
+            if (e.PropertyName == nameof(bacType.EanType)) RaisePropertyChanged(() => EanTypeLabel);
         }
 
         private void UpdateProperties()
         {
             //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => EanType);
+            RaisePropertyChanged(() => EanTypeLabel);
             RaisePropertyChanged(() => EanIndex);
             RaisePropertyChanged(() => StartFrame);
             RaisePropertyChanged(() => EndFrame);
@@ -544,7 +550,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => IgnoreRootMotionX);
             RaisePropertyChanged(() => IgnoreRootMotionY);
             RaisePropertyChanged(() => IgnoreRootMotionZ);
-            RaisePropertyChanged(() => Flags_Unk14);
+            RaisePropertyChanged(() => Flags_KeepDuringFaceOverride);
             RaisePropertyChanged(() => Flags_Unk15);
             RaisePropertyChanged(() => Rotate180Degrees);
             RaisePropertyChanged(() => SpecifiedEan);
@@ -553,7 +559,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => IgnoreRootXEnabled);
             RaisePropertyChanged(() => IgnoreRootYEnabled);
             RaisePropertyChanged(() => IgnoreRootZEnabled);
-            RaisePropertyChanged(() => I_14);
+            RaisePropertyChanged(() => StopFaceLayer);
             UpdateBacPlayer();
         }
 

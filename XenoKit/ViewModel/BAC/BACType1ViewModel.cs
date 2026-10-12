@@ -1,8 +1,10 @@
-﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight;
 using System;
 using XenoKit.Engine;
+using XenoKit.Engine.Collision;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.Resource.UndoRedo;
+using BacValues = Xv2CoreLib.ValuesDictionary.BAC;
 using static Xv2CoreLib.BAC.BAC_Type1;
 
 namespace XenoKit.ViewModel.BAC
@@ -52,9 +54,7 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox ImpactType"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
+                UpdateHitboxProperties();
             }
         }
         public ushort DamageType
@@ -69,9 +69,7 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox DamageType"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
+                UpdateHitboxProperties();
             }
         }
         public ushort HitboxSpawnSource
@@ -86,12 +84,14 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox SpawnSource"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
+                UpdateHitboxProperties();
             }
         }
         
+
+        public string ImpactTypeLabel => BacValues.BdmImpactType.TryGetValue(ImpactType, out string name) ? name : $"Unknown ({ImpactType})";
+        public string DamageTypeLabel => BacValues.BdmDamageType.TryGetValue(DamageType, out string name) ? name : $"Unknown ({DamageType})";
+        public string HitboxSpawnSourceLabel => BacValues.BdmSpawnSource.TryGetValue(HitboxSpawnSource, out string name) ? name : $"Unknown ({HitboxSpawnSource})";
 
         //HitboxFlags (bools, first flag)
         public bool HitboxFlagA_Unk1
@@ -107,10 +107,8 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox FlagsUnk1"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
+                UpdateHitboxProperties();
                 RaisePropertyChanged(() => HitboxFlagA_Unk1);
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
             }
         }
         public bool HitboxFlagA_Unk2
@@ -126,10 +124,8 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox FlagsUnk2"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
+                UpdateHitboxProperties();
                 RaisePropertyChanged(() => HitboxFlagA_Unk2);
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
             }
         }
         public bool HitboxFlagA_Unk3
@@ -145,10 +141,8 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox FlagsUnk3"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
+                UpdateHitboxProperties();
                 RaisePropertyChanged(() => HitboxFlagA_Unk3);
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
             }
         }
         public bool HitboxFlagA_Unk4
@@ -164,28 +158,26 @@ namespace XenoKit.ViewModel.BAC
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox FlagsUnk4"));
                 bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
+                UpdateHitboxProperties();
                 RaisePropertyChanged(() => HitboxFlagA_Unk4);
-                RaisePropertyChanged(() => ImpactType);
-                RaisePropertyChanged(() => DamageType);
-                RaisePropertyChanged(() => HitboxSpawnSource);
             }
         }
 
-        //Unknown Flags
-        public BoundingBoxTypeEnum BoundingBoxType
+        public byte BoundingBoxType
         {
-            get
-            {
-                return bacType.BoundingBoxType;
-            }
+            get => (byte)bacType.BoundingBoxType;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.BoundingBoxType), bacType, bacType.BoundingBoxType, value, "Hitbox BoundingBoxType"));
-                bacType.BoundingBoxType = value;
-                RaisePropertyChanged(() => BoundingBoxType);
-                RaisePropertyChanged(() => BoundsEnabled);
+                var shape = (BoundingBoxTypeEnum)value;
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.BoundingBoxType), bacType, bacType.BoundingBoxType, shape, "Hitbox Shape"));
+                bacType.BoundingBoxType = shape;
             }
         }
+        public string BoundingBoxTypeLabel => BacValues.BoundingBoxType.TryGetValue(BoundingBoxType, out string name) ? name : $"Unknown ({BoundingBoxType})";
+        private HitShapeType ShapeType => HitShapes.GetShapeType(BoundingBoxType);
+        public bool UsesRadius => ShapeType == HitShapeType.Sphere || ShapeType == HitShapeType.Capsule;
+        public bool IsCapsule => ShapeType == HitShapeType.Capsule;
+        public bool IsBox => ShapeType == HitShapeType.Box;
 
         //Damage
         public ushort Damage
@@ -390,7 +382,6 @@ namespace XenoKit.ViewModel.BAC
             }
         }
 
-        public bool BoundsEnabled => bacType.BoundingBoxType != BoundingBoxTypeEnum.Uniform;
 
         public BACType1ViewModel(BAC_Type1 _bacType)
         {
@@ -415,6 +406,25 @@ namespace XenoKit.ViewModel.BAC
         private void BacType_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             RaisePropertyChanged(e.PropertyName);
+            if (e.PropertyName == nameof(bacType.BoundingBoxType)) UpdateShapeProperties();
+        }
+
+        private void UpdateShapeProperties()
+        {
+            RaisePropertyChanged(() => BoundingBoxTypeLabel);
+            RaisePropertyChanged(() => UsesRadius);
+            RaisePropertyChanged(() => IsCapsule);
+            RaisePropertyChanged(() => IsBox);
+        }
+
+        private void UpdateHitboxProperties()
+        {
+            RaisePropertyChanged(() => ImpactType);
+            RaisePropertyChanged(() => DamageType);
+            RaisePropertyChanged(() => HitboxSpawnSource);
+            RaisePropertyChanged(() => ImpactTypeLabel);
+            RaisePropertyChanged(() => DamageTypeLabel);
+            RaisePropertyChanged(() => HitboxSpawnSourceLabel);
         }
 
         private void UpdateProperties()
@@ -422,9 +432,7 @@ namespace XenoKit.ViewModel.BAC
             //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => BdmType);
             RaisePropertyChanged(() => BdmEntryID);
-            RaisePropertyChanged(() => ImpactType);
-            RaisePropertyChanged(() => DamageType);
-            RaisePropertyChanged(() => HitboxSpawnSource);
+            UpdateHitboxProperties();
             RaisePropertyChanged(() => HitboxFlagA_Unk1);
             RaisePropertyChanged(() => HitboxFlagA_Unk2);
             RaisePropertyChanged(() => HitboxFlagA_Unk3);
@@ -445,7 +453,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => MinX);
             RaisePropertyChanged(() => MinY);
             RaisePropertyChanged(() => MinZ);
-            RaisePropertyChanged(() => BoundsEnabled);
+            UpdateShapeProperties();
             UpdateBacPlayer();
         }
 
@@ -468,6 +476,7 @@ namespace XenoKit.ViewModel.BAC
 
             UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type1>(nameof(bacType.HitboxFlags), bacType, bacType.HitboxFlags, newFlags, "Hitbox HitboxFlags"));
             bacType.HitboxFlags = (HitboxFlagsEnum)newFlags;
+            UpdateHitboxProperties();
         }
    
         public bool GetHitboxProperties1(ushort mask)
@@ -484,449 +493,5 @@ namespace XenoKit.ViewModel.BAC
             bacType.I_20 = newFlags;
         }
 
-        /*
-         
-        //Never used in game
-        public bool MatrixFlags_5
-        {
-            get
-            {
-                return GetMatrixFlagsB(0x01);
-            }
-            set
-            {
-                SetMatrixFlagsB(0x01, value);
-                RaisePropertyChanged(() => MatrixFlags_5);
-            }
-        }
-        public bool MatrixFlags_6
-        {
-            get
-            {
-                return GetMatrixFlagsB(0x02);
-            }
-            set
-            {
-                SetMatrixFlagsB(0x02, value);
-                RaisePropertyChanged(() => MatrixFlags_6);
-            }
-        }
-        public bool MatrixFlags_7
-        {
-            get
-            {
-                return GetMatrixFlagsB(0x04);
-            }
-            set
-            {
-                SetMatrixFlagsB(0x04, value);
-                RaisePropertyChanged(() => MatrixFlags_7);
-            }
-        }
-        public bool MatrixFlags_8
-        {
-            get
-            {
-                return GetMatrixFlagsB(0x08);
-            }
-            set
-            {
-                SetMatrixFlagsB(0x08, value);
-                RaisePropertyChanged(() => MatrixFlags_8);
-            }
-        }
-
-
-
-        //These are apparantly not even flags
-        //HitboxProperties
-        public bool HitboxProps_1
-        {
-            get
-            {
-                return GetHitboxProperties1(0x1);
-            }
-            set
-            {
-                SetHitboxProperties1(0x1, value);
-                RaisePropertyChanged(() => HitboxProps_1);
-            }
-        }
-        public bool HitboxProps_2
-        {
-            get
-            {
-                return GetHitboxProperties1(0x2);
-            }
-            set
-            {
-                SetHitboxProperties1(0x2, value);
-                RaisePropertyChanged(() => HitboxProps_2);
-            }
-        }
-        public bool HitboxProps_3
-        {
-            get
-            {
-                return GetHitboxProperties1(0x4);
-            }
-            set
-            {
-                SetHitboxProperties1(0x4, value);
-                RaisePropertyChanged(() => HitboxProps_3);
-            }
-        }
-        public bool HitboxProps_4
-        {
-            get
-            {
-                return GetHitboxProperties1(0x8);
-            }
-            set
-            {
-                SetHitboxProperties1(0x8, value);
-                RaisePropertyChanged(() => HitboxProps_4);
-            }
-        }
-        public bool HitboxProps_5
-        {
-            get
-            {
-                return GetHitboxProperties1(0x10);
-            }
-            set
-            {
-                SetHitboxProperties1(0x10, value);
-                RaisePropertyChanged(() => HitboxProps_5);
-            }
-        }
-        public bool HitboxProps_6
-        {
-            get
-            {
-                return GetHitboxProperties1(0x20);
-            }
-            set
-            {
-                SetHitboxProperties1(0x20, value);
-                RaisePropertyChanged(() => HitboxProps_6);
-            }
-        }
-        public bool HitboxProps_7
-        {
-            get
-            {
-                return GetHitboxProperties1(0x40);
-            }
-            set
-            {
-                SetHitboxProperties1(0x40, value);
-                RaisePropertyChanged(() => HitboxProps_7);
-            }
-        }
-        public bool HitboxProps_8
-        {
-            get
-            {
-                return GetHitboxProperties1(0x80);
-            }
-            set
-            {
-                SetHitboxProperties1(0x80, value);
-                RaisePropertyChanged(() => HitboxProps_8);
-            }
-        }
-        public bool HitboxProps_9
-        {
-            get
-            {
-                return GetHitboxProperties1(0x100);
-            }
-            set
-            {
-                SetHitboxProperties1(0x100, value);
-                RaisePropertyChanged(() => HitboxProps_9);
-            }
-        }
-        public bool HitboxProps_10
-        {
-            get
-            {
-                return GetHitboxProperties1(0x200);
-            }
-            set
-            {
-                SetHitboxProperties1(0x200, value);
-                RaisePropertyChanged(() => HitboxProps_10);
-            }
-        }
-        public bool HitboxProps_11
-        {
-            get
-            {
-                return GetHitboxProperties1(0x400);
-            }
-            set
-            {
-                SetHitboxProperties1(0x400, value);
-                RaisePropertyChanged(() => HitboxProps_11);
-            }
-        }
-        public bool HitboxProps_12
-        {
-            get
-            {
-                return GetHitboxProperties1(0x800);
-            }
-            set
-            {
-                SetHitboxProperties1(0x800, value);
-                RaisePropertyChanged(() => HitboxProps_12);
-            }
-        }
-        public bool HitboxProps_13
-        {
-            get
-            {
-                return GetHitboxProperties1(0x1000);
-            }
-            set
-            {
-                SetHitboxProperties1(0x1000, value);
-                RaisePropertyChanged(() => HitboxProps_13);
-            }
-        }
-        public bool HitboxProps_14
-        {
-            get
-            {
-                return GetHitboxProperties1(0x2000);
-            }
-            set
-            {
-                SetHitboxProperties1(0x2000, value);
-                RaisePropertyChanged(() => HitboxProps_14);
-            }
-        }
-        public bool HitboxProps_15
-        {
-            get
-            {
-                return GetHitboxProperties1(0x4000);
-            }
-            set
-            {
-                SetHitboxProperties1(0x4000, value);
-                RaisePropertyChanged(() => HitboxProps_15);
-            }
-        }
-        public bool HitboxProps_16
-        {
-            get
-            {
-                return GetHitboxProperties1(0x8000);
-            }
-            set
-            {
-                SetHitboxProperties1(0x8000, value);
-                RaisePropertyChanged(() => HitboxProps_16);
-            }
-        }
-
-        //HitboxProperties2
-        public bool HitboxProps2_1
-        {
-            get
-            {
-                return GetHitboxProperties2(0x1);
-            }
-            set
-            {
-                SetHitboxProperties2(0x1, value);
-                RaisePropertyChanged(() => HitboxProps2_1);
-            }
-        }
-        public bool HitboxProps2_2
-        {
-            get
-            {
-                return GetHitboxProperties2(0x2);
-            }
-            set
-            {
-                SetHitboxProperties2(0x2, value);
-                RaisePropertyChanged(() => HitboxProps2_2);
-            }
-        }
-        public bool HitboxProps2_3
-        {
-            get
-            {
-                return GetHitboxProperties2(0x4);
-            }
-            set
-            {
-                SetHitboxProperties2(0x4, value);
-                RaisePropertyChanged(() => HitboxProps2_3);
-            }
-        }
-        public bool HitboxProps2_4
-        {
-            get
-            {
-                return GetHitboxProperties2(0x8);
-            }
-            set
-            {
-                SetHitboxProperties2(0x8, value);
-                RaisePropertyChanged(() => HitboxProps2_4);
-            }
-        }
-        public bool HitboxProps2_5
-        {
-            get
-            {
-                return GetHitboxProperties2(0x10);
-            }
-            set
-            {
-                SetHitboxProperties2(0x10, value);
-                RaisePropertyChanged(() => HitboxProps2_5);
-            }
-        }
-        public bool HitboxProps2_6
-        {
-            get
-            {
-                return GetHitboxProperties2(0x20);
-            }
-            set
-            {
-                SetHitboxProperties2(0x20, value);
-                RaisePropertyChanged(() => HitboxProps2_6);
-            }
-        }
-        public bool HitboxProps2_7
-        {
-            get
-            {
-                return GetHitboxProperties2(0x40);
-            }
-            set
-            {
-                SetHitboxProperties2(0x40, value);
-                RaisePropertyChanged(() => HitboxProps2_7);
-            }
-        }
-        public bool HitboxProps2_8
-        {
-            get
-            {
-                return GetHitboxProperties2(0x80);
-            }
-            set
-            {
-                SetHitboxProperties2(0x80, value);
-                RaisePropertyChanged(() => HitboxProps2_8);
-            }
-        }
-        public bool HitboxProps2_9
-        {
-            get
-            {
-                return GetHitboxProperties2(0x100);
-            }
-            set
-            {
-                SetHitboxProperties2(0x100, value);
-                RaisePropertyChanged(() => HitboxProps2_9);
-            }
-        }
-        public bool HitboxProps2_10
-        {
-            get
-            {
-                return GetHitboxProperties2(0x200);
-            }
-            set
-            {
-                SetHitboxProperties2(0x200, value);
-                RaisePropertyChanged(() => HitboxProps2_10);
-            }
-        }
-        public bool HitboxProps2_11
-        {
-            get
-            {
-                return GetHitboxProperties2(0x400);
-            }
-            set
-            {
-                SetHitboxProperties2(0x400, value);
-                RaisePropertyChanged(() => HitboxProps2_11);
-            }
-        }
-        public bool HitboxProps2_12
-        {
-            get
-            {
-                return GetHitboxProperties2(0x800);
-            }
-            set
-            {
-                SetHitboxProperties2(0x800, value);
-                RaisePropertyChanged(() => HitboxProps2_12);
-            }
-        }
-        public bool HitboxProps2_13
-        {
-            get
-            {
-                return GetHitboxProperties2(0x1000);
-            }
-            set
-            {
-                SetHitboxProperties2(0x1000, value);
-                RaisePropertyChanged(() => HitboxProps2_13);
-            }
-        }
-        public bool HitboxProps2_14
-        {
-            get
-            {
-                return GetHitboxProperties2(0x2000);
-            }
-            set
-            {
-                SetHitboxProperties2(0x2000, value);
-                RaisePropertyChanged(() => HitboxProps2_14);
-            }
-        }
-        public bool HitboxProps2_15
-        {
-            get
-            {
-                return GetHitboxProperties2(0x4000);
-            }
-            set
-            {
-                SetHitboxProperties2(0x4000, value);
-                RaisePropertyChanged(() => HitboxProps2_15);
-            }
-        }
-        public bool HitboxProps2_16
-        {
-            get
-            {
-                return GetHitboxProperties2(0x8000);
-            }
-            set
-            {
-                SetHitboxProperties2(0x8000, value);
-                RaisePropertyChanged(() => HitboxProps2_16);
-            }
-        }
-
-        */
     }
 }

@@ -62,11 +62,11 @@
                     <StackPanel Orientation="Horizontal">
                         <StackPanel Margin="20, 5" Width="200">
                             <CheckBox Content="Disable Effect"  IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_DisableEffect, UpdateSourceTrigger=Default}"  ToolTip="Disable any active instances of this Post Effect."/>
-                            <CheckBox Content="Visible for All" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_Unk1, UpdateSourceTrigger=Default}" ToolTip="Should this Post Effect be visible to all players within the game?"/>
+                            <CheckBox Content="Visible for All" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_NotFocusActorOnly, UpdateSourceTrigger=Default}" ToolTip="Should this Post Effect be visible to all players within the game?"/>
 
                         </StackPanel>
                         <StackPanel Margin="20, 5" Width="200">
-                            <CheckBox Content="Loop With Action" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_Unk4, UpdateSourceTrigger=Default}" ToolTip="When enabled, this Post Effect will loop any loops currently active."/>
+                            <CheckBox Content="Loop With Action" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_AllowLoop, UpdateSourceTrigger=Default}" ToolTip="When enabled, this Post Effect will loop any loops currently active."/>
                             <CheckBox Content="Unk5" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType16View}}, Path=BacViewModel.Flag_Unk5, UpdateSourceTrigger=Default}"/>
                         </StackPanel>
                     </StackPanel>

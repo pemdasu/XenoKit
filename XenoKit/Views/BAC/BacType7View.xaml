@@ -55,6 +55,8 @@
                                     <CheckBox Content="Unk18" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType7View}}, Path=BacViewModel.Flag_Unk18, UpdateSourceTrigger=Default}" />
                                     <CheckBox Content="Unk19"  IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType7View}}, Path=BacViewModel.Flag_Unk19, UpdateSourceTrigger=Default}" />
                                     <CheckBox Content="Unk20" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType7View}}, Path=BacViewModel.Flag_Unk20, UpdateSourceTrigger=Default}" />
+                                    <CheckBox Content="Unk21" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType7View}}, Path=BacViewModel.Flag_Unk21, UpdateSourceTrigger=Default}" />
+                                    <CheckBox Content="Unk22" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType7View}}, Path=BacViewModel.Flag_Unk22, UpdateSourceTrigger=Default}" />
 
                                 </StackPanel>
                             </StackPanel>

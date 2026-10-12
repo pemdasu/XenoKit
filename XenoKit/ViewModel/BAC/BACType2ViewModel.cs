@@ -308,7 +308,7 @@ namespace XenoKit.ViewModel.BAC
             }
             set
             {
-                ushort result = (ushort)((value) ? 0x0100 : 0x0000);
+                ushort result = (ushort)((value) ? 0x1000 : 0x0000);
                 ushort newFlags = (ushort)((bacType.MovementFlags & 0xEFFF) | result);
 
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type2>(nameof(bacType.MovementFlags), bacType, bacType.MovementFlags, newFlags, "Movement MovementFlags"));
@@ -330,6 +330,23 @@ namespace XenoKit.ViewModel.BAC
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type2>(nameof(bacType.MovementFlags), bacType, bacType.MovementFlags, newFlags, "Movement MovementFlags"));
                 bacType.MovementFlags = newFlags;
                 RaisePropertyChanged(() => MovementFlags_A_2);
+            }
+        }
+        public bool TeleportWithoutTarget
+        {
+            get
+            {
+                return bacType.TeleportWithoutTarget;
+            }
+            set
+            {
+                if (bacType.TeleportWithoutTarget != value)
+                {
+                    ushort newValue = (ushort)(value ? (bacType.I_10 | 0x1) : (bacType.I_10 & ~0x1));
+                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type2>(nameof(bacType.I_10), bacType, bacType.I_10, newValue, "Movement Teleport Without Target"));
+                    bacType.TeleportWithoutTarget = value;
+                    RaisePropertyChanged(() => TeleportWithoutTarget);
+                }
             }
         }
         public bool MovementFlags_A_3
@@ -416,6 +433,7 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => MovementFlags_A_2);
             RaisePropertyChanged(() => MovementFlags_A_3);
             RaisePropertyChanged(() => MovementFlags_A_4);
+            RaisePropertyChanged(() => TeleportWithoutTarget);
         }
 
         private void UpdateBacPlayer()

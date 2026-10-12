@@ -172,69 +172,80 @@ namespace XenoKit.ViewModel.BAC
         }
 
         //Other
-        public ushort I_10
+        public bool Jump_WhenSelfLands
         {
             get
             {
-                return bacType.I_10;
+                return bacType.JumpCondition.HasFlag(BAC_Type24.JumpConditionEnum.WhenSelfLands);
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(bacType.I_10), bacType, bacType.I_10, value, "I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                SetJumpCondition(BAC_Type24.JumpConditionEnum.WhenSelfLands, value);
+                RaisePropertyChanged(() => Jump_WhenSelfLands);
             }
         }
-        public ushort I_52
+        public bool Jump_WhenAnimationEnds
         {
             get
             {
-                return bacType.I_52;
+                return bacType.JumpCondition.HasFlag(BAC_Type24.JumpConditionEnum.WhenAnimationEnds);
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(bacType.I_52), bacType, bacType.I_52, value, "I_52"));
-                bacType.I_52 = value;
-                RaisePropertyChanged(() => I_52);
+                SetJumpCondition(BAC_Type24.JumpConditionEnum.WhenAnimationEnds, value);
+                RaisePropertyChanged(() => Jump_WhenAnimationEnds);
             }
         }
-        public ushort I_54
+        public ushort BacEntryJump
         {
             get
             {
-                return bacType.I_54;
+                return bacType.BacEntryJump;
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(bacType.I_54), bacType, bacType.I_54, value, "I_54"));
-                bacType.I_54 = value;
-                RaisePropertyChanged(() => I_54);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(bacType.BacEntryJump), bacType, bacType.BacEntryJump, value, "BacEntryJump"));
+                bacType.BacEntryJump = value;
+                RaisePropertyChanged(() => BacEntryJump);
+            }
+        }
+        public ushort FollowState
+        {
+            get
+            {
+                return bacType.FollowState;
+            }
+            set
+            {
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(bacType.FollowState), bacType, bacType.FollowState, value, "FollowState"));
+                bacType.FollowState = value;
+                RaisePropertyChanged(() => FollowState);
             }
         }
 
         //Flags
-        public bool Flag_Unk1
+        public bool Flag_UseInitiatorSlot
         {
             get
             {
-                return bacType.DualSkillFlags.HasFlag(DualSkillHandlerFlagsEnum.Unk1);
+                return bacType.DualSkillFlags.HasFlag(DualSkillHandlerFlagsEnum.UseInitiatorSlot);
             }
             set
             {
-                SetDualSkillFlag(DualSkillHandlerFlagsEnum.Unk1, value);
-                RaisePropertyChanged(() => Flag_Unk1);
+                SetDualSkillFlag(DualSkillHandlerFlagsEnum.UseInitiatorSlot, value);
+                RaisePropertyChanged(() => Flag_UseInitiatorSlot);
             }
         }
-        public bool Flag_Unk2
+        public bool Flag_UsePartnerSlot
         {
             get
             {
-                return bacType.DualSkillFlags.HasFlag(DualSkillHandlerFlagsEnum.Unk2);
+                return bacType.DualSkillFlags.HasFlag(DualSkillHandlerFlagsEnum.UsePartnerSlot);
             }
             set
             {
-                SetDualSkillFlag(DualSkillHandlerFlagsEnum.Unk2, value);
-                RaisePropertyChanged(() => Flag_Unk2);
+                SetDualSkillFlag(DualSkillHandlerFlagsEnum.UsePartnerSlot, value);
+                RaisePropertyChanged(() => Flag_UsePartnerSlot);
             }
         }
         public bool Flag_Unk3
@@ -446,11 +457,12 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => PartnerPositionX);
             RaisePropertyChanged(() => PartnerPositionY);
             RaisePropertyChanged(() => PartnerPositionZ);
-            RaisePropertyChanged(() => I_10);
-            RaisePropertyChanged(() => I_52);
-            RaisePropertyChanged(() => I_54);
-            RaisePropertyChanged(() => Flag_Unk1);
-            RaisePropertyChanged(() => Flag_Unk2);
+            RaisePropertyChanged(() => Jump_WhenSelfLands);
+            RaisePropertyChanged(() => Jump_WhenAnimationEnds);
+            RaisePropertyChanged(() => BacEntryJump);
+            RaisePropertyChanged(() => FollowState);
+            RaisePropertyChanged(() => Flag_UseInitiatorSlot);
+            RaisePropertyChanged(() => Flag_UsePartnerSlot);
             RaisePropertyChanged(() => Flag_Unk3);
             RaisePropertyChanged(() => Flag_Unk4);
             RaisePropertyChanged(() => Flag_Unk5);
@@ -465,6 +477,17 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => Flag_Unk14);
             RaisePropertyChanged(() => Flag_Unk15);
             RaisePropertyChanged(() => Flag_Unk16);
+        }
+
+        private void SetJumpCondition(BAC_Type24.JumpConditionEnum flag, bool state)
+        {
+            var newFlag = bacType.JumpCondition.SetFlag(flag, state);
+
+            if (bacType.JumpCondition != newFlag)
+            {
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type24>(nameof(BAC_Type24.JumpCondition), bacType, bacType.JumpCondition, newFlag, "Jump Condition"));
+                bacType.JumpCondition = newFlag;
+            }
         }
 
         private void SetDualSkillFlag(DualSkillHandlerFlagsEnum flag, bool state)

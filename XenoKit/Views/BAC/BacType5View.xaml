@@ -26,14 +26,14 @@
                 <WrapPanel Margin="0, 2">
                     <StackPanel Margin="20, 5" Width="200">
                         <CheckBox Content="Track Forwards and Backwards" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_TrackForwardAndBackward, UpdateSourceTrigger=Default}"/>
-                        <CheckBox Content="Unk1" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk1, UpdateSourceTrigger=Default}"/>
-                        <CheckBox Content="Unk9" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk9, UpdateSourceTrigger=Default}"/>
+                        <CheckBox Content="Aim at Locked Target" ToolTip="Aims at the locked-on target position instead of turning gradually." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_AimAtLockedTarget, UpdateSourceTrigger=Default}"/>
+                        <CheckBox Content="Don't Turn" ToolTip="The actor does not turn left or right toward the target. Up and down tracking still works." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_NoYaw, UpdateSourceTrigger=Default}"/>
                         <CheckBox Content="Unk10" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk10, UpdateSourceTrigger=Default}"/>
                     </StackPanel>
                     <StackPanel Margin="20, 5" Width="200">
                         <CheckBox Content="Unk12" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk12, UpdateSourceTrigger=Default}"/>
-                        <CheckBox Content="Unk13" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk13, UpdateSourceTrigger=Default}"/>
-                        <CheckBox Content="Unk14" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_Unk14, UpdateSourceTrigger=Default}"/>
+                        <CheckBox Content="Turn Away" ToolTip="The actor turns away from the target instead of toward it." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_ReverseYaw, UpdateSourceTrigger=Default}"/>
+                        <CheckBox Content="Reverse Pitch" ToolTip="The actor aims up and down away from the target instead of toward it." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BacType5View}}, Path=BacViewModel.TrackingFlag_ReversePitch, UpdateSourceTrigger=Default}"/>
                     </StackPanel>
                 </WrapPanel>
             </StackPanel>

@@ -54,7 +54,7 @@ namespace XenoKit.Windows
             { typeof(BAC_Type9) , "Projectile" },
             { typeof(BAC_Type10) , "Camera" },
             { typeof(BAC_Type11) , "Sound" },
-            { typeof(BAC_Type12) , "Targeting Assistance" },
+            { typeof(BAC_Type12) , "Tracking Axis" },
             { typeof(BAC_Type13) , "BCS Part Visibility" },
             { typeof(BAC_Type14) , "Bone Modification" },
             { typeof(BAC_Type15) , "Functions" },
@@ -70,8 +70,8 @@ namespace XenoKit.Windows
             { typeof(BAC_Type25) , "Extended Chain Attack" },
             { typeof(BAC_Type26) , "Extended Camera Control" },
             { typeof(BAC_Type27) , "Effect Property Control" },
-            { typeof(BAC_Type28) , "BAC_Type28" },
-            { typeof(BAC_Type29) , "BAC_Type29" },
+            { typeof(BAC_Type28) , "DYT Blend" },
+            { typeof(BAC_Type29) , "Material Parameter" },
             { typeof(BAC_Type30) , "BAC_Type30" },
         };
 

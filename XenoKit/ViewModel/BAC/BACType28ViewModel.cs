@@ -9,64 +9,64 @@ namespace XenoKit.ViewModel.BAC
     {
         private BAC_Type28 bacType;
 
-        public ushort I_08
+        public ushort StartMainCluster
         {
-            get => bacType.I_08;
+            get => bacType.StartMainCluster;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.I_08), bacType, bacType.I_08, value, "I_08"));
-                bacType.I_08 = value;
-                RaisePropertyChanged(() => I_08);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.StartMainCluster), bacType, bacType.StartMainCluster, value, "StartMainCluster"));
+                bacType.StartMainCluster = value;
+                RaisePropertyChanged(() => StartMainCluster);
             }
         }
-        public ushort I_10
+        public ushort StartBlendCluster
         {
-            get => bacType.I_10;
+            get => bacType.StartBlendCluster;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.I_10), bacType, bacType.I_10, value, "I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.StartBlendCluster), bacType, bacType.StartBlendCluster, value, "StartBlendCluster"));
+                bacType.StartBlendCluster = value;
+                RaisePropertyChanged(() => StartBlendCluster);
             }
         }
-        public ushort I_12
+        public ushort EndMainCluster
         {
-            get => bacType.I_12;
+            get => bacType.EndMainCluster;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.I_12), bacType, bacType.I_12, value, "I_12"));
-                bacType.I_12 = value;
-                RaisePropertyChanged(() => I_12);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.EndMainCluster), bacType, bacType.EndMainCluster, value, "EndMainCluster"));
+                bacType.EndMainCluster = value;
+                RaisePropertyChanged(() => EndMainCluster);
             }
         }
-        public ushort I_14
+        public ushort EndBlendCluster
         {
-            get => bacType.I_14;
+            get => bacType.EndBlendCluster;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.I_14), bacType, bacType.I_14, value, "I_14"));
-                bacType.I_14 = value;
-                RaisePropertyChanged(() => I_14);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.EndBlendCluster), bacType, bacType.EndBlendCluster, value, "EndBlendCluster"));
+                bacType.EndBlendCluster = value;
+                RaisePropertyChanged(() => EndBlendCluster);
             }
         }
-        public float F_16
+        public float StartBlendRatio
         {
-            get => bacType.F_16;
+            get => bacType.StartBlendRatio;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.F_16), bacType, bacType.F_16, value, "F_16"));
-                bacType.F_16 = value;
-                RaisePropertyChanged(() => F_16);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.StartBlendRatio), bacType, bacType.StartBlendRatio, value, "StartBlendRatio"));
+                bacType.StartBlendRatio = value;
+                RaisePropertyChanged(() => StartBlendRatio);
             }
         }
-        public float F_20
+        public float EndBlendRatio
         {
-            get => bacType.F_20;
+            get => bacType.EndBlendRatio;
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.F_20), bacType, bacType.F_20, value, "F_20"));
-                bacType.F_20 = value;
-                RaisePropertyChanged(() => F_20);
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type28>(nameof(bacType.EndBlendRatio), bacType, bacType.EndBlendRatio, value, "EndBlendRatio"));
+                bacType.EndBlendRatio = value;
+                RaisePropertyChanged(() => EndBlendRatio);
             }
         }
         public int I_24
@@ -128,12 +128,12 @@ namespace XenoKit.ViewModel.BAC
         private void UpdateProperties()
         {
             //Needed for updating properties when undo/redo is called
-            RaisePropertyChanged(() => I_08);
-            RaisePropertyChanged(() => I_10);
-            RaisePropertyChanged(() => I_12);
-            RaisePropertyChanged(() => I_14);
-            RaisePropertyChanged(() => F_16);
-            RaisePropertyChanged(() => F_20);
+            RaisePropertyChanged(() => StartMainCluster);
+            RaisePropertyChanged(() => StartBlendCluster);
+            RaisePropertyChanged(() => EndMainCluster);
+            RaisePropertyChanged(() => EndBlendCluster);
+            RaisePropertyChanged(() => StartBlendRatio);
+            RaisePropertyChanged(() => EndBlendRatio);
             RaisePropertyChanged(() => I_24);
             RaisePropertyChanged(() => I_28);
             RaisePropertyChanged(() => I_32);

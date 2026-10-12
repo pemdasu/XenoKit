@@ -1,5 +1,6 @@
 ﻿using GalaSoft.MvvmLight;
 using System;
+using System.Collections.Generic;
 using Xv2CoreLib;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.Resource.UndoRedo;
@@ -50,30 +51,101 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => BacEntryID);
             }
         }
-        public ushort I_10
+        public bool Flag2_CompareSizeNoBlend
         {
             get
             {
-                return bacType.I_10;
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.CompareSizeNoBlend);
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type17>(nameof(bacType.I_10), bacType, bacType.I_10, value, "ThrowHandler I_10"));
-                bacType.I_10 = value;
-                RaisePropertyChanged(() => I_10);
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.CompareSizeNoBlend, value);
+                RaisePropertyChanged(() => Flag2_CompareSizeNoBlend);
             }
         }
-        public ushort I_18
+        public bool Flag2_CompareSizeBlend
         {
             get
             {
-                return bacType.I_18;
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.CompareSizeBlend);
             }
             set
             {
-                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type17>(nameof(bacType.I_18), bacType, bacType.I_18, value, "ThrowHandler I_18"));
-                bacType.I_18 = value;
-                RaisePropertyChanged(() => I_18);
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.CompareSizeBlend, value);
+                RaisePropertyChanged(() => Flag2_CompareSizeBlend);
+            }
+        }
+        public bool Flag2_ThrowerMoves
+        {
+            get
+            {
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.ThrowerMoves);
+            }
+            set
+            {
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.ThrowerMoves, value);
+                RaisePropertyChanged(() => Flag2_ThrowerMoves);
+            }
+        }
+        public bool Flag2_KeepOutOfGeometry
+        {
+            get
+            {
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.KeepOutOfGeometry);
+            }
+            set
+            {
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.KeepOutOfGeometry, value);
+                RaisePropertyChanged(() => Flag2_KeepOutOfGeometry);
+            }
+        }
+        public bool Flag2_UseBodyRotation
+        {
+            get
+            {
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.UseBodyRotation);
+            }
+            set
+            {
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.UseBodyRotation, value);
+                RaisePropertyChanged(() => Flag2_UseBodyRotation);
+            }
+        }
+        public bool Flag2_Unk6
+        {
+            get
+            {
+                return bacType.ThrowHandlerFlags2.HasFlag(BAC_Type17.ThrowHandlerFlags2Enum.Unk6);
+            }
+            set
+            {
+                SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum.Unk6, value);
+                RaisePropertyChanged(() => Flag2_Unk6);
+            }
+        }
+        public IReadOnlyDictionary<ushort, string> FollowStates { get; } = new Dictionary<ushort, string>
+        {
+            { 0, "Neutral" },
+            { 1, "Bounce" },
+            { 2, "Down" }
+        };
+
+        public string FollowStateLabel => FollowStates.TryGetValue(FollowState, out string name)
+            ? name : $"Unknown ({FollowState})";
+
+        public ushort FollowState
+        {
+            get
+            {
+                return bacType.FollowState;
+            }
+            set
+            {
+                if (bacType.FollowState == value) return;
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type17>(nameof(bacType.FollowState), bacType, bacType.FollowState, value, "ThrowHandler FollowState"));
+                bacType.FollowState = value;
+                RaisePropertyChanged(() => FollowState);
+                RaisePropertyChanged(() => FollowStateLabel);
             }
         }
         public float DisplacementX
@@ -118,55 +190,55 @@ namespace XenoKit.ViewModel.BAC
 
 
         //Flags
-        public bool Flag_FixedDir_BoneEnabled
+        public bool Flag_UseSlot0
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.FixedDir_BoneEnabled);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.UseSlot0);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.FixedDir_BoneEnabled, value);
-                RaisePropertyChanged(() => Flag_FixedDir_BoneEnabled);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.UseSlot0, value);
+                RaisePropertyChanged(() => Flag_UseSlot0);
             }
         }
-        public bool Flag_FixedDir_BoneDisabled
+        public bool Flag_UseSlot1
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.FixedDir_BoneDisabled);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.UseSlot1);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.FixedDir_BoneDisabled, value);
-                RaisePropertyChanged(() => Flag_FixedDir_BoneDisabled);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.UseSlot1, value);
+                RaisePropertyChanged(() => Flag_UseSlot1);
             }
         }
-        public bool Flag_FreeDir_BoneEnabled
+        public bool Flag_TurnAroundOnJump
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.FreeDir_BoneEnabled);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.TurnAroundOnJump);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.FreeDir_BoneEnabled, value);
-                RaisePropertyChanged(() => Flag_FreeDir_BoneEnabled);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.TurnAroundOnJump, value);
+                RaisePropertyChanged(() => Flag_TurnAroundOnJump);
             }
         }
-        public bool Flag_FreeDir_BoneDisabled
+        public bool Flag_FaceAwayOnJump
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.FreeDir_BoneDisabled);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.FaceAwayOnJump);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.FreeDir_BoneDisabled, value);
-                RaisePropertyChanged(() => Flag_FreeDir_BoneDisabled);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.FaceAwayOnJump, value);
+                RaisePropertyChanged(() => Flag_FaceAwayOnJump);
             }
         }
-        public bool Flag_Unk5
+        public bool Flag_FaceTowardOnJump
         {
             get
             {
@@ -175,10 +247,10 @@ namespace XenoKit.ViewModel.BAC
             set
             {
                 SetThrowHandlerFlags(ThrowHandlerFlagsEnum.Unk5, value);
-                RaisePropertyChanged(() => Flag_Unk5);
+                RaisePropertyChanged(() => Flag_FaceTowardOnJump);
             }
         }
-        public bool Flag_BacJump_AfterDuration
+        public bool Flag_UpdateAnimationOnJump
         {
             get
             {
@@ -187,7 +259,7 @@ namespace XenoKit.ViewModel.BAC
             set
             {
                 SetThrowHandlerFlags(ThrowHandlerFlagsEnum.BacJump_AfterDuration, value);
-                RaisePropertyChanged(() => Flag_BacJump_AfterDuration);
+                RaisePropertyChanged(() => Flag_UpdateAnimationOnJump);
             }
         }
         public bool Flag_Unk7
@@ -202,52 +274,52 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk7);
             }
         }
-        public bool Flag_BacJump_ReachGround
+        public bool Flag_JumpWhenAnyLands
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.BacJump_ReachGround);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.JumpWhenAnyLands);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.BacJump_ReachGround, value);
-                RaisePropertyChanged(() => Flag_BacJump_ReachGround);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.JumpWhenAnyLands, value);
+                RaisePropertyChanged(() => Flag_JumpWhenAnyLands);
             }
         }
-        public bool Flag_MoveVictimToUser
+        public bool Flag_JumpWhenSelfLands
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.MoveVictimToUser);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.JumpWhenSelfLands);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.MoveVictimToUser, value);
-                RaisePropertyChanged(() => Flag_MoveVictimToUser);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.JumpWhenSelfLands, value);
+                RaisePropertyChanged(() => Flag_JumpWhenSelfLands);
             }
         }
-        public bool Flag_MoveVictimToUser_RelativeDir
+        public bool Flag_JumpWhenAnimationEnds
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.MoveVictimToUser_RelativeDir);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.JumpWhenAnimationEnds);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.MoveVictimToUser_RelativeDir, value);
-                RaisePropertyChanged(() => Flag_MoveVictimToUser_RelativeDir);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.JumpWhenAnimationEnds, value);
+                RaisePropertyChanged(() => Flag_JumpWhenAnimationEnds);
             }
         }
-        public bool Flag_Unk11
+        public bool Flag_SnapToBind
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.Unk11);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.SnapToBind);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.Unk11, value);
-                RaisePropertyChanged(() => Flag_Unk11);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.SnapToBind, value);
+                RaisePropertyChanged(() => Flag_SnapToBind);
             }
         }
         public bool Flag_Unk12
@@ -262,16 +334,16 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk12);
             }
         }
-        public bool Flag_Unk13
+        public bool Flag_KeepPitch
         {
             get
             {
-                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.Unk13);
+                return bacType.ThrowHandlerFlags.HasFlag(ThrowHandlerFlagsEnum.KeepPitch);
             }
             set
             {
-                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.Unk13, value);
-                RaisePropertyChanged(() => Flag_Unk13);
+                SetThrowHandlerFlags(ThrowHandlerFlagsEnum.KeepPitch, value);
+                RaisePropertyChanged(() => Flag_KeepPitch);
             }
         }
         public bool Flag_Unk14
@@ -336,6 +408,7 @@ namespace XenoKit.ViewModel.BAC
         private void BacType_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             RaisePropertyChanged(e.PropertyName);
+            if (e.PropertyName == nameof(bacType.FollowState)) RaisePropertyChanged(() => FollowStateLabel);
         }
 
         private void UpdateProperties()
@@ -344,28 +417,45 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => UserBone);
             RaisePropertyChanged(() => VictimBone);
             RaisePropertyChanged(() => BacEntryID);
-            RaisePropertyChanged(() => I_10);
-            RaisePropertyChanged(() => I_18);
+            RaisePropertyChanged(() => Flag2_CompareSizeNoBlend);
+            RaisePropertyChanged(() => Flag2_CompareSizeBlend);
+            RaisePropertyChanged(() => Flag2_ThrowerMoves);
+            RaisePropertyChanged(() => Flag2_KeepOutOfGeometry);
+            RaisePropertyChanged(() => Flag2_UseBodyRotation);
+            RaisePropertyChanged(() => Flag2_Unk6);
+            RaisePropertyChanged(() => FollowState);
+            RaisePropertyChanged(() => FollowStateLabel);
             RaisePropertyChanged(() => DisplacementX);
             RaisePropertyChanged(() => DisplacementY);
             RaisePropertyChanged(() => DisplacementZ);
 
-            RaisePropertyChanged(() => Flag_FixedDir_BoneEnabled);
-            RaisePropertyChanged(() => Flag_FixedDir_BoneDisabled);
-            RaisePropertyChanged(() => Flag_FreeDir_BoneEnabled);
-            RaisePropertyChanged(() => Flag_FreeDir_BoneDisabled);
-            RaisePropertyChanged(() => Flag_Unk5);
-            RaisePropertyChanged(() => Flag_BacJump_AfterDuration);
+            RaisePropertyChanged(() => Flag_UseSlot0);
+            RaisePropertyChanged(() => Flag_UseSlot1);
+            RaisePropertyChanged(() => Flag_TurnAroundOnJump);
+            RaisePropertyChanged(() => Flag_FaceAwayOnJump);
+            RaisePropertyChanged(() => Flag_FaceTowardOnJump);
+            RaisePropertyChanged(() => Flag_UpdateAnimationOnJump);
             RaisePropertyChanged(() => Flag_Unk7);
-            RaisePropertyChanged(() => Flag_BacJump_ReachGround);
-            RaisePropertyChanged(() => Flag_MoveVictimToUser);
-            RaisePropertyChanged(() => Flag_MoveVictimToUser_RelativeDir);
-            RaisePropertyChanged(() => Flag_Unk11);
+            RaisePropertyChanged(() => Flag_JumpWhenAnyLands);
+            RaisePropertyChanged(() => Flag_JumpWhenSelfLands);
+            RaisePropertyChanged(() => Flag_JumpWhenAnimationEnds);
+            RaisePropertyChanged(() => Flag_SnapToBind);
             RaisePropertyChanged(() => Flag_Unk12);
-            RaisePropertyChanged(() => Flag_Unk13);
+            RaisePropertyChanged(() => Flag_KeepPitch);
             RaisePropertyChanged(() => Flag_Unk14);
             RaisePropertyChanged(() => Flag_Unk15);
             RaisePropertyChanged(() => Flag_Unk16);
+        }
+
+        private void SetThrowHandlerFlags2(BAC_Type17.ThrowHandlerFlags2Enum flag, bool state)
+        {
+            var newFlag = bacType.ThrowHandlerFlags2.SetFlag(flag, state);
+
+            if (bacType.ThrowHandlerFlags2 != newFlag)
+            {
+                UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type17>(nameof(BAC_Type17.ThrowHandlerFlags2), bacType, bacType.ThrowHandlerFlags2, newFlag, "ThrowHandlerFlags2"));
+                bacType.ThrowHandlerFlags2 = newFlag;
+            }
         }
 
         private void SetThrowHandlerFlags(ThrowHandlerFlagsEnum flag, bool state)

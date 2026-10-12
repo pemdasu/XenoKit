@@ -253,6 +253,30 @@ namespace XenoKit.ViewModel.BAC
                 RaisePropertyChanged(() => Flag_Unk20);
             }
         }
+        public bool Flag_Unk21
+        {
+            get
+            {
+                return bacType.LinkFlags.HasFlag(BcmCallbackFlagsEnum.Unk21);
+            }
+            set
+            {
+                SetLinkFlags(BcmCallbackFlagsEnum.Unk21, value);
+                RaisePropertyChanged(() => Flag_Unk21);
+            }
+        }
+        public bool Flag_Unk22
+        {
+            get
+            {
+                return bacType.LinkFlags.HasFlag(BcmCallbackFlagsEnum.Unk22);
+            }
+            set
+            {
+                SetLinkFlags(BcmCallbackFlagsEnum.Unk22, value);
+                RaisePropertyChanged(() => Flag_Unk22);
+            }
+        }
 
 
 
@@ -304,6 +328,8 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => Flag_Unk18);
             RaisePropertyChanged(() => Flag_Unk19);
             RaisePropertyChanged(() => Flag_Unk20);
+            RaisePropertyChanged(() => Flag_Unk21);
+            RaisePropertyChanged(() => Flag_Unk22);
         }
 
         private void SetLinkFlags(BcmCallbackFlagsEnum flag, bool state)
