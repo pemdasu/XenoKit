@@ -88,15 +88,15 @@ namespace XenoKit.Editor
             return false;
         }
 
-        private bool CopyCue(AcbType acbType, ushort cueId, Move move)
+        private bool CopyCue(AcbType acbType, int cueId, Move move)
         {
-            if (cueId != ushort.MaxValue && (acbType == AcbType.Character_SE || acbType == AcbType.Skill_SE))
+            if (cueId >= 0 && cueId < ushort.MaxValue && (acbType == AcbType.Character_SE || acbType == AcbType.Skill_SE))
             {
                 //Only copy SE sounds
                 var acbFile = move.TryGetAcbFile(acbType);
 
                 if (acbFile != null && !Secondary.SeAcbFile.Cues.Any(x => x.ID == cueId))
-                    Secondary.SeAcbFile.CopyCue(cueId, acbFile.AcbFile, true);
+                    Secondary.SeAcbFile.CopyCue((ushort)cueId, acbFile.AcbFile, true);
 
                 return acbFile != null;
             }
@@ -192,7 +192,7 @@ namespace XenoKit.Editor
         //values that BSA does not define, such as 10, straight to file.
         private static int GetAcbTypeValue(object instance, Xv2CoreLib.BAC.AcbType bacAcbType)
         {
-            if (instance is Xv2CoreLib.BSA.BSA_Type7 || instance is Xv2CoreLib.BSA.BSA_Expiration)
+            if (instance is Xv2CoreLib.BSA.BSA_Type7 || instance is Xv2CoreLib.BSA.BSA_CollisionSound)
                 return (int)Xv2CoreLib.BSA.BsaSoundResources.GetBsaAcbType(bacAcbType);
 
             return (int)bacAcbType;

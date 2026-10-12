@@ -5,7 +5,7 @@ using Xv2CoreLib.BSA;
 namespace XenoKit.ViewModel.BSA
 {
     /// <summary>
-    /// One row in the subtype list. Collision and Expiration are listed alongside the IBsaTypes as their own
+    /// One row in the subtype list. Collision effects and collision sounds are listed alongside the IBsaTypes as their own
     /// types, but they are stored in separate arrays and have no timing fields, so this adapts all three to a
     /// single set of columns. It forwards the source's own PropertyChanged, so rows stay live without the
     /// grid being refreshed.
@@ -33,8 +33,8 @@ namespace XenoKit.ViewModel.BSA
                         return type.Type;
                     case BSA_Collision collision:
                         return $"Collision Effect ({Xv2CoreLib.ValuesDictionary.BSA.GetEepkTypeName(collision.EepkType)}, {collision.SkillID}, {collision.EffectID})";
-                    case BSA_Expiration expiration:
-                        return $"Collision Sound ({Xv2CoreLib.ValuesDictionary.BSA.GetAcbTypeName(expiration.I_00)}, {expiration.I_02}, {expiration.I_04}, {expiration.I_06})";
+                    case BSA_CollisionSound collisionSound:
+                        return $"Collision Sound ({Xv2CoreLib.ValuesDictionary.BSA.GetAcbTypeName(collisionSound.AcbType)}, {collisionSound.I_02}, {collisionSound.CueId})";
                     default:
                         return string.Empty;
                 }

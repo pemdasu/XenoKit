@@ -20,7 +20,7 @@
                                 <ColumnDefinition Width="125"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="Operation"/>
-                            <ComboBox Grid.Column="1" IsEditable="True" IsReadOnly="True" ItemsSource="{x:Static bsaDic:BSA.MovementOperation}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.Operation}" Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.OperationDisplayName, Mode=OneWay}"/>
+                            <ComboBox Grid.Column="1" IsEditable="False" ItemsSource="{x:Static bsaDic:BSA.MovementOperation}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.Operation}" controls:TextBoxHelper.Watermark="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.OperationDisplayName}"/>
                         </Grid>
                         <Grid Margin="3,5,0,0" Width="250">
                             <Grid.ColumnDefinitions>
@@ -117,17 +117,17 @@
                         <CheckBox Margin="4,3" Content="Clear Scalar State" ToolTip="Ends the separate movement state. Its effect is not yet confirmed." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.ClearScalarMovementState}"/>
                         <CheckBox Margin="4,3" Content="Use Local Direction" ToolTip="Rotates Direction X, Y, and Z with the projectile after a 180-degree turn." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.ObjectRelativeDirection}"/>
                         <CheckBox Margin="4,3" Content="Distance-Based Spread" ToolTip="Adjusts spread by the target's distance between Min Distance and Max Distance." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.InterpolateLinkedDistance}"/>
-                        <CheckBox Margin="4,3" Content="Fixed Spread" ToolTip="Applies the spread angles without scaling them by target distance." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.AlternateSpreadPath}"/>
+                        <CheckBox Margin="4,3" Content="Random Spread Sign" ToolTip="Randomly flips the sign of the spread on one axis." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.RandomizeSpreadSign}"/>
                     </StackPanel>
                     <StackPanel Width="250">
                         <CheckBox Margin="4,3" Content="Face Target" ToolTip="Stops travel and points the projectile at the target." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.SetSecondaryMovementState}"/>
                         <CheckBox Margin="4,3" Content="Stop Facing Target" ToolTip="Ends Face Target. A later movement command can start travel again." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.ClearSecondaryMovementState}"/>
-                        <CheckBox Margin="4,3" Content="Use Current Basis" ToolTip="Changes the direction basis for this movement command. The exact basis is not confirmed." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.UseContextBasis}"/>
+                        <CheckBox Margin="4,3" Content="Use Current Basis" ToolTip="Rotates Direction X, Y, and Z with the owner." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.UseContextBasis}"/>
                         <CheckBox Margin="4,3" Content="Update Linked Object" ToolTip="Requests a new linked object for movement. Its effect is not yet confirmed." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.RefreshLinkedObject}"/>
                         <CheckBox Margin="4,3" Content="Delayed Tracking" ToolTip="Starts target tracking one movement update later." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.SetAlternateMovementState}"/>
                         <CheckBox Margin="4,3" Content="Unknown 0x2000" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.UnknownMotionFlag2000}"/>
                         <CheckBox Margin="4,3" Content="Unknown 0x4000" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.UnknownMotionFlag4000}"/>
-                        <CheckBox Margin="4,3" Content="Random Vertical Spread" ToolTip="Randomly flips vertical spread above or below the base direction." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.RandomizeSpreadSign}"/>
+                        <CheckBox Margin="4,3" Content="Unknown 0x8000" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType1View}}, Path=BsaViewModel.UnknownMotionFlag8000}"/>
                     </StackPanel>
                 </WrapPanel>
             </Expander>

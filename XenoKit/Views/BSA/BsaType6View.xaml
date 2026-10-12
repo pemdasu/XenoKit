@@ -87,7 +87,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="I_10"/>
+                        <Label Content="I__10"/>
                         <controls:NumericUpDown Grid.Column="1" Minimum="0" Maximum="65535" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType6View}}, Path=BsaViewModel.I_10, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>

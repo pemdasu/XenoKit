@@ -4,18 +4,18 @@ using XenoKit.ViewModel.BSA;
 
 namespace XenoKit.Views.BSA
 {
-    public partial class BsaExpirationView : UserControl
+    public partial class BsaCollisionSoundView : UserControl
     {
         public static readonly DependencyProperty BsaViewModelProperty = DependencyProperty.Register(
-            nameof(BsaViewModel), typeof(BsaExpirationViewModel), typeof(BsaExpirationView), new PropertyMetadata(null, BsaViewModelChanged));
+            nameof(BsaViewModel), typeof(BsaCollisionSoundViewModel), typeof(BsaCollisionSoundView), new PropertyMetadata(null, BsaViewModelChanged));
 
-        public BsaExpirationViewModel BsaViewModel
+        public BsaCollisionSoundViewModel BsaViewModel
         {
-            get => (BsaExpirationViewModel)GetValue(BsaViewModelProperty);
+            get => (BsaCollisionSoundViewModel)GetValue(BsaViewModelProperty);
             set => SetValue(BsaViewModelProperty, value);
         }
 
-        public BsaExpirationView()
+        public BsaCollisionSoundView()
         {
             InitializeComponent();
             Visibility = Visibility.Collapsed;
@@ -23,7 +23,7 @@ namespace XenoKit.Views.BSA
 
         private static void BsaViewModelChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
-            ((BsaExpirationView)sender).Visibility = e.NewValue != null ? Visibility.Visible : Visibility.Collapsed;
+            ((BsaCollisionSoundView)sender).Visibility = e.NewValue != null ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void SoundPreview_Click(object sender, RoutedEventArgs e)

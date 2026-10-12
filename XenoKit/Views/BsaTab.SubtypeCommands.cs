@@ -38,12 +38,12 @@ namespace XenoKit.Views
                 return;
             }
 
-            if (typeText == "Expiration")
+            if (typeText == "CollisionSound")
             {
-                BSA_Expiration expiration = new BSA_Expiration();
-                SelectedEntry.SubEntries.ExpirationEntries.Add(expiration);
-                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expiration, "BSA Expiration Add"));
-                SelectSubtypeSource(expiration);
+                BSA_CollisionSound collisionSound = new BSA_CollisionSound();
+                SelectedEntry.SubEntries.CollisionSoundEntries.Add(collisionSound);
+                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_CollisionSound>(SelectedEntry.SubEntries.CollisionSoundEntries, collisionSound, "BSA Collision Sound Add"));
+                SelectSubtypeSource(collisionSound);
                 return;
             }
 
@@ -78,11 +78,11 @@ namespace XenoKit.Views
                         SelectSubtypeSource(clone);
                         break;
                     }
-                case BSA_Expiration expiration:
+                case BSA_CollisionSound collisionSound:
                     {
-                        BSA_Expiration clone = expiration.Copy();
-                        SelectedEntry.SubEntries.ExpirationEntries.Add(clone);
-                        UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, clone, "BSA Expiration Duplicate"));
+                        BSA_CollisionSound clone = collisionSound.Copy();
+                        SelectedEntry.SubEntries.CollisionSoundEntries.Add(clone);
+                        UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_CollisionSound>(SelectedEntry.SubEntries.CollisionSoundEntries, clone, "BSA Collision Sound Duplicate"));
                         SelectSubtypeSource(clone);
                         break;
                     }
@@ -99,8 +99,8 @@ namespace XenoKit.Views
                 case BSA_Collision collision:
                     XenoKitClipboard.SetData(ClipboardConstants.BsaCollision_CopyItem, collision.Copy());
                     break;
-                case BSA_Expiration expiration:
-                    XenoKitClipboard.SetData(ClipboardConstants.BsaExpiration_CopyItem, expiration.Copy());
+                case BSA_CollisionSound collisionSound:
+                    XenoKitClipboard.SetData(ClipboardConstants.BsaCollisionSound_CopyItem, collisionSound.Copy());
                     break;
             }
         }
@@ -120,12 +120,12 @@ namespace XenoKit.Views
                 return;
             }
 
-            if (XenoKitClipboard.TryGetData(ClipboardConstants.BsaExpiration_CopyItem, out BSA_Expiration expiration))
+            if (XenoKitClipboard.TryGetData(ClipboardConstants.BsaCollisionSound_CopyItem, out BSA_CollisionSound collisionSound))
             {
-                BSA_Expiration expirationCopy = expiration.Copy();
-                SelectedEntry.SubEntries.ExpirationEntries.Add(expirationCopy);
-                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expirationCopy, "BSA Expiration Paste"));
-                SelectSubtypeSource(expirationCopy);
+                BSA_CollisionSound collisionSoundCopy = collisionSound.Copy();
+                SelectedEntry.SubEntries.CollisionSoundEntries.Add(collisionSoundCopy);
+                UndoManager.Instance.AddUndo(new UndoableListAdd<BSA_CollisionSound>(SelectedEntry.SubEntries.CollisionSoundEntries, collisionSoundCopy, "BSA Collision Sound Paste"));
+                SelectSubtypeSource(collisionSoundCopy);
                 return;
             }
 
@@ -159,9 +159,9 @@ namespace XenoKit.Views
                         undos.Add(new UndoableListRemove<BSA_Collision>(SelectedEntry.SubEntries.CollisionEntries, collision));
                         SelectedEntry.SubEntries.CollisionEntries.Remove(collision);
                         break;
-                    case BSA_Expiration expiration:
-                        undos.Add(new UndoableListRemove<BSA_Expiration>(SelectedEntry.SubEntries.ExpirationEntries, expiration));
-                        SelectedEntry.SubEntries.ExpirationEntries.Remove(expiration);
+                    case BSA_CollisionSound collisionSound:
+                        undos.Add(new UndoableListRemove<BSA_CollisionSound>(SelectedEntry.SubEntries.CollisionSoundEntries, collisionSound));
+                        SelectedEntry.SubEntries.CollisionSoundEntries.Remove(collisionSound);
                         break;
                 }
             }

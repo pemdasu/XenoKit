@@ -23,14 +23,14 @@ namespace XenoKit.Views
                 SelectedEntry.SubEntries = new BSA_SubEntries();
             if (SelectedEntry.SubEntries.CollisionEntries == null)
                 SelectedEntry.SubEntries.CollisionEntries = new List<BSA_Collision>();
-            if (SelectedEntry.SubEntries.ExpirationEntries == null)
-                SelectedEntry.SubEntries.ExpirationEntries = new List<BSA_Expiration>();
+            if (SelectedEntry.SubEntries.CollisionSoundEntries == null)
+                SelectedEntry.SubEntries.CollisionSoundEntries = new List<BSA_CollisionSound>();
             if (SelectedEntry.IBsaTypes == null)
                 SelectedEntry.InitializeIBsaTypes();
         }
 
         /// <summary>
-        /// Collision and Expiration are listed as their own types after the IBsaTypes, even though the format
+        /// Collision effects and collision sounds are listed as their own types after the IBsaTypes, even though the format
         /// stores them in separate arrays.
         /// </summary>
         private void RebuildSubtypeRows()
@@ -48,8 +48,8 @@ namespace XenoKit.Views
             foreach (BSA_Collision collision in SelectedEntry.SubEntries.CollisionEntries)
                 SubtypeRows.Add(new BsaSubtypeRow(collision));
 
-            foreach (BSA_Expiration expiration in SelectedEntry.SubEntries.ExpirationEntries)
-                SubtypeRows.Add(new BsaSubtypeRow(expiration));
+            foreach (BSA_CollisionSound collisionSound in SelectedEntry.SubEntries.CollisionSoundEntries)
+                SubtypeRows.Add(new BsaSubtypeRow(collisionSound));
         }
 
         private void DisposeSubtypeRows()
@@ -157,7 +157,7 @@ namespace XenoKit.Views
 
             return (IsBsaCopyPasteAvailable() && XenoKitClipboard.ContainsData(ClipboardConstants.BsaType_CopyItem))
                 || XenoKitClipboard.ContainsData(ClipboardConstants.BsaCollision_CopyItem)
-                || XenoKitClipboard.ContainsData(ClipboardConstants.BsaExpiration_CopyItem);
+                || XenoKitClipboard.ContainsData(ClipboardConstants.BsaCollisionSound_CopyItem);
         }
 
         private static int GetFreeEntryId(BSA_File file)
@@ -217,7 +217,7 @@ namespace XenoKit.Views
             NotifyPropertyChanged(nameof(Type13ViewModel));
             NotifyPropertyChanged(nameof(Type14ViewModel));
             NotifyPropertyChanged(nameof(CollisionViewModel));
-            NotifyPropertyChanged(nameof(ExpirationViewModel));
+            NotifyPropertyChanged(nameof(CollisionSoundViewModel));
         }
 
         private static T FindParent<T>(DependencyObject source) where T : DependencyObject

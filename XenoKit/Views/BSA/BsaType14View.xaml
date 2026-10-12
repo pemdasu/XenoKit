@@ -11,20 +11,8 @@
              d:DesignHeight="300" d:DesignWidth="520">
     <Grid>
         <StackPanel>
-            <Expander Header="Effect Placement" IsExpanded="True" ToolTip="Spawns the selected effect on nearby Mobs around the projectile.">
+            <Expander Header="Target Effect" IsExpanded="True" ToolTip="Spawns the selected effect on actors that touch the volume.">
                 <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="360">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="175"/>
-                            <ColumnDefinition Width="175"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Placement Mode" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.EffectPlacementMode}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PlacementMode}"/>
-                    </Grid>
-                    <StackPanel Margin="8,5">
-                        <CheckBox Content="Distance-based placement" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.DistanceBasedPlacement}"/>
-                        <CheckBox Content="Use active object position" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseActiveObjectPosition}"/>
-                    </StackPanel>
                     <Grid Margin="3,5,0,0" Width="360">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="175"/>
@@ -38,7 +26,7 @@
                             <ColumnDefinition Width="175"/>
                             <ColumnDefinition Width="175"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Transform Source" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Chooses the transform used to place the effect."/>
+                        <TextBlock Text="Transform Source" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0" ToolTip="Bone on the touching actor used for the effect position. Not used when Use World Position is on."/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.TransformSelector}"/>
                     </Grid>
                     <Grid Margin="3,5,0,0" Width="360" Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.SkillIdVisibility}">
@@ -66,14 +54,14 @@
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.EffectID}"/>
                     </Grid>
                     <StackPanel Margin="8,5">
-                        <CheckBox Content="Normalize placement direction" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.NormalizePlacementDirection}"/>
-                        <CheckBox Content="Use explicit direction A" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseExplicitDirectionA}"/>
-                        <CheckBox Content="Use explicit direction B" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseExplicitDirectionB}"/>
-                        <CheckBox Content="Use alternate placement path" IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseAlternatePlacementPath}"/>
+                        <CheckBox Content="Normalize direction" ToolTip="Adds the touching actor height to the direction Y value, then normalizes it." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.NormalizeDirection}"/>
+                        <CheckBox Content="Use World Position" ToolTip="Places the effect at the Position values in world space instead of relative to the bone." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseWorldPosition}"/>
+                        <CheckBox Content="Use Direction Vector" ToolTip="Treats Rotation as a direction vector instead of angles." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseDirectionVector}"/>
+                        <CheckBox Content="Refresh Existing Effect" ToolTip="If the effect is already on the touching actor, refreshes it and does nothing else." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.RefreshExistingEffect}"/>
                     </StackPanel>
                 </WrapPanel>
             </Expander>
-            <Expander Header="Placement Transform" IsExpanded="True">
+            <Expander Header="Effect Transform" IsExpanded="True">
                 <StackPanel>
                     <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
@@ -96,64 +84,92 @@
                         <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.RotationZ}"/>
                     </Grid>
                 </StackPanel>
-            </Expander>            <Expander Header="Unknown" IsExpanded="False">
+            </Expander>
+            <Expander Header="Volume Shape" IsExpanded="True">
+                <StackPanel>
+                    <WrapPanel>
+                    <Grid Margin="3,5,0,0" Width="360">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="175"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Shape" TextWrapping="Wrap" VerticalAlignment="Center" Margin="3,0,5,0"/>
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static bsaDic:BSA.ShapeType}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.ShapeType}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="360">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="175"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.SizeLabel}"/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.Size}"/>
+                    </Grid>
+                    </WrapPanel>
+                    <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                        <Label Content="Offset" ToolTip="Position of the volume, relative to the projectile."/>
+                        <Label Grid.Column="1" Content="X"/>
+                        <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.OffsetX}"/>
+                        <Label Grid.Column="3" Content="Y"/>
+                        <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.OffsetY}"/>
+                        <Label Grid.Column="5" Content="Z"/>
+                        <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.OffsetZ}"/>
+                    </Grid>
+                    <StackPanel Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxVisibility}">
+                    <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/></Grid.ColumnDefinitions>
+                        <Label Content="Size"/>
+                        <Label Grid.Column="1" Content="Y"/>
+                        <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxSizeY}"/>
+                        <Label Grid.Column="3" Content="Z"/>
+                        <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxSizeZ}"/>
+                    </Grid>
+                    <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                        <Label Content="Rotation"/>
+                        <Label Grid.Column="1" Content="1"/>
+                        <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxRotation1}"/>
+                        <Label Grid.Column="3" Content="2"/>
+                        <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxRotation2}"/>
+                        <Label Grid.Column="5" Content="3"/>
+                        <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.BoxRotation3}"/>
+                    </Grid>
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.CapsuleVisibility}">
+                    <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                        <Label Content="Point A" ToolTip="One end of the capsule, relative to Offset."/>
+                        <Label Grid.Column="1" Content="X"/>
+                        <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointAX}"/>
+                        <Label Grid.Column="3" Content="Y"/>
+                        <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointAY}"/>
+                        <Label Grid.Column="5" Content="Z"/>
+                        <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointAZ}"/>
+                    </Grid>
+                    <Grid Margin="3,6,0,0" Width="510" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="105"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="111.6"/><ColumnDefinition Width="20"/><ColumnDefinition Width="113"/></Grid.ColumnDefinitions>
+                        <Label Content="Point B" ToolTip="The other end of the capsule, relative to Offset."/>
+                        <Label Grid.Column="1" Content="X"/>
+                        <controls:NumericUpDown Grid.Column="2" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointBX}"/>
+                        <Label Grid.Column="3" Content="Y"/>
+                        <controls:NumericUpDown Grid.Column="4" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointBY}"/>
+                        <Label Grid.Column="5" Content="Z"/>
+                        <controls:NumericUpDown Grid.Column="6" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.PointBZ}"/>
+                    </Grid>
+                    </StackPanel>
+                    <StackPanel Margin="8,5">
+                        <CheckBox Content="Stretch To Spawn Point" ToolTip="Makes a capsule that runs from the projectile back to where it spawned." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.StretchToSpawnPoint}"/>
+                        <CheckBox Content="Use World Axes" ToolTip="Places the volume in world axes instead of turning it with the projectile." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.UseWorldAxes}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+            <Expander Header="Unknown" IsExpanded="False">
                 <WrapPanel>
                     <Grid Margin="3,5,0,0" Width="250">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="I_02" VerticalAlignment="Center" Margin="3,0,5,0"/>
                         <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_02}"/>
                     </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_08" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_08}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="F_12" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.F_12}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_16" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_16}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="F_20" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.F_20}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_24" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_24}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="F_28" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.F_28}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_32" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_32}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_36" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_36}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="I_40" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.I_40}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="F_44" VerticalAlignment="Center" Margin="3,0,5,0"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType14View}}, Path=BsaViewModel.F_44}"/>
-                    </Grid>
-
                 </WrapPanel>
             </Expander>
         </StackPanel>

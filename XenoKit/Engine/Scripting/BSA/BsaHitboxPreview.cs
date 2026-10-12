@@ -21,9 +21,8 @@ namespace XenoKit.Engine.Scripting.BSA
         private bool needsRebuild;
         private readonly Dictionary<int, int> hitCounts;
 
-        // The game uses I_48's high byte as a signed counter slot and its low byte as the hit limit.
-        private int CounterSlot => (sbyte)(hitbox.I_48 >> 8);
-        private int HitLimit => hitbox.I_48 & 0xFF;
+        private int CounterSlot => hitbox.HitSlot;
+        private int HitLimit => hitbox.HitLimit;
 
         public int GetHitCount()
         {
@@ -64,19 +63,19 @@ namespace XenoKit.Engine.Scripting.BSA
             SimdVector3 min;
             SimdVector3 max;
 
-            switch (hitbox.I_00)
+            switch (hitbox.ShapeType)
             {
-                case 0:
+                case BsaShapeType.Sphere:
                     if (radius <= 0f) return false;
                     min = max = SimdVector3.Transform(position, matrix);
                     break;
-                case 1:
+                case BsaShapeType.Capsule:
                     if (radius <= 0f) return false;
                     GetCapsuleEndpoints(position, out SimdVector3 start, out SimdVector3 end);
                     min = SimdVector3.Min(SimdVector3.Transform(start, matrix), SimdVector3.Transform(end, matrix));
                     max = SimdVector3.Max(SimdVector3.Transform(start, matrix), SimdVector3.Transform(end, matrix));
                     break;
-                case 2:
+                case BsaShapeType.Box:
                     SimdVector3 center = SimdVector3.Transform(position, matrix);
                     SimdVector3 halfExtents = new SimdVector3(Math.Abs(hitbox.F_20), Math.Abs(hitbox.F_24), Math.Abs(hitbox.F_28));
                     SimdVector3 worldExtents = new SimdVector3(
@@ -120,11 +119,11 @@ namespace XenoKit.Engine.Scripting.BSA
             float scaleZ = SimdVector3.TransformNormal(SimdVector3.UnitZ, matrix).Length();
             float radius = Math.Abs(hitbox.F_20) * Math.Max(scaleX, Math.Max(scaleY, scaleZ)) + sphere.Radius;
 
-            switch (hitbox.I_00)
+            switch (hitbox.ShapeType)
             {
-                case 0:
+                case BsaShapeType.Sphere:
                     return SimdVector3.DistanceSquared(sphereCenter, SimdVector3.Transform(position, matrix)) <= radius * radius;
-                case 1:
+                case BsaShapeType.Capsule:
                     GetCapsuleEndpoints(position, out SimdVector3 start, out SimdVector3 end);
                     start = SimdVector3.Transform(start, matrix);
                     end = SimdVector3.Transform(end, matrix);
@@ -134,7 +133,7 @@ namespace XenoKit.Engine.Scripting.BSA
                         ? Math.Max(0f, Math.Min(1f, SimdVector3.Dot(sphereCenter - start, segment) / segmentLengthSquared))
                         : 0f;
                     return SimdVector3.DistanceSquared(sphereCenter, start + segment * nearestPoint) <= radius * radius;
-                case 2:
+                case BsaShapeType.Box:
                     if (!Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix))
                         return false;
                     SimdVector3 localCenter = SimdVector3.Transform(sphereCenter, inverseMatrix) - position;
@@ -222,15 +221,15 @@ namespace XenoKit.Engine.Scripting.BSA
 
             Vector3 position = new Vector3(hitbox.F_08, hitbox.F_12, hitbox.F_16);
 
-            switch (hitbox.I_00)
+            switch (hitbox.ShapeType)
             {
-                case 0:
+                case BsaShapeType.Sphere:
                     hitboxVisual.SetSphere(position, Math.Abs(hitbox.F_20));
                     break;
-                case 1:
+                case BsaShapeType.Capsule:
                     SetCapsule(position, Math.Abs(hitbox.F_20));
                     break;
-                case 2:
+                case BsaShapeType.Box:
                     Vector3 halfExtents = new Vector3(
                         Math.Abs(hitbox.F_20),
                         Math.Abs(hitbox.F_24),

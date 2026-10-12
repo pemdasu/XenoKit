@@ -28,7 +28,7 @@ namespace XenoKit.Views
         private BsaTypeBaseViewModel typeViewModel;
         private BsaTypeBaseViewModel typeBaseViewModel;
         private BsaCollisionViewModel collisionViewModel;
-        private BsaExpirationViewModel expirationViewModel;
+        private BsaCollisionSoundViewModel collisionSoundViewModel;
         private ListCollectionView viewBsaEntries;
 
         public string SelectedBsaFileName => files.SelectedItem?.SelectedBsaFile?.DisplayName ?? string.Empty;
@@ -100,7 +100,7 @@ namespace XenoKit.Views
 
         public BsaTypeBaseViewModel TypeBaseViewModel => typeBaseViewModel;
         public BsaCollisionViewModel CollisionViewModel => collisionViewModel;
-        public BsaExpirationViewModel ExpirationViewModel => expirationViewModel;
+        public BsaCollisionSoundViewModel CollisionSoundViewModel => collisionSoundViewModel;
 
         public BsaType0ViewModel Type0ViewModel => typeViewModel as BsaType0ViewModel;
         public BsaType1ViewModel Type1ViewModel => typeViewModel as BsaType1ViewModel;
@@ -215,7 +215,7 @@ namespace XenoKit.Views
 
             SetSubEntryViewModels(
                 SelectedSubtypeSource is BSA_Collision collision ? new BsaCollisionViewModel(collision) : null,
-                SelectedSubtypeSource is BSA_Expiration expiration ? new BsaExpirationViewModel(expiration) : null);
+                SelectedSubtypeSource is BSA_CollisionSound collisionSound ? new BsaCollisionSoundViewModel(collisionSound) : null);
         }
 
         private void SetEntryViewModel(BsaEntryViewModel viewModel)
@@ -238,14 +238,14 @@ namespace XenoKit.Views
             NotifyPropertyChanged(nameof(TypeBaseViewModel));
         }
 
-        private void SetSubEntryViewModels(BsaCollisionViewModel collision, BsaExpirationViewModel expiration)
+        private void SetSubEntryViewModels(BsaCollisionViewModel collision, BsaCollisionSoundViewModel collisionSound)
         {
             collisionViewModel?.Dispose();
-            expirationViewModel?.Dispose();
+            collisionSoundViewModel?.Dispose();
             collisionViewModel = collision;
-            expirationViewModel = expiration;
+            collisionSoundViewModel = collisionSound;
             NotifyPropertyChanged(nameof(CollisionViewModel));
-            NotifyPropertyChanged(nameof(ExpirationViewModel));
+            NotifyPropertyChanged(nameof(CollisionSoundViewModel));
         }
 
         private void NotifyPropertyChanged(string propertyName)

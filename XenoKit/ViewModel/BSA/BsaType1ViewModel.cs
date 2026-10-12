@@ -37,7 +37,7 @@ namespace XenoKit.ViewModel.BSA
         public bool SetScalarMovementState { get => (movement.I_00 & 0x00080000) != 0; set => SetMotionFlag(0x00080000, value); }
         public bool ClearScalarMovementState { get => (movement.I_00 & 0x00100000) != 0; set => SetMotionFlag(0x00100000, value); }
         public bool InterpolateLinkedDistance { get => (movement.I_00 & 0x00400000) != 0; set => SetMotionFlag(0x00400000, value); }
-        public bool AlternateSpreadPath { get => (movement.I_00 & 0x00800000) != 0; set => SetMotionFlag(0x00800000, value); }
+        public bool RandomizeSpreadSign { get => (movement.I_00 & 0x00800000) != 0; set => SetMotionFlag(0x00800000, value); }
         public bool SetSecondaryMovementState { get => (movement.I_00 & 0x01000000) != 0; set => SetMotionFlag(0x01000000, value); }
         public bool ClearSecondaryMovementState { get => (movement.I_00 & 0x02000000) != 0; set => SetMotionFlag(0x02000000, value); }
         public bool UseContextBasis { get => (movement.I_00 & 0x04000000) != 0; set => SetMotionFlag(0x04000000, value); }
@@ -45,7 +45,7 @@ namespace XenoKit.ViewModel.BSA
         public bool SetAlternateMovementState { get => (movement.I_00 & 0x10000000) != 0; set => SetMotionFlag(0x10000000, value); }
         public bool UnknownMotionFlag2000 { get => (movement.I_00 & 0x20000000) != 0; set => SetMotionFlag(0x20000000, value); }
         public bool UnknownMotionFlag4000 { get => (movement.I_00 & 0x40000000) != 0; set => SetMotionFlag(0x40000000, value); }
-        public bool RandomizeSpreadSign { get => (movement.I_00 & unchecked((int)0x80000000)) != 0; set => SetMotionFlag(unchecked((int)0x80000000), value); }
+        public bool UnknownMotionFlag8000 { get => (movement.I_00 & unchecked((int)0x80000000)) != 0; set => SetMotionFlag(unchecked((int)0x80000000), value); }
 
         public float Speed { get => movement.F_04; set => SetValue(nameof(movement.F_04), movement.F_04, value, v => movement.F_04 = v, "BSA Speed"); }
         public float DirectionX { get => movement.F_08; set => SetValue(nameof(movement.F_08), movement.F_08, value, v => movement.F_08 = v, "BSA Direction X"); }
@@ -83,7 +83,7 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => SetScalarMovementState);
             RaisePropertyChanged(() => ClearScalarMovementState);
             RaisePropertyChanged(() => InterpolateLinkedDistance);
-            RaisePropertyChanged(() => AlternateSpreadPath);
+            RaisePropertyChanged(() => RandomizeSpreadSign);
             RaisePropertyChanged(() => SetSecondaryMovementState);
             RaisePropertyChanged(() => ClearSecondaryMovementState);
             RaisePropertyChanged(() => UseContextBasis);
@@ -91,7 +91,7 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => SetAlternateMovementState);
             RaisePropertyChanged(() => UnknownMotionFlag2000);
             RaisePropertyChanged(() => UnknownMotionFlag4000);
-            RaisePropertyChanged(() => RandomizeSpreadSign);
+            RaisePropertyChanged(() => UnknownMotionFlag8000);
             RaisePropertyChanged(() => Speed);
             RaisePropertyChanged(() => DirectionX);
             RaisePropertyChanged(() => DirectionY);

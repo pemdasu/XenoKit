@@ -14,44 +14,44 @@ namespace XenoKit.ViewModel.BSA
 
         public short Condition
         {
-            get => passEntry.I_00;
-            set => SetValue(nameof(passEntry.I_00), passEntry.I_00, value, v => passEntry.I_00 = v, "BSA Entry Passing Condition");
+            get => passEntry.Condition;
+            set => SetValue(nameof(passEntry.Condition), passEntry.Condition, value, v => passEntry.Condition = v, "BSA Entry Passing Condition");
         }
 
         private ushort ConditionFlags
         {
-            get => passEntry.I_02;
+            get => passEntry.ConditionFlags;
             set
             {
-                SetValue(nameof(passEntry.I_02), passEntry.I_02, value, v => passEntry.I_02 = v, "BSA Entry Passing Flags");
+                SetValue(nameof(passEntry.ConditionFlags), passEntry.ConditionFlags, value, v => passEntry.ConditionFlags = v, "BSA Entry Passing Flags");
                 RaisePropertyChanged(() => SkipEntryCall);
                 RaisePropertyChanged(() => SkipTimingUpdate);
                 RaisePropertyChanged(() => CompareSignalValue);
-                RaisePropertyChanged(() => ReceiveBacCondition);
+                RaisePropertyChanged(() => ReceivePrioritySignal);
             }
         }
 
         public bool SkipEntryCall { get => (ConditionFlags & 0x1) != 0; set => SetConditionFlag(0x1, value); }
         public bool SkipTimingUpdate { get => (ConditionFlags & 0x2) != 0; set => SetConditionFlag(0x2, value); }
         public bool CompareSignalValue { get => (ConditionFlags & 0x8) != 0; set => SetConditionFlag(0x8, value); }
-        public bool ReceiveBacCondition { get => (ConditionFlags & 0x10) != 0; set => SetConditionFlag(0x10, value); }
+        public bool ReceivePrioritySignal { get => (ConditionFlags & 0x10) != 0; set => SetConditionFlag(0x10, value); }
 
-        public float BacCondition
+        public float ConditionValue
         {
-            get => passEntry.F_08;
-            set => SetValue(nameof(passEntry.F_08), passEntry.F_08, value, v => passEntry.F_08 = v, "BSA Pass BAC Condition");
+            get => passEntry.ConditionValue;
+            set => SetValue(nameof(passEntry.ConditionValue), passEntry.ConditionValue, value, v => passEntry.ConditionValue = v, "BSA Pass Condition Value");
         }
 
-        public short I_06
+        public short JumpFrame
         {
-            get => passEntry.I_06;
-            set => SetValue(nameof(passEntry.I_06), passEntry.I_06, value, v => passEntry.I_06 = v, "BSA Pass I_06");
+            get => passEntry.JumpFrame;
+            set => SetValue(nameof(passEntry.JumpFrame), passEntry.JumpFrame, value, v => passEntry.JumpFrame = v, "BSA Pass Jump Frame");
         }
 
-        public float F_12
+        public float SignalPriority
         {
-            get => passEntry.F_12;
-            set => SetValue(nameof(passEntry.F_12), passEntry.F_12, value, v => passEntry.F_12 = v, "BSA Pass F_12");
+            get => passEntry.SignalPriority;
+            set => SetValue(nameof(passEntry.SignalPriority), passEntry.SignalPriority, value, v => passEntry.SignalPriority = v, "BSA Pass Signal Priority");
         }
 
         public BsaType0ViewModel(BSA_Type0 type) : base(type)
@@ -72,10 +72,10 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => SkipEntryCall);
             RaisePropertyChanged(() => SkipTimingUpdate);
             RaisePropertyChanged(() => CompareSignalValue);
-            RaisePropertyChanged(() => ReceiveBacCondition);
-            RaisePropertyChanged(() => BacCondition);
-            RaisePropertyChanged(() => I_06);
-            RaisePropertyChanged(() => F_12);
+            RaisePropertyChanged(() => ReceivePrioritySignal);
+            RaisePropertyChanged(() => ConditionValue);
+            RaisePropertyChanged(() => JumpFrame);
+            RaisePropertyChanged(() => SignalPriority);
         }
     }
 }

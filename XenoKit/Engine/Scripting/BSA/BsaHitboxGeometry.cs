@@ -6,7 +6,7 @@ namespace XenoKit.Engine.Scripting.BSA
     {
         public static bool UsesDistanceRelativeGeometry(BSA_Type3 hitbox)
         {
-            return hitbox != null && hitbox.I_00 == 1 && (hitbox.I_04 & 0x0001) != 0;
+            return hitbox != null && hitbox.ShapeType == BsaShapeType.Capsule && (hitbox.ShapeFlags & 0x0001) != 0;
         }
     }
 }

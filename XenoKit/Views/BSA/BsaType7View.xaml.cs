@@ -37,7 +37,7 @@ namespace XenoKit.Views.BSA
             PreviewSound(BsaViewModel.AcbType, BsaViewModel.CueId);
         }
 
-        internal static void PreviewSound(AcbType soundType, ushort cueId)
+        internal static void PreviewSound(AcbType soundType, int cueId)
         {
             if (!BsaSoundResources.TryGetBacAcbType(soundType, out Xv2CoreLib.BAC.AcbType acbType))
             {
@@ -53,8 +53,8 @@ namespace XenoKit.Views.BSA
                 return;
             }
 
-            if (cueId != ushort.MaxValue)
-                Viewport.Instance.AudioEngine.PreviewCue(cueId, acb);
+            if (cueId >= 0 && cueId < ushort.MaxValue)
+                Viewport.Instance.AudioEngine.PreviewCue((ushort)cueId, acb);
         }
     }
 }

@@ -130,7 +130,7 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
                     <DataGridTextColumn x:Name="userDefinedNameColumn" Header="Name" Binding="{Binding UserDefinedName}" Width="*" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Life" Binding="{Binding I_22}" Width="60" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Life" Binding="{Binding Lifetime}" Width="60" IsReadOnly="True"/>
                 </DataGrid.Columns>
                 <DataGrid.ContextMenu>
                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
@@ -171,10 +171,10 @@
                                 <MenuItem Header="[11] Effect Property Control" Command="{Binding AddSubtypeCommand}" CommandParameter="11"/>
                                 <MenuItem Header="[12] Send Projectile Signal" ToolTip="Sends a value to matching Type 0 Entry Passing records in the selected BSA resource. Delivery mode controls broadcast or same-context priority routing." Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
                                 <MenuItem Header="[13] Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
-                                <MenuItem Header="[14] Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
+                                <MenuItem Header="[14] Target Effect Volume" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
                                 <Separator/>
                                 <MenuItem Header="Collision Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
-                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
+                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="CollisionSound"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -220,10 +220,10 @@
                                 <MenuItem Header="[11] Effect Property Control" Command="{Binding AddSubtypeCommand}" CommandParameter="11"/>
                                 <MenuItem Header="[12] Send Projectile Signal" ToolTip="Sends a value to matching Type 0 Entry Passing records in the selected BSA resource. Delivery mode controls broadcast or same-context priority routing." Command="{Binding AddSubtypeCommand}" CommandParameter="12"/>
                                 <MenuItem Header="[13] Projectile Protection" Command="{Binding AddSubtypeCommand}" CommandParameter="13"/>
-                                <MenuItem Header="[14] Effect Placement" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
+                                <MenuItem Header="[14] Target Effect Volume" Command="{Binding AddSubtypeCommand}" CommandParameter="14"/>
                                 <Separator/>
                                 <MenuItem Header="Collision Effect" Command="{Binding AddSubtypeCommand}" CommandParameter="Collision"/>
-                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="Expiration"/>
+                                <MenuItem Header="Collision Sound" Command="{Binding AddSubtypeCommand}" CommandParameter="CollisionSound"/>
                             </MenuItem>
                             <Separator/>
                             <MenuItem Header="Copy" Command="{Binding CopySubtypeCommand}"/>
@@ -259,7 +259,7 @@
                 <bsaView:BsaType13View BsaViewModel="{Binding Type13ViewModel}"/>
                 <bsaView:BsaType14View BsaViewModel="{Binding Type14ViewModel}"/>
                 <bsaView:BsaCollisionView BsaViewModel="{Binding CollisionViewModel}"/>
-                <bsaView:BsaExpirationView BsaViewModel="{Binding ExpirationViewModel}"/>
+                <bsaView:BsaCollisionSoundView BsaViewModel="{Binding CollisionSoundViewModel}"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -40,15 +40,15 @@ namespace XenoKit.Editor
             }
 
             //Collision Sound
-            if (bsaEntry.SubEntries?.ExpirationEntries != null)
+            if (bsaEntry.SubEntries?.CollisionSoundEntries != null)
             {
-                foreach (var expiration in bsaEntry.SubEntries.ExpirationEntries)
+                foreach (var collisionSound in bsaEntry.SubEntries.CollisionSoundEntries)
                 {
-                    if (BsaSoundResources.TryGetBacAcbType(expiration.I_00, out Xv2CoreLib.BAC.AcbType acbType) &&
-                        CopyCue(acbType, expiration.I_04, move))
+                    if (BsaSoundResources.TryGetBacAcbType(collisionSound.AcbType, out Xv2CoreLib.BAC.AcbType acbType) &&
+                        CopyCue(acbType, collisionSound.CueId, move))
                     {
-                        ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_04), ValueReference.InstanceRefType.SeAcb));
-                        ValueRefs.Add(new ValueReference(expiration, nameof(expiration.I_00), ValueReference.InstanceRefType.SeAcb, ValueReference.Mode.Type));
+                        ValueRefs.Add(new ValueReference(collisionSound, nameof(collisionSound.CueId), ValueReference.InstanceRefType.SeAcb));
+                        ValueRefs.Add(new ValueReference(collisionSound, nameof(collisionSound.AcbType), ValueReference.InstanceRefType.SeAcb, ValueReference.Mode.Type));
                     }
                 }
             }
@@ -169,8 +169,8 @@ namespace XenoKit.Editor
                 undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.SubEntries), bsaEntryToReplace, bsaEntryToReplace.SubEntries, source.SubEntries));
                 bsaEntryToReplace.SubEntries = source.SubEntries;
 
-                undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.I_40), bsaEntryToReplace, bsaEntryToReplace.I_40, source.I_40));
-                bsaEntryToReplace.I_40 = source.I_40;
+                undos.Add(new UndoableProperty<BSA_Entry>(nameof(BSA_Entry.SpawnOffsetBits), bsaEntryToReplace, bsaEntryToReplace.SpawnOffsetBits, source.SpawnOffsetBits));
+                bsaEntryToReplace.SpawnOffsetBits = source.SpawnOffsetBits;
 
                 ObjectExtensions.NotifyPropsChanged(bsaEntryToReplace);
                 undos.Add(new UndoActionPropNotify(bsaEntryToReplace, true));

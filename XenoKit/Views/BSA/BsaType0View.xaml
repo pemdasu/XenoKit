@@ -36,37 +36,32 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Condition Value" ToolTip="Signal value for condition 5, or distance for conditions 4 and 9."/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.##" Interval="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.BacCondition, UpdateSourceTrigger=Default}"/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.##" Interval="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.ConditionValue, UpdateSourceTrigger=Default}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="250">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Jump Frame" ToolTip="Frame of the new entry to start from. Used unless Skip timing update is on."/>
+                        <controls:NumericUpDown Grid.Column="1" Minimum="-32768" Maximum="32767" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.JumpFrame, UpdateSourceTrigger=Default}"/>
+                    </Grid>
+                    <Grid Margin="3,5,0,0" Width="250">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Signal Priority" ToolTip="Used with Listen for priority signal. Projectiles with the highest priority receive the signal."/>
+                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.SignalPriority, UpdateSourceTrigger=Default}"/>
                     </Grid>
                 </WrapPanel>
                 <StackPanel Margin="8,5" HorizontalAlignment="Left">
                     <CheckBox Margin="4" Content="Skip entry call" ToolTip="Do not pass the selected BSA entry when the condition succeeds." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.SkipEntryCall}"/>
                     <CheckBox Margin="4" Content="Skip timing update" ToolTip="Do not adjust projectile timing when this condition succeeds." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.SkipTimingUpdate}"/>
                     <CheckBox Margin="4" Content="Match signal value" ToolTip="For condition 5, compare the received value with Condition Value." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.CompareSignalValue}"/>
-                    <CheckBox Margin="4" Content="Receive BAC condition" ToolTip="Use this entry when a BAC condition sends the matching value." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.ReceiveBacCondition}"/>
+                    <CheckBox Margin="4" Content="Listen for priority signal" ToolTip="Lets this row receive signals sent by priority. Signal Priority sets which projectile receives the signal first." IsChecked="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.ReceivePrioritySignal}"/>
                 </StackPanel>
                 </StackPanel>
-            </Expander>
-
-            <Expander Header="Unknown" IsExpanded="False">
-                <WrapPanel>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="I_06"/>
-                        <controls:NumericUpDown Grid.Column="1" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.I_06, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                    <Grid Margin="3,5,0,0" Width="250">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="F_12"/>
-                        <controls:NumericUpDown Grid.Column="1" StringFormat="0.00" Interval="0.05" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:BsaType0View}}, Path=BsaViewModel.F_12, UpdateSourceTrigger=Default}"/>
-                    </Grid>
-                </WrapPanel>
             </Expander>
         </StackPanel>
     </Grid>

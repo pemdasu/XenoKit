@@ -1,52 +1,62 @@
-using System;
-using Xv2CoreLib.BAC;
+using System.Windows;
 using Xv2CoreLib.BSA;
 
 namespace XenoKit.ViewModel.BSA
 {
     public class BsaType3ViewModel : BsaTypeBaseViewModel
     {
-        private const ushort BoundsTypeMask = 0x000F;
         private readonly BSA_Type3 hitbox;
 
-        // There is no ValuesDictionary entry for this enum, so the view binds the enum values directly.
-        public Array BoundingBoxTypes => Enum.GetValues(typeof(BAC_Type1.BoundingBoxTypeEnum));
-
-        public BAC_Type1.BoundingBoxTypeEnum BoundingBoxType
+        public BsaShapeType ShapeType
         {
-            get => (BAC_Type1.BoundingBoxTypeEnum)(hitbox.I_00 & BoundsTypeMask);
+            get => hitbox.ShapeType;
             set
             {
-                ushort newFlags = (ushort)((hitbox.I_00 & ~BoundsTypeMask) | ((ushort)value & BoundsTypeMask));
-                SetValue(nameof(hitbox.I_00), hitbox.I_00, newFlags, v => hitbox.I_00 = v, "BSA Hitbox Bounds Type");
-                RaiseBoundsProperties();
+                SetValue(nameof(hitbox.ShapeType), hitbox.ShapeType, value, v => hitbox.ShapeType = v, "BSA Hitbox Shape");
+                RaiseShapeProperties();
             }
         }
 
-        public bool BoundsEnabled => BoundingBoxType != BAC_Type1.BoundingBoxTypeEnum.Uniform;
+        public string SizeLabel => hitbox.ShapeType == BsaShapeType.Box ? "Size X" : "Radius";
+        public Visibility BoxVisibility => hitbox.ShapeType == BsaShapeType.Box ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility CapsuleVisibility => hitbox.ShapeType == BsaShapeType.Capsule ? Visibility.Visible : Visibility.Collapsed;
 
-        public Switch UseDistanceRelativeBounds
+        private ushort ShapeFlags
         {
-            get => (hitbox.I_04 & 1) == 0 ? Switch.Off : Switch.On;
+            get => hitbox.ShapeFlags;
             set
             {
-                ushort newValue = (ushort)((hitbox.I_04 & ~1) | (value == Switch.On ? 1 : 0));
-                SetValue(nameof(hitbox.I_04), hitbox.I_04, newValue, v => hitbox.I_04 = v, "BSA Distance Relative Bounds");
+                SetValue(nameof(hitbox.ShapeFlags), hitbox.ShapeFlags, value, v => hitbox.ShapeFlags = v, "BSA Hitbox Shape Flags");
+                RaisePropertyChanged(() => StretchToSpawnPoint);
+                RaisePropertyChanged(() => HitAllOpponents);
+                RaisePropertyChanged(() => UseWorldAxes);
             }
         }
+
+        public bool StretchToSpawnPoint { get => (ShapeFlags & 0x1) != 0; set => SetShapeFlag(0x1, value); }
+        public bool HitAllOpponents { get => (ShapeFlags & 0x2) != 0; set => SetShapeFlag(0x2, value); }
+        public bool UseWorldAxes { get => (ShapeFlags & 0x4) != 0; set => SetShapeFlag(0x4, value); }
 
         public float PositionX { get => hitbox.F_08; set => SetValue(nameof(hitbox.F_08), hitbox.F_08, value, v => hitbox.F_08 = v, "BSA Hitbox Position X"); }
         public float PositionY { get => hitbox.F_12; set => SetValue(nameof(hitbox.F_12), hitbox.F_12, value, v => hitbox.F_12 = v, "BSA Hitbox Position Y"); }
         public float PositionZ { get => hitbox.F_16; set => SetValue(nameof(hitbox.F_16), hitbox.F_16, value, v => hitbox.F_16 = v, "BSA Hitbox Position Z"); }
-        public float Size { get => hitbox.F_20; set => SetValue(nameof(hitbox.F_20), hitbox.F_20, value, v => hitbox.F_20 = v, "BSA Hitbox Scale"); }
-        public float MaxX { get => hitbox.F_24; set => SetValue(nameof(hitbox.F_24), hitbox.F_24, value, v => hitbox.F_24 = v, "BSA Hitbox Max X"); }
-        public float MaxY { get => hitbox.F_28; set => SetValue(nameof(hitbox.F_28), hitbox.F_28, value, v => hitbox.F_28 = v, "BSA Hitbox Max Y"); }
-        public float MaxZ { get => hitbox.F_32; set => SetValue(nameof(hitbox.F_32), hitbox.F_32, value, v => hitbox.F_32 = v, "BSA Hitbox Max Z"); }
-        public float MinX { get => hitbox.F_36; set => SetValue(nameof(hitbox.F_36), hitbox.F_36, value, v => hitbox.F_36 = v, "BSA Hitbox Min X"); }
-        public float MinY { get => hitbox.F_40; set => SetValue(nameof(hitbox.F_40), hitbox.F_40, value, v => hitbox.F_40 = v, "BSA Hitbox Min Y"); }
-        public float MinZ { get => hitbox.F_44; set => SetValue(nameof(hitbox.F_44), hitbox.F_44, value, v => hitbox.F_44 = v, "BSA Hitbox Min Z"); }
+        public float Size { get => hitbox.F_20; set => SetValue(nameof(hitbox.F_20), hitbox.F_20, value, v => hitbox.F_20 = v, "BSA Hitbox Size"); }
 
-        public ushort HitCountControl { get => hitbox.I_48; set => SetValue(nameof(hitbox.I_48), hitbox.I_48, value, v => hitbox.I_48 = v, "BSA Hit Count Control"); }
+        public float BoxSizeY { get => hitbox.F_24; set => SetShapeValue(nameof(hitbox.F_24), hitbox.F_24, value, v => hitbox.F_24 = v, "BSA Hitbox Box Size Y"); }
+        public float BoxSizeZ { get => hitbox.F_28; set => SetShapeValue(nameof(hitbox.F_28), hitbox.F_28, value, v => hitbox.F_28 = v, "BSA Hitbox Box Size Z"); }
+        public float BoxRotation1 { get => hitbox.F_32; set => SetShapeValue(nameof(hitbox.F_32), hitbox.F_32, value, v => hitbox.F_32 = v, "BSA Hitbox Box Rotation 1"); }
+        public float BoxRotation2 { get => hitbox.F_36; set => SetShapeValue(nameof(hitbox.F_36), hitbox.F_36, value, v => hitbox.F_36 = v, "BSA Hitbox Box Rotation 2"); }
+        public float BoxRotation3 { get => hitbox.F_40; set => SetShapeValue(nameof(hitbox.F_40), hitbox.F_40, value, v => hitbox.F_40 = v, "BSA Hitbox Box Rotation 3"); }
+
+        public float PointAX { get => hitbox.F_24; set => SetShapeValue(nameof(hitbox.F_24), hitbox.F_24, value, v => hitbox.F_24 = v, "BSA Hitbox Point A X"); }
+        public float PointAY { get => hitbox.F_28; set => SetShapeValue(nameof(hitbox.F_28), hitbox.F_28, value, v => hitbox.F_28 = v, "BSA Hitbox Point A Y"); }
+        public float PointAZ { get => hitbox.F_32; set => SetShapeValue(nameof(hitbox.F_32), hitbox.F_32, value, v => hitbox.F_32 = v, "BSA Hitbox Point A Z"); }
+        public float PointBX { get => hitbox.F_36; set => SetShapeValue(nameof(hitbox.F_36), hitbox.F_36, value, v => hitbox.F_36 = v, "BSA Hitbox Point B X"); }
+        public float PointBY { get => hitbox.F_40; set => SetShapeValue(nameof(hitbox.F_40), hitbox.F_40, value, v => hitbox.F_40 = v, "BSA Hitbox Point B Y"); }
+        public float PointBZ { get => hitbox.F_44; set => SetShapeValue(nameof(hitbox.F_44), hitbox.F_44, value, v => hitbox.F_44 = v, "BSA Hitbox Point B Z"); }
+
+        public byte HitLimit { get => hitbox.HitLimit; set => SetValue(nameof(hitbox.HitLimit), hitbox.HitLimit, value, v => hitbox.HitLimit = v, "BSA Hit Limit"); }
+        public sbyte HitSlot { get => hitbox.HitSlot; set => SetValue(nameof(hitbox.HitSlot), hitbox.HitSlot, value, v => hitbox.HitSlot = v, "BSA Hit Counter Slot"); }
         public ushort HitboxPriority { get => hitbox.I_50; set => SetValue(nameof(hitbox.I_50), hitbox.I_50, value, v => hitbox.I_50 = v, "BSA Hitbox Priority"); }
         public bool TargetLinkedActorOnly
         {
@@ -63,48 +73,69 @@ namespace XenoKit.ViewModel.BSA
         public ushort LastHit { get => hitbox.LastHit; set => SetValue(nameof(hitbox.LastHit), hitbox.LastHit, value, v => hitbox.LastHit = v, "BSA Hitbox BDM Last Hit ID"); }
 
         public ushort I_02 { get => hitbox.I_02; set => SetValue(nameof(hitbox.I_02), hitbox.I_02, value, v => hitbox.I_02 = v, "BSA Hitbox I_02"); }
-        public byte I_06_a { get => hitbox.I_06_a; set => SetValue(nameof(hitbox.I_06_a), hitbox.I_06_a, value, v => hitbox.I_06_a = v, "BSA Hitbox I_06_a"); }
-        public byte I_06_b { get => hitbox.I_06_b; set => SetValue(nameof(hitbox.I_06_b), hitbox.I_06_b, value, v => hitbox.I_06_b = v, "BSA Hitbox I_06_b"); }
-        public byte I_06_c { get => hitbox.I_06_c; set => SetValue(nameof(hitbox.I_06_c), hitbox.I_06_c, value, v => hitbox.I_06_c = v, "BSA Hitbox I_06_c"); }
-        public byte I_06_d { get => hitbox.I_06_d; set => SetValue(nameof(hitbox.I_06_d), hitbox.I_06_d, value, v => hitbox.I_06_d = v, "BSA Hitbox I_06_d"); }
+        public ushort HitFlags { get => hitbox.HitFlags; set => SetValue(nameof(hitbox.HitFlags), hitbox.HitFlags, value, v => hitbox.HitFlags = v, "BSA Hitbox I_06"); }
 
         public BsaType3ViewModel(BSA_Type3 type) : base(type)
         {
             hitbox = type;
         }
 
-        private void RaiseBoundsProperties()
+        private void SetShapeFlag(ushort mask, bool value)
         {
-            RaisePropertyChanged(() => BoundingBoxType);
-            RaisePropertyChanged(() => BoundsEnabled);
+            ShapeFlags = value ? (ushort)(ShapeFlags | mask) : (ushort)(ShapeFlags & ~mask);
+        }
+
+        // Box size, box rotation and capsule points use the same model fields, so both sets update together.
+        private void SetShapeValue(string modelProperty, float oldValue, float newValue, System.Action<float> assign, string undoName, [System.Runtime.CompilerServices.CallerMemberName] string viewModelProperty = null)
+        {
+            SetValue(modelProperty, oldValue, newValue, assign, undoName, viewModelProperty);
+            RaiseShapeValues();
+        }
+
+        private void RaiseShapeProperties()
+        {
+            RaisePropertyChanged(() => ShapeType);
+            RaisePropertyChanged(() => SizeLabel);
+            RaisePropertyChanged(() => BoxVisibility);
+            RaisePropertyChanged(() => CapsuleVisibility);
+        }
+
+        private void RaiseShapeValues()
+        {
+            RaisePropertyChanged(() => BoxSizeY);
+            RaisePropertyChanged(() => BoxSizeZ);
+            RaisePropertyChanged(() => BoxRotation1);
+            RaisePropertyChanged(() => BoxRotation2);
+            RaisePropertyChanged(() => BoxRotation3);
+            RaisePropertyChanged(() => PointAX);
+            RaisePropertyChanged(() => PointAY);
+            RaisePropertyChanged(() => PointAZ);
+            RaisePropertyChanged(() => PointBX);
+            RaisePropertyChanged(() => PointBY);
+            RaisePropertyChanged(() => PointBZ);
         }
 
         protected override void UpdateProperties()
         {
             base.UpdateProperties();
-            RaiseBoundsProperties();
-            RaisePropertyChanged(() => UseDistanceRelativeBounds);
+            RaiseShapeProperties();
+            RaiseShapeValues();
+            RaisePropertyChanged(() => StretchToSpawnPoint);
+            RaisePropertyChanged(() => HitAllOpponents);
+            RaisePropertyChanged(() => UseWorldAxes);
             RaisePropertyChanged(() => PositionX);
             RaisePropertyChanged(() => PositionY);
             RaisePropertyChanged(() => PositionZ);
             RaisePropertyChanged(() => Size);
-            RaisePropertyChanged(() => MaxX);
-            RaisePropertyChanged(() => MaxY);
-            RaisePropertyChanged(() => MaxZ);
-            RaisePropertyChanged(() => MinX);
-            RaisePropertyChanged(() => MinY);
-            RaisePropertyChanged(() => MinZ);
-            RaisePropertyChanged(() => HitCountControl);
+            RaisePropertyChanged(() => HitLimit);
+            RaisePropertyChanged(() => HitSlot);
             RaisePropertyChanged(() => HitboxPriority);
             RaisePropertyChanged(() => TargetLinkedActorOnly);
             RaisePropertyChanged(() => FirstHit);
             RaisePropertyChanged(() => MultipleHits);
             RaisePropertyChanged(() => LastHit);
             RaisePropertyChanged(() => I_02);
-            RaisePropertyChanged(() => I_06_a);
-            RaisePropertyChanged(() => I_06_b);
-            RaisePropertyChanged(() => I_06_c);
-            RaisePropertyChanged(() => I_06_d);
+            RaisePropertyChanged(() => HitFlags);
         }
     }
 }

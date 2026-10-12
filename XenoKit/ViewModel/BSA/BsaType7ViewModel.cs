@@ -15,7 +15,7 @@ namespace XenoKit.ViewModel.BSA
             }
         }
 
-        public ushort CueId
+        public int CueId
         {
             get => sound.CueId;
             set => SetValue(nameof(sound.CueId), sound.CueId, value, v => sound.CueId = v, "BSA Sound Cue ID");
@@ -44,12 +44,6 @@ namespace XenoKit.ViewModel.BSA
             set => SoundRoutingFlags = value ? (ushort)(sound.I_02 | 0x2000) : (ushort)(sound.I_02 & ~0x2000);
         }
 
-        public ushort I_06
-        {
-            get => sound.I_06;
-            set => SetValue(nameof(sound.I_06), sound.I_06, value, v => sound.I_06 = v, "BSA Sound I_06");
-        }
-
         public BsaType7ViewModel(BSA_Type7 type) : base(type)
         {
             sound = type;
@@ -62,7 +56,6 @@ namespace XenoKit.ViewModel.BSA
             RaisePropertyChanged(() => CueId);
             RaisePropertyChanged(() => AlternateSoundRoute);
             RaisePropertyChanged(() => CancelPendingSound);
-            RaisePropertyChanged(() => I_06);
         }
     }
 }
