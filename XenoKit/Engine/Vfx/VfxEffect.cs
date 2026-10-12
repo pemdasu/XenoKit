@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using XenoKit.Engine.Vfx.Asset;
@@ -12,20 +12,24 @@ namespace XenoKit.Engine.Vfx
     {
         public Effect Effect { get; private set; }
         public Actor Actor { get; private set; }
+        //Aura effects disappear while their actor is invisible, such as during BAC invisibility
+        public bool HideWithActor { get; set; }
         public List<VfxAsset> Assets { get; private set; }
 
         private Matrix4x4 SpawnTransform;
+        private Matrix4x4 NodeTransform;
 
         private readonly bool IsAssetPreview = false;
         private readonly EffectPart EffectPart = null;
         private readonly bool SpawnedByProjectile;
         private bool isDisposed;
 
-        public VfxEffect(Actor actor, Effect effect, Matrix4x4 world, bool spawnedByProjectile = false)
+        public VfxEffect(Actor actor, Effect effect, Matrix4x4 world, bool spawnedByProjectile = false, Matrix4x4? nodeTransform = null)
         {
             Effect = effect;
             Actor = actor;
             SpawnTransform = world;
+            NodeTransform = nodeTransform ?? world;
             SpawnedByProjectile = spawnedByProjectile;
 
             Initialize();
@@ -55,6 +59,7 @@ namespace XenoKit.Engine.Vfx
             EffectPart = effectPart;
             Actor = actor;
             SpawnTransform = Matrix4x4.Identity;
+            NodeTransform = Matrix4x4.Identity;
             InitializeFromAsset();
         }
 
@@ -84,23 +89,24 @@ namespace XenoKit.Engine.Vfx
             }
             else if (EffectPart.AssetType == AssetType.EMO)
             {
-                Assets.Add(new VfxEmo(SpawnTransform, EffectPart.AssetRef, EffectPart, Actor, SpawnedByProjectile));
+                Assets.Add(new VfxEmo(GetPartSpawnTransform(EffectPart), EffectPart.AssetRef, EffectPart, Actor, SpawnedByProjectile));
             }
             else if (EffectPart.AssetType == AssetType.LIGHT)
             {
                 if (EffectPart.AssetRef.Files[0].EmaFile == null) return;
-                Assets.Add(new VfxLight(SpawnTransform, EffectPart.AssetRef.Files[0].EmaFile, EffectPart, Actor, SpawnedByProjectile));
+                Assets.Add(new VfxLight(GetPartSpawnTransform(EffectPart), EffectPart.AssetRef.Files[0].EmaFile, EffectPart, Actor, SpawnedByProjectile));
             }
             else if (EffectPart.AssetType == AssetType.PBIND)
             {
                 if (EffectPart.AssetRef.Files[0].EmpFile == null) return;
-                Assets.Add(new ParticleSystem(SpawnTransform, Actor, EffectPart, EffectPart.AssetRef.Files[0].EmpFile, this, SpawnedByProjectile));
+                Assets.Add(new ParticleSystem(GetPartSpawnTransform(EffectPart), Actor, EffectPart, EffectPart.AssetRef.Files[0].EmpFile, this, SpawnedByProjectile));
             }
             else if (EffectPart.AssetType == AssetType.TBIND)
             {
                 if (EffectPart.AssetRef.Files[0].EtrFile == null) return;
-                Assets.Add(new VfxTbind(SpawnTransform, EffectPart.AssetRef.Files[0].EtrFile, EffectPart, Actor, SpawnedByProjectile));
+                Assets.Add(new VfxTbind(GetPartSpawnTransform(EffectPart), EffectPart.AssetRef.Files[0].EtrFile, EffectPart, Actor, SpawnedByProjectile));
             }
+            SetExternalTransform(SpawnTransform, NodeTransform);
         }
 
         public void Initialize()
@@ -134,24 +140,32 @@ namespace XenoKit.Engine.Vfx
                 }
                 else if (effectPart.AssetType == AssetType.EMO)
                 {
-                    Assets.Add(new VfxEmo(SpawnTransform, effectPart.AssetRef, effectPart, Actor, SpawnedByProjectile));
+                    Assets.Add(new VfxEmo(GetPartSpawnTransform(effectPart), effectPart.AssetRef, effectPart, Actor, SpawnedByProjectile));
                 }
                 else if (effectPart.AssetType == AssetType.LIGHT)
                 {
                     if (effectPart.AssetRef.Files[0].EmaFile == null) continue;
-                    Assets.Add(new VfxLight(SpawnTransform, effectPart.AssetRef.Files[0].EmaFile, effectPart, Actor, SpawnedByProjectile));
+                    Assets.Add(new VfxLight(GetPartSpawnTransform(effectPart), effectPart.AssetRef.Files[0].EmaFile, effectPart, Actor, SpawnedByProjectile));
                 }
                 else if (effectPart.AssetType == AssetType.PBIND)
                 {
                     if (effectPart.AssetRef.Files[0].EmpFile == null) continue;
-                    Assets.Add(new ParticleSystem(SpawnTransform, Actor, effectPart, effectPart.AssetRef.Files[0].EmpFile, this, SpawnedByProjectile));
+                    Assets.Add(new ParticleSystem(GetPartSpawnTransform(effectPart), Actor, effectPart, effectPart.AssetRef.Files[0].EmpFile, this, SpawnedByProjectile));
                 }
                 else if (effectPart.AssetType == AssetType.TBIND)
                 {
                     if (effectPart.AssetRef.Files[0].EtrFile == null) continue;
-                    Assets.Add(new VfxTbind(SpawnTransform, effectPart.AssetRef.Files[0].EtrFile, effectPart, Actor, SpawnedByProjectile));
+                    Assets.Add(new VfxTbind(GetPartSpawnTransform(effectPart), effectPart.AssetRef.Files[0].EtrFile, effectPart, Actor, SpawnedByProjectile));
                 }
             }
+            SetExternalTransform(SpawnTransform, NodeTransform);
+        }
+
+        private Matrix4x4 GetPartSpawnTransform(EffectPart part)
+        {
+            return string.Equals(part.ESK, "TRS", StringComparison.OrdinalIgnoreCase) ||
+                (SpawnedByProjectile && (part.AttachementType == Attachment.External || VfxAsset.IsProjectileNodeName(part.ESK)))
+                ? NodeTransform : SpawnTransform;
         }
 
         private float GetSpawnHeight()
@@ -206,12 +220,13 @@ namespace XenoKit.Engine.Vfx
             Assets.Clear();
         }
 
-        public void SetExternalTransform(Matrix4x4 transform)
+        public void SetExternalTransform(Matrix4x4 transform, Matrix4x4 nodeTransform)
         {
             SpawnTransform = transform;
+            NodeTransform = nodeTransform;
 
             foreach (VfxAsset asset in Assets)
-                asset.SetExternalTransform(transform);
+                asset.SetExternalTransform(transform, nodeTransform);
         }
 
         public override void Update()
@@ -242,6 +257,8 @@ namespace XenoKit.Engine.Vfx
                 //Task updateTask = new Task(() => asset.Update());
                 //VfxManager.CurrentTasks.Add(updateTask);
                 //updateTask.Start();
+
+                Assets[i].HideWithActor = HideWithActor;
 
                 if (simulate)
                     Assets[i].Simulate();

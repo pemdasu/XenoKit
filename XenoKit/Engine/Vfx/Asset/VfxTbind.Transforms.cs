@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +21,15 @@ namespace XenoKit.Engine.Vfx.Asset
         {
             Matrix4x4 baseTransform = Transform;
 
-            if (UsesTrsAttach(node))
+            if (SpawnedByProjectile)
             {
-                baseTransform = GetExternalSpawnTransform();
+                baseTransform = IsProjectileNodeName(node.AttachBone) ? GetExternalNodeTransform()
+                    : string.IsNullOrWhiteSpace(node.AttachBone) ? GetExternalSpawnTransform() : GetExternalRootTransform();
+            }
+            else if (UsesExternalAttach(node))
+            {
+                baseTransform = string.Equals(node.AttachBone, "TRS", System.StringComparison.OrdinalIgnoreCase)
+                    ? GetExternalNodeTransform() : GetExternalSpawnTransform();
             }
             else if (!string.IsNullOrWhiteSpace(node.AttachBone) && !string.IsNullOrWhiteSpace(node.AttachBone2) && Actor != null)
             {
@@ -99,9 +105,12 @@ namespace XenoKit.Engine.Vfx.Asset
                 start.X, start.Y, start.Z, 1f);
         }
 
-        private bool UsesTrsAttach(ETR_Node node)
+        private bool UsesExternalAttach(ETR_Node node)
         {
             if (string.Equals(node.AttachBone, "TRS", System.StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (SpawnedByProjectile)
                 return true;
 
             return string.IsNullOrWhiteSpace(node.AttachBone) && UsesExternalSpawn();

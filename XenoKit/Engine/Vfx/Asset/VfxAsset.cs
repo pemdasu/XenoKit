@@ -34,6 +34,7 @@ namespace XenoKit.Engine.Vfx.Asset
         private int BoneIdx = -1;
         public float Scale { get; protected set; } = -1f;
         private Matrix4x4 BacSpawnSource;
+        private Matrix4x4 ExternalNodeSource;
         private SimdVector3 AttachmentPosition;
         private SimdVector3 PreviousAttachmentPosition;
         private Matrix4x4 AttachmentRotation;
@@ -54,6 +55,7 @@ namespace XenoKit.Engine.Vfx.Asset
             SpawnedByProjectile = spawnedByProjectile;
             AssetType = EffectPart.AssetType;
             BacSpawnSource = startWorld;
+            ExternalNodeSource = startWorld;
 
             Initialize();
             EffectPart.PropertyChanged += EffectPart_PropertyChanged;
@@ -72,7 +74,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 AssetTypeChanged = true;
             }
 
-            BoneIdx = !string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null
+            BoneIdx = !SpawnedByProjectile && !string.IsNullOrWhiteSpace(EffectPart.ESK) && Actor != null
                 ? Actor.Skeleton.GetBoneIndex(EffectPart.ESK, true) : -1;
 
             //Roll where in the min/max range this instance sits, once per spawn. Keeping the factor instead of the
@@ -87,11 +89,38 @@ namespace XenoKit.Engine.Vfx.Asset
             AttachmentDirection = GetSpawnDirection();
             UpdateAttachment(GetAttachTransform(), true);
 
-            Scale = Xv2CoreLib.Random.Range(EffectPart.ScaleMin, EffectPart.ScaleMax);
+            Scale = Xv2CoreLib.Random.Range(EffectPart.ScaleMin, EffectPart.ScaleMax) * GetOwnerScale();
 
             //Reset start state
             CurrentFrame = 0f;
             HasStarted = false;
+        }
+
+        //The game applies these owner scale flags once, when the part spawns
+        private float GetOwnerScale()
+        {
+            if (Actor == null || SpawnedByProjectile) return 1f;
+
+            float scale = 1f;
+            float bodySize = Actor.CharacterData?.BcsFile?.File?.F_48?[1] ?? 1f;
+
+            //EMO and particle parts: I_38_b bit 0 scales by the body size, bit 1 by the largest axis of the attach bone scale
+            if (EffectPart.AssetType == AssetType.EMO || EffectPart.AssetType == AssetType.PBIND)
+            {
+                if ((EffectPart.I_38_b & 0x1) != 0)
+                    scale *= bodySize;
+
+                if ((EffectPart.I_38_b & 0x2) != 0 && BoneIdx != -1)
+                {
+                    Matrix4x4.Decompose(Actor.GetAbsoluteBoneMatrix(BoneIdx), out SimdVector3 boneScale, out _, out _);
+                    scale *= System.Math.Max(boneScale.X, System.Math.Max(boneScale.Y, boneScale.Z));
+                }
+            }
+
+            if (EffectPart.AssetType == AssetType.PBIND && EffectPart.HasFlag2(EepkEffectPartFlags2.ScaleByBodySize))
+                scale *= bodySize;
+
+            return scale;
         }
 
         /// <summary>
@@ -114,13 +143,35 @@ namespace XenoKit.Engine.Vfx.Asset
             EffectPart.PropertyChanged -= EffectPart_PropertyChanged;
         }
 
-        public void SetExternalTransform(Matrix4x4 transform)
+        public void SetExternalTransform(Matrix4x4 transform, Matrix4x4 nodeTransform)
         {
             BacSpawnSource = transform;
+            ExternalNodeSource = nodeTransform;
             OnExternalTransformChanged();
         }
 
         protected Matrix4x4 GetExternalSpawnTransform()
+        {
+            return string.Equals(EffectPart.ESK, "TRS", StringComparison.OrdinalIgnoreCase) ||
+                (SpawnedByProjectile && IsProjectileNodeName(EffectPart.ESK)) ? ExternalNodeSource : BacSpawnSource;
+        }
+
+        internal static bool IsProjectileNodeName(string name)
+        {
+            return string.Equals(name, "ROOT", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "TRS", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "NULL_0", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "NULL_1", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "NULL_2", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "NULL_3", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected Matrix4x4 GetExternalNodeTransform()
+        {
+            return ExternalNodeSource;
+        }
+
+        protected Matrix4x4 GetExternalRootTransform()
         {
             return BacSpawnSource;
         }
@@ -160,7 +211,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 }
                 else
                 {
-                    CurrentFrame += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
+                    CurrentFrame += FrameStep;
                     DrawThisFrame = false;
                     return;
                 }
@@ -184,13 +235,22 @@ namespace XenoKit.Engine.Vfx.Asset
 
             if (!SettingsManager.Instance.Settings.XenoKit_VfxSimulation)
                 DrawThisFrame = false;
+
+            //Particle nodes batch while they update, so this must be set before them
+            if (HideWithActor && Actor != null && !Actor.IsVisible)
+                DrawThisFrame = false;
         }
+
+        public bool HideWithActor { get; set; }
+
+        // Effect previews can run before a character is loaded, so Actor can be null.
+        protected float FrameStep => EffectPart.UseTimeScale && Actor != null ? Actor.ActiveTimeScale : 1f;
 
         protected bool UsesExternalSpawn()
         {
             return EffectPart.AttachementType == Attachment.External ||
                    (EffectPart.AttachementType == Attachment.Bone && string.Equals(EffectPart.ESK, "TRS", StringComparison.OrdinalIgnoreCase)) ||
-                   (SpawnedByProjectile && string.IsNullOrWhiteSpace(EffectPart.ESK));
+                   (SpawnedByProjectile && EffectPart.AttachementType == Attachment.Bone);
         }
 
         private Matrix4x4 GetAttachTransform()
@@ -208,7 +268,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 return camera;
             }
 
-            return BacSpawnSource;
+            return GetExternalSpawnTransform();
         }
 
         private SimdVector3 GetSpawnDirection()

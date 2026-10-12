@@ -144,7 +144,7 @@ namespace XenoKit.Engine.Vfx.Asset
             }
             else if(ViewportInstance.IsPlaying)
             {
-                Time += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
+                Time += FrameStep;
             }
         }
 
