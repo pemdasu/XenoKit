@@ -2,13 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:XenoKit.Views"
              xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
              xmlns:settings="clr-namespace:Xv2CoreLib.Resource.App;assembly=Xv2CoreLib"
-             mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="200">
+             mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="220">
     <UserControl.Resources>
 
         <ObjectDataProvider x:Key="sortTypes" MethodName="GetValues"
@@ -17,88 +17,162 @@
                 <x:Type TypeName="settings:BacTypeSortMode"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
+
+        <Style x:Key="SettingRow" TargetType="Grid">
+            <Setter Property="Margin" Value="6,2,4,2"/>
+            <Setter Property="MinHeight" Value="22"/>
+        </Style>
+        <Style x:Key="SettingLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Foreground" Value="{DynamicResource MahApps.Brushes.Text}"/>
+        </Style>
+        <Style x:Key="SettingGroup" TargetType="Expander" BasedOn="{StaticResource {x:Type Expander}}">
+            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
     </UserControl.Resources>
-    <ScrollViewer>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="20"/>
-                <RowDefinition Height="5"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MinWidth="180" Margin="2">
 
-            <TextBlock Grid.Row="0" HorizontalAlignment="Left" Margin="10,0,0,0" TextWrapping="Wrap" Text="Settings Panel" VerticalAlignment="Top" Width="200"/>
-            <Separator Grid.Row="1" Background="{DynamicResource MahApps.Brushes.Accent}"/>
-            <Border Grid.Row="2" BorderThickness="2">
-                <StackPanel HorizontalAlignment="Stretch">
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch" ToolTip="Enable the BAC state to be preserved when a BAC entry ends or another one starts, keeping any movement that occurs in the entry.&#x0a;&#x0a;The actor position will be reset when the Stop button is used.">
+            <Expander Header="Viewport" Style="{StaticResource SettingGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource SettingRow}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Retain BAC State" FontSize="8"/>
-                        <CheckBox IsChecked="{Binding RetainActionPosition}" VerticalContentAlignment="Center" Grid.Column="1"/>
+                        <TextBlock Text="Render Bone Names" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding RenderBoneNames}" VerticalAlignment="Center"/>
                     </Grid>
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch">
+                    <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding RenderBoneNames}" ToolTip="Render bone names only when the mouse is directly over it or it is selected.">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Render Bone Names" FontSize="8"/>
-                        <CheckBox IsChecked="{Binding RenderBoneNames}" VerticalContentAlignment="Center" Grid.Column="1"/>
+                        <TextBlock Text="Bone Names On Mouse Over Only" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding RenderBoneNamesMouseOver}" VerticalAlignment="Center"/>
                     </Grid>
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch" IsEnabled="{Binding RenderBoneNames}">
+                    <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding RenderBoneNames}" ToolTip="Hide less important bones on the visual skeleton (Arm/Leg_Helper, g_x_LND, g_x_CAM, g_C, g_R and g_L bones).">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="Bone Names Mouse Only" FontSize="8" ToolTip="Render bone names only when the mouse is directly over it or it is selected."/>
-                        <CheckBox IsChecked="{Binding RenderBoneNamesMouseOver}" VerticalContentAlignment="Center" Grid.Column="1"/>
+                        <TextBlock Text="Focused Bone View" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding FocusedBoneView}" VerticalAlignment="Center"/>
                     </Grid>
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch" IsEnabled="{Binding RenderBoneNames}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Auto-Resolve Paste Ref" FontSize="8" ToolTip="Automatically paste entries without displaying the references window."/>
-                        <CheckBox IsChecked="{Binding AutoResolvePasteReferences}" VerticalContentAlignment="Center" Grid.Column="1"/>
-                    </Grid>
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch" IsEnabled="{Binding RenderBoneNames}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Focused Bone View" FontSize="8" ToolTip="Hide less important bones on the visual skeleton (Arm/Leg_Helper, g_x_LND, g_x_CAM, g_C, g_R and g_L bones)."/>
-                        <CheckBox IsChecked="{Binding FocusedBoneView}" VerticalContentAlignment="Center" Grid.Column="1"/>
-                    </Grid>
-
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Scatches" FontSize="8"/>
-                        <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Scratches}"/>
-                    </Grid>
-                    <Grid Margin="0,3,0,0" HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="105"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="5"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Blood" FontSize="8"/>
-                        <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Blood}"/>
-                    </Grid>
-
-
                 </StackPanel>
-            </Border>
+            </Expander>
 
-        </Grid>
+            <Expander Header="Editing" Style="{StaticResource SettingGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Enable the BAC state to be preserved when a BAC entry ends or another one starts, keeping any movement that occurs in the entry.&#x0a;&#x0a;The actor position will be reset when the Stop button is used.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Retain BAC State" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding RetainActionPosition}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Automatically paste entries without displaying the references window.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Auto-Resolve Paste References" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding AutoResolvePasteReferences}" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Simulation" Style="{StaticResource SettingGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Move the actor with BAC Movement entries.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="BAC Movement" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding SimulateBacMovement}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Turn the actor toward the opponent with BAC Tracking entries.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="BAC Tracking" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding SimulateBacTracking}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Move projectiles with BSA movement entries. When off, projectiles stay at their spawn point.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="BSA Movement" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding SimulateBsaMovement}" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Physics" Style="{StaticResource SettingGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource SettingRow}" ToolTip="Simulate SCD physics for hair, capes and other loose parts. When off, those bones follow the animation.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SCD Physics" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ScdPhysicsEnabled}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding ScdPhysicsEnabled}" ToolTip="Reset SCD physics when the timeline loops. When off, the physics keeps moving across loops.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Reset On Loop" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ScdResetOnLoop}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding ScdPhysicsEnabled}" ToolTip="Multiplier on SCD physics gravity. 1 is the game value.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="70"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Gravity Scale" Style="{StaticResource SettingLabel}"/>
+                        <Controls:NumericUpDown Grid.Column="1" Value="{Binding ScdGravityScale}" Minimum="0" Maximum="10" Interval="0.1" StringFormat="0.00" HideUpDownButtons="True" TrackMouseWheelWhenMouseOver="True"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}" IsEnabled="{Binding ScdPhysicsEnabled}" ToolTip="Draw SCD physics shapes as wireframes. Yellow: BCS colliders. Cyan: dynamic bodies. Dark cyan: bone-driven bodies. Red: a body or collider with a contact deeper than 2 cm this step.">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Show Physics Colliders" Style="{StaticResource SettingLabel}"/>
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ScdShowColliders}" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Character" Style="{StaticResource SettingGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource SettingRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Scratches" Style="{StaticResource SettingLabel}"/>
+                        <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Scratches}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Grid Style="{StaticResource SettingRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Blood" Style="{StaticResource SettingLabel}"/>
+                        <Slider Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding Blood}" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
     </ScrollViewer>
 </UserControl>
