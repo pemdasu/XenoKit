@@ -36,9 +36,11 @@ namespace XenoKit.Engine.Vfx.Asset
                 Values[i].RimColor[0] = 0;
                 Values[i].RimColor[1] = 0;
                 Values[i].RimColor[2] = 0;
+                Values[i].RimColor[3] = 0;
                 Values[i].AddColor[0] = 0;
                 Values[i].AddColor[1] = 0;
                 Values[i].AddColor[2] = 0;
+                Values[i].AddColor[3] = 0;
             }
         }
 
@@ -71,41 +73,52 @@ namespace XenoKit.Engine.Vfx.Asset
                     Values.Add(new VfxColorFadeEntry());
 
                 if (Values[i].IsFinished) continue;
-                active++;
 
-                if (Values[i].Time > EcfFile.Nodes[i].EndTime)
+                ECF_Node node = EcfFile.Nodes[i];
+                float localTime = Values[i].Time - node.StartTime;
+
+                // EndTime is a duration that starts at StartTime.
+                if (localTime >= node.EndTime)
                 {
-                    if (EcfFile.Nodes[i].Loop && !IsTerminating)
+                    if (node.Loop && !IsTerminating && node.EndTime > 0)
                     {
-                        Values[i].Time = EcfFile.Nodes[i].StartTime;
+                        localTime %= node.EndTime;
+                        Values[i].Time = node.StartTime + localTime;
                     }
                     else
                     {
                         Values[i].IsFinished = true;
+                        Values[i].IsLive = false;
+                        continue;
                     }
                 }
 
-                if (Values[i].Time >= EcfFile.Nodes[i].StartTime && !simulate)
-                {
-                    float time = Values[i].Time / (float)EcfFile.Nodes[i].EndTime;
+                active++;
+                Values[i].IsLive = localTime >= 0f;
 
-                    float[] multi = EcfFile.Nodes[i].MultiColor.GetInterpolatedValue(time);
-                    float[] rim = EcfFile.Nodes[i].RimColor.GetInterpolatedValue(time);
-                    float[] add = EcfFile.Nodes[i].AddColor.GetInterpolatedValue(time);
-                    float multi_A = EcfFile.Nodes[i].MultiColor_Transparency.GetInterpolatedValue(time);
-                    float rim_A = EcfFile.Nodes[i].RimColor_Transparency.GetInterpolatedValue(time);
-                    float add_A = EcfFile.Nodes[i].AddColor_Transparency.GetInterpolatedValue(time);
+                if (Values[i].IsLive && !simulate)
+                {
+                    float time = GetKeyframeTime(localTime, node.EndTime);
+
+                    float[] multi = node.MultiColor.GetInterpolatedValue(time);
+                    float[] rim = node.RimColor.GetInterpolatedValue(time);
+                    float[] add = node.AddColor.GetInterpolatedValue(time);
+                    float multi_A = node.MultiColor_Transparency.GetInterpolatedValue(time);
+                    float rim_A = node.RimColor_Transparency.GetInterpolatedValue(time);
+                    float add_A = node.AddColor_Transparency.GetInterpolatedValue(time);
 
                     Values[i].Multi[0] = multi[0] * multi_A;
                     Values[i].Multi[1] = multi[1] * multi_A;
                     Values[i].Multi[2] = multi[2] * multi_A;
-                    Values[i].Multi[3] = EcfFile.Nodes[0].BlendingFactor.GetInterpolatedValue(time);
+                    Values[i].Multi[3] = node.BlendingFactor.GetInterpolatedValue(time);
                     Values[i].RimColor[0] = rim[0] * rim_A;
                     Values[i].RimColor[1] = rim[1] * rim_A;
                     Values[i].RimColor[2] = rim[2] * rim_A;
+                    Values[i].RimColor[3] = rim_A * rim_A;
                     Values[i].AddColor[0] = add[0] * add_A;
                     Values[i].AddColor[1] = add[1] * add_A;
                     Values[i].AddColor[2] = add[2] * add_A;
+                    Values[i].AddColor[3] = add_A * add_A;
                 }
 
                 if (simulate)
@@ -114,7 +127,7 @@ namespace XenoKit.Engine.Vfx.Asset
                 }
                 else if (ViewportInstance.IsPlaying)
                 {
-                    Values[i].Time += EffectPart.UseTimeScale ? Actor.ActiveTimeScale : 1f;
+                    Values[i].Time += FrameStep;
                 }
             }
 
@@ -124,13 +137,20 @@ namespace XenoKit.Engine.Vfx.Asset
             }
         }
 
+        // Keyframe times are stored as 0 to 1 over the node duration.
+        private static float GetKeyframeTime(float localTime, int duration)
+        {
+            return duration > 1 ? localTime / (duration - 1) : localTime;
+        }
+
         public VfxColorFadeEntry GetColorFadeEntry(string material)
         {
             for(int i = 0; i < EcfFile.Nodes.Count; i++)
             {
-                if (Values.Count <= i) continue;
+                if (Values.Count <= i || !Values[i].IsLive) continue;
 
-                if((EcfFile.Nodes[i].UseMaterial && EcfFile.Nodes[i].Material.Equals(material,System.StringComparison.OrdinalIgnoreCase)) || !EcfFile.Nodes[i].UseMaterial)
+                // The node material is a case-sensitive pattern that must contain the drawn material name.
+                if(!EcfFile.Nodes[i].UseMaterial || EcfFile.Nodes[i].Material.Contains(material))
                 {
                     return Values[i];
                 }
@@ -167,6 +187,7 @@ namespace XenoKit.Engine.Vfx.Asset
     {
         public float Time = 0f;
         public bool IsFinished = false;
+        public bool IsLive = false;
         public float[] Multi = new float[4];
         public float[] RimColor = new float[4];
         public float[] AddColor = new float[4];
