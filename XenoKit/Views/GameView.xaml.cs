@@ -58,6 +58,8 @@ namespace XenoKit.Controls
                         return (SceneManager.Actors[0] != null) ? $"{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame}/{SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration}" : "--/--";
                     case EditorTabs.Projectile:
                         return $"{BsaEffectPreviewController.Instance.CurrentFrame}/{BsaEffectPreviewController.Instance.Duration}";
+                    case EditorTabs.PostEffects:
+                        return $"{SceneManager.BpePreview?.Frame ?? 0}/{SceneManager.BpePreview?.Duration ?? 0}";
                 }
                 return "--/--";
             }
@@ -122,6 +124,8 @@ namespace XenoKit.Controls
                         return (monoGame.Camera.cameraInstance != null) ? MonoGame.Camera.cameraInstance.CurrentAnimDuration - 1 : 0;
                     case EditorTabs.Action:
                         return (SceneManager.Actors[0] != null) ? SceneManager.Actors[0].ActionControl.BacPlayer.CurrentDuration : 0;
+                    case EditorTabs.PostEffects:
+                        return SceneManager.BpePreview?.Duration ?? 0;
                     case EditorTabs.Projectile:
                         return BsaEffectPreviewController.Instance.Duration;
                     default:
@@ -149,6 +153,8 @@ namespace XenoKit.Controls
                                 return DelayedSeekFrame != -1 ? DelayedSeekFrame : SceneManager.Actors[0].ActionControl.BacPlayer.CurrentFrame;
                             }
                         return 0;
+                    case EditorTabs.PostEffects:
+                        return SceneManager.BpePreview?.Frame ?? 0;
                     case EditorTabs.Projectile:
                         return BsaEffectPreviewController.Instance.CurrentFrame;
                     default:
@@ -179,6 +185,9 @@ namespace XenoKit.Controls
                         break;
                     case EditorTabs.Action:
                         DelayedSeekFrame = Viewport.Instance?.IsPlaying == true ? -1 : value;
+                        break;
+                    case EditorTabs.PostEffects:
+                        if (SceneManager.BpePreview != null) SceneManager.BpePreview.Frame = value;
                         break;
                     case EditorTabs.Projectile:
                         BsaEffectPreviewController.Instance.Seek(value);
@@ -371,6 +380,7 @@ namespace XenoKit.Controls
                 {
                     SettingsManager.settings.XenoKit_BpeSimulation = value;
                     SettingsManager.Instance.SaveSettings();
+                    SceneManager.BpePreview?.Refresh();
                 }
             }
         }
@@ -386,6 +396,24 @@ namespace XenoKit.Controls
                 {
                     SettingsManager.settings.XenoKit_VfxSimulation = value;
                     SettingsManager.Instance.SaveSettings();
+                }
+            }
+        }
+        public bool CharacterAuraSimulation
+        {
+            get
+            {
+                return SettingsManager.settings.XenoKit_CharacterAuraSimulation;
+            }
+            set
+            {
+                if (SettingsManager.settings.XenoKit_CharacterAuraSimulation != value)
+                {
+                    SettingsManager.settings.XenoKit_CharacterAuraSimulation = value;
+                    SettingsManager.Instance.SaveSettings();
+
+                    //Restarting the effects starts or removes the aura of the actors in the scene
+                    Engine.Viewport.Instance?.VfxManager?.StopEffects();
                 }
             }
         }
@@ -520,6 +548,7 @@ namespace XenoKit.Controls
             bpeEffectCheckBox.Visibility = Visibility.Collapsed;
             effectCheckBox.Visibility = Visibility.Collapsed;
             stageBgEffectCheckBox.Visibility = Visibility.Collapsed;
+            characterAuraCheckBox.Visibility = Visibility.Collapsed;
 
             if (SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Camera))
             {
@@ -539,7 +568,11 @@ namespace XenoKit.Controls
                 bpeEffectCheckBox.Visibility = Visibility.Visible;
                 projectileCheckBox.Visibility = Visibility.Visible;
                 stageBgEffectCheckBox.Visibility = Visibility.Visible;
+                characterAuraCheckBox.Visibility = Visibility.Visible;
             }
+
+            if (SceneManager.IsOnTab(EditorTabs.PostEffects))
+                bpeEffectCheckBox.Visibility = Visibility.Visible;
 
             if (SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Effect))
             {
@@ -559,6 +592,7 @@ namespace XenoKit.Controls
             NotifyPropertyChanged(nameof(BpeSimulation));
             NotifyPropertyChanged(nameof(VfxSimulation));
             NotifyPropertyChanged(nameof(StageBgVfxSimulation));
+            NotifyPropertyChanged(nameof(CharacterAuraSimulation));
         }
 
         private void UpdateCheckedButtons()

@@ -6,7 +6,11 @@ using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC;
 using XenoKit.Engine.Character;
 using XenoKit.Engine.Vfx.Asset;
+using Xv2CoreLib.ACB;
+using Xv2CoreLib.AUR;
 using Xv2CoreLib.BAC;
+using Xv2CoreLib.BPE;
+using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.BSA;
 using Xv2CoreLib.EEPK;
 using Xv2CoreLib.EffectContainer;
@@ -32,7 +36,7 @@ namespace XenoKit.Engine.Vfx
 
 
         #region PlayAndStop
-        public async void PlayEffect(Effect effect, Actor actor)
+        public async void PlayEffect(Effect effect, Actor actor, bool hideWithActor = false)
         {
             if (Effects.Count >= MAX_EFFECTS)
             {
@@ -40,7 +44,7 @@ namespace XenoKit.Engine.Vfx
                 return;
             }
 
-            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity));
+            await Task.Run(() => AddEffect(actor, effect, Matrix4x4.Identity, hideWithActor: hideWithActor));
         }
 
         public async void PlayEffect(BAC_Type8 bacEffect, BacEntryInstance bacInstance, Actor actor)
@@ -85,7 +89,7 @@ namespace XenoKit.Engine.Vfx
             PlayEffect((BAC_Type8.EepkTypeEnum)bdmInstance.BdmSubEntry.Effect3_EepkType, bdmInstance.BdmSubEntry.Effect3_SkillID, bdmInstance.BdmSubEntry.Effect3_ID, bdmInstance);
         }
 
-        public VfxEffect PlayProjectileEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world)
+        public VfxEffect PlayProjectileEffect(BSA_Type6 bsaEffect, Move move, Actor actor, Matrix4x4 world, Matrix4x4 nodeTransform)
         {
             if (Effects.Count >= MAX_EFFECTS)
             {
@@ -101,7 +105,7 @@ namespace XenoKit.Engine.Vfx
 
                 if (eepkEffect != null)
                 {
-                    return AddEffect(actor, eepkEffect, world, true);
+                    return AddEffect(actor, eepkEffect, world, true, nodeTransform);
                 }
 
                 Log.Add($"No effect at ID {bsaEffect.EffectID} could be found in EEPK {bsaEffect.EepkType}.");
@@ -137,9 +141,10 @@ namespace XenoKit.Engine.Vfx
             }
         }
 
-        private VfxEffect AddEffect(Actor actor, Effect effect, Matrix4x4 world, bool spawnedByProjectile = false)
+        private VfxEffect AddEffect(Actor actor, Effect effect, Matrix4x4 world, bool spawnedByProjectile = false, Matrix4x4? nodeTransform = null, bool hideWithActor = false)
         {
-            VfxEffect vfxEffect = new VfxEffect(actor, effect, world, spawnedByProjectile);
+            VfxEffect vfxEffect = new VfxEffect(actor, effect, world, spawnedByProjectile, nodeTransform);
+            vfxEffect.HideWithActor = hideWithActor;
 
             lock (Effects)
             {
@@ -179,6 +184,100 @@ namespace XenoKit.Engine.Vfx
                         vfxEffect.Terminate(true);
                 }
             }
+        }
+
+        //BTL_AURA.eepk in the common EEPK list
+        private const ushort AuraEepkId = 1;
+        //Cues in the common SE bank: the boost loop sound and the boost end sound
+        private const int AuraLoopCue = 100;
+        private const int AuraEndCue = 101;
+
+        /// <summary>
+        /// Plays or stops the effect for the row's aura type. The EEPK decides the bone and whether it loops, and nothing ends it when the row ends.
+        /// </summary>
+        public void PlayAura(BAC_Type19 row, Actor actor)
+        {
+            PlayAura(row.AuraType, row.AuraFlags.HasFlag(BAC_Type19.AuraFlagsEnum.DisableAura), actor);
+        }
+
+        private void PlayAura(AuraType type, bool stop, Actor actor)
+        {
+            AUR_Aura aura = Files.Instance.GetAura(actor, out int auraId, out _);
+            EffectContainerFile eepk = Files.Instance.GetEepkFile(BAC_Type8.EepkTypeEnum.Common, AuraEepkId, null, actor, true);
+
+            if (aura == null || eepk == null) return;
+
+            List<AUR_Effect> auraEffects = aura.AuraEffects;
+            PlayAuraSound(type, stop, actor);
+
+            //Any aura call restarts the outline, and a stop removes it. Auras without an outline also remove it.
+            BPE_Entry outline = stop ? null : Files.Instance.GetAuraOutline(auraId);
+
+            if (outline != null)
+                actor.StartAuraOutline(outline);
+            else
+                actor.StopAuraOutline();
+
+            if (!stop && (type == AuraType.BoostStart || type == AuraType.BoostLoop))
+            {
+                StopEffect(GetAuraEffect(eepk, auraEffects, AuraType.KiaiCharge));
+                StopEffect(GetAuraEffect(eepk, auraEffects, AuraType.HenshinStart));
+            }
+
+            Effect effect = GetAuraEffect(eepk, auraEffects, type);
+
+            if (stop)
+            {
+                StopEffect(effect);
+
+                //When an aura stops, the Glare aura starts again, as the game re-adds HenshinStart
+                StartPermanentAura(actor);
+            }
+            else if (effect != null)
+            {
+                PlayEffect(effect, actor, true);
+            }
+        }
+
+        //Characters with Glare set in aura_setting.aur start their HenshinStart aura when they spawn
+        private void StartPermanentAura(Actor actor)
+        {
+            Files.Instance.GetAura(actor, out _, out bool glare);
+
+            if (!glare || !SettingsManager.settings.XenoKit_VfxSimulation || !SettingsManager.settings.XenoKit_CharacterAuraSimulation) return;
+
+            PlayAura(AuraType.HenshinStart, false, actor);
+        }
+
+        private void PlayAuraSound(AuraType type, bool stop, Actor actor)
+        {
+            ACB_Wrapper acb = Files.Instance.GetAcbFile(Xv2CoreLib.BAC.AcbType.Common_SE, null, actor, false);
+
+            if (acb == null || !ViewportInstance.IsPlaying) return;
+
+            if (type == AuraType.BoostEnd || (stop && type == AuraType.BoostLoop))
+                ViewportInstance.AudioEngine.StopCue(AuraLoopCue, acb.AcbFile.Name);
+
+            if (stop) return;
+
+            if (type == AuraType.BoostStart)
+                ViewportInstance.AudioEngine.PlayCue(AuraLoopCue, acb, actor);
+            else if (type == AuraType.BoostEnd)
+                ViewportInstance.AudioEngine.PlayCue(AuraEndCue, acb, actor);
+        }
+
+        private static Effect GetAuraEffect(EffectContainerFile eepk, List<AUR_Effect> auraEffects, AuraType type)
+        {
+            int index = (int)type;
+
+            if (index >= auraEffects.Count || auraEffects[index].I_04 < 0) return null;
+
+            Effect effect = eepk.GetEffect(auraEffects[index].I_04);
+
+            if (effect == null)
+                Log.Add($"VfxManager.PlayAura: no effect {auraEffects[index].I_04} in BTL_AURA.eepk for aura type {type}.", LogType.Warning);
+
+            return effect;
         }
 
         public void StopEffect(BAC_Type8 bacEffect, BacEntryInstance bacInstance)
@@ -225,6 +324,14 @@ namespace XenoKit.Engine.Vfx
 
                 NewEffects.Clear();
                 Effects.Clear();
+            }
+
+            foreach (Actor actor in SceneManager.Actors)
+            {
+                if (actor == null) continue;
+
+                actor.StopAuraOutline();
+                StartPermanentAura(actor);
             }
 
         }

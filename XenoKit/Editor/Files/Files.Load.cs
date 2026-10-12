@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -9,6 +9,7 @@ using System.Runtime.ExceptionServices;
 using MahApps.Metro.Controls.Dialogs;
 using Xv2CoreLib;
 using Xv2CoreLib.ACB;
+using Xv2CoreLib.AUR;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BCS;
 using Xv2CoreLib.BDM;
@@ -17,6 +18,7 @@ using Xv2CoreLib.BSA;
 using Xv2CoreLib.CUS;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.Eternity;
 using xv2 = Xv2CoreLib.Xenoverse2;
 using @file = Xv2CoreLib.FileManager;
 using Xv2CoreLib.ValuesDictionary;
@@ -137,6 +139,23 @@ namespace XenoKit.Editor
             }
         }
 
+        private static PrebakedFile LoadPrebakedFile()
+        {
+            string path = file.Instance.GetAbsolutePath("pre-baked.xml");
+
+            if (!File.Exists(path)) return null;
+
+            try
+            {
+                return PrebakedFile.Load(path);
+            }
+            catch (Exception ex)
+            {
+                Log.Add($"Could not load {path}, so aura outlines from XV2Patcher are not used: {ex.Message}", LogType.Error);
+                return null;
+            }
+        }
+
         public async Task<Actor> AsyncLoadCharacter(int id, int partSetId, bool readOnly = false, int replaceItemIndex = -1, bool onlyLoadFromCpk = false)
         {
             string message = $"Loading character \"{Xenoverse2.Instance.GetCharacterName(id, xv2.Language.English)}\"";
@@ -216,6 +235,13 @@ namespace XenoKit.Editor
             }
         }
 
+        private static void AddCommonEan(Move move, BAC_Type0.EanTypeEnum source, string path, string race = null)
+        {
+            move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(path),
+                file.Instance.GetAbsolutePath(path), false, race, false, xv2.MoveFileTypes.EAN,
+                (int)source, true, xv2.MoveType.Common));
+        }
+
         private async void LoadCmnFiles()
         {
             try
@@ -231,6 +257,10 @@ namespace XenoKit.Editor
                 move.Files = new Xv2MoveFiles();
 
                 CmnBpeFile = BPE_File.Load(file.Instance.GetBytesFromGame("pe/cmn.bpe", false, true));
+                CmnAuraFile = AUR_File.Load(file.Instance.GetBytesFromGame("system/aura_setting.aur", false, true));
+                CmnPrebakedFile = LoadPrebakedFile();
+                CmnFootstepsAcbFile = file.Instance.LoadFile<ACB_Wrapper>("sound/SE/Battle/Field/CAR_BTL_BKG_CMN.acb");
+                CmnMissionAcbFile = file.Instance.LoadFile<ACB_Wrapper>("sound/SE/Battle/Mission/CAR_Mission_DB_SE.acb");
 
                 move.Files.BdmFile = new Xv2File<BDM_File>(file.Instance.LoadFile<BDM_File>(xv2.CMN_BDM_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BDM_PATH), false, null, false, xv2.MoveFileTypes.BDM, 0, true, xv2.MoveType.Common);
                 move.Files.BsaFile = new Xv2File<BSA_File>(file.Instance.LoadFile<BSA_File>(xv2.CMN_BSA_PATH), file.Instance.GetAbsolutePath(xv2.CMN_BSA_PATH), false, null, false, xv2.MoveFileTypes.BSA, 0, true, xv2.MoveType.Common);
@@ -249,13 +279,28 @@ namespace XenoKit.Editor
 
                 tasks.Add(Task.Run(() =>
                 {
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_DBA_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_DBA_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_DBA, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TTL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TTL_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TTL, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TU6_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU6_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU6, true, xv2.MoveType.Common));
-                    move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_TU13_5_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_TU13_5_EAN_PATH), false, null, false, xv2.MoveFileTypes.EAN, (int)BAC_Type0.EanTypeEnum.MCM_TU13_5, true, xv2.MoveType.Common));
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_DBA, xv2.CMN_MCM_DBA_EAN_PATH);
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_TTL, xv2.CMN_MCM_TTL_EAN_PATH);
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_TU6, xv2.CMN_MCM_TU6_EAN_PATH);
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_TU13_5, xv2.CMN_MCM_TU13_5_EAN_PATH);
                     move.Files.EanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_TAL_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_TAL_EAN_PATH), false, null, false, xv2.MoveFileTypes.TAL_EAN, (int)BAC_Type0.EanTypeEnum.CommonTail, true, xv2.MoveType.Common));
 
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_LeftHand, "chara/CMN/MCM.DBA.LHAND.ean");
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_BothHands, "chara/CMN/MCM.DBA.LRHAND.ean");
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_XV1, "chara/CMN/MCM.XV1.ean");
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.MCM_CommonFull, "chara/CMN/MCM.CMN.FULL.ean");
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.CM2_XAC, "chara/CM2/CM2.XAC.frs.ean");
+                    AddCommonEan(move, BAC_Type0.EanTypeEnum.CM2_XAN, "chara/CM2/CM2.XAN.frs.ean");
+                    foreach (string race in new[] { "HUM", "HUF", "SYM", "SYF", "MAM", "MAF", "NMC", "FRI" })
+                    {
+                        AddCommonEan(move, BAC_Type0.EanTypeEnum.CommonTTL, $"chara/CMN_TTL/CMN.{race}.TTL.ean", race);
+                        if (race != "SYM" && race != "SYF")
+                            AddCommonEan(move, BAC_Type0.EanTypeEnum.CM2_XVS, $"chara/CM2/CM2.{race}.xvs.ean", race);
+                    }
+
                     move.Files.CamEanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(xv2.CMN_MCM_CAM_EAN_PATH), file.Instance.GetAbsolutePath(xv2.CMN_MCM_CAM_EAN_PATH), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.MCM, true, xv2.MoveType.Common));
+                    const string ttlCameraPath = "chara/CMN_TTL/CMN.cam_TTL.ean";
+                    move.Files.CamEanFile.Add(new Xv2File<EAN_File>(file.Instance.LoadFile<EAN_File>(ttlCameraPath), file.Instance.GetAbsolutePath(ttlCameraPath), false, null, false, xv2.MoveFileTypes.CAM_EAN, (int)BAC_Type10.EanTypeEnum.CommonTTL, true, xv2.MoveType.Common));
 
                     move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_DBA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_DBA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 1, true, xv2.MoveType.Common));
                     move.Files.BacFiles.Add(new Xv2File<BAC_File>(file.Instance.LoadFile<BAC_File>(xv2.CMN_QEA_BAC_PATH), file.Instance.GetAbsolutePath(xv2.CMN_QEA_BAC_PATH), false, null, false, xv2.MoveFileTypes.BAC, 2, true, xv2.MoveType.Common));
@@ -307,6 +352,7 @@ namespace XenoKit.Editor
                 await Task.WhenAll(tasks);
                 Log.Add("CMN load (complete) finished at " + window.sw.Elapsed, LogType.Debug);
                 move.Files.EepkFiles.Sort((x, y) => x.Costumes[0] - y.Costumes[0]);
+                await window.Dispatcher.InvokeAsync(window.LoadPostEffects);
             }
             catch (Exception ex)
             {

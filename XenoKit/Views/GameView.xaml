@@ -176,6 +176,7 @@
                             <CheckBox x:Name="bpeEffectCheckBox" IsChecked="{Binding ElementName=UserControl, Path=BpeSimulation}" Content="BPE" Height="20" ToolTip="Toggle BPE screen effects." Margin="3, 0" Visibility="Collapsed"/>
                             <CheckBox x:Name="effectCheckBox" IsChecked="{Binding ElementName=UserControl, Path=VfxSimulation}" Content="Effect" Height="20" ToolTip="Toggle effect previewing." Margin="3, 0" Visibility="Collapsed"/>
                             <CheckBox x:Name="stageBgEffectCheckBox" IsChecked="{Binding ElementName=UserControl, Path=StageBgVfxSimulation}" Content="Stage BG" Height="20" ToolTip="Toggle Stage BG effects." Margin="3, 0" Visibility="Collapsed"/>
+                            <CheckBox x:Name="characterAuraCheckBox" IsChecked="{Binding ElementName=UserControl, Path=CharacterAuraSimulation}" Content="Aura" Height="20" ToolTip="Show the aura that characters with Glare start with." Margin="3, 0" Visibility="Collapsed"/>
                         </StackPanel>
                     </Border>
                 </Popup>

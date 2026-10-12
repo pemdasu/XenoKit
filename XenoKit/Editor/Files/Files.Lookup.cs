@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Xv2CoreLib;
 using Xv2CoreLib.ACB;
+using Xv2CoreLib.AUR;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.BDM;
 using Xv2CoreLib.BPE;
@@ -11,6 +12,7 @@ using Xv2CoreLib.BSA;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.ERS;
 using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.Eternity;
 using xv2 = Xv2CoreLib.Xenoverse2;
 using @file = Xv2CoreLib.FileManager;
 using XenoKit.Engine;
@@ -23,6 +25,60 @@ namespace XenoKit.Editor
         {
             var move = OutlinerItems.FirstOrDefault(x => x.Type == OutlinerItem.OutlinerItemType.CMN);
             return move != null ? move.move : null;
+        }
+
+        public BPE_File CommonBpeFile => CmnBpeFile;
+
+        //The game's hard-coded aura id to BPE body outline table. XV2Patcher's pre-baked.xml AuraExtraData replaces entries.
+        private static readonly Dictionary<int, ushort> AuraOutlineBpeIds = new Dictionary<int, ushort>()
+        {
+            { 0x1A, 0x53 }, { 0x1B, 0x53 }, { 0x1D, 0x53 }, { 0x1F, 0x53 }, { 0x32, 0x53 },
+            { 0x24, 0x101 }, { 0x27, 0x104 }, { 0x2D, 0x109 }, { 0x2E, 0x111 }, { 0x33, 0x118 }, { 0x34, 0x119 }, { 0x35, 0x12E }, { 0x3D, 0x154 },
+            { 0x3F, 0x172 }, { 0x43, 0x172 }, { 0x44, 0x172 }, { 0x46, 0x172 }, { 0x40, 0x173 },
+            { 0x39, 0x140 }, { 0x3A, 0x140 }, { 0x3B, 0x140 }, { 0x3C, 0x140 }, { 0x41, 0x140 }, { 0x42, 0x140 }, { 0x45, 0x140 }, { 0x47, 0x140 }
+        };
+
+        /// <summary>
+        /// The actor's aura from aura_setting.aur. The game falls back to costume 0, and to aura 0 when the character has no entry.
+        /// </summary>
+        /// <param name="glare">The Glare value of the character entry. The character starts this aura when it spawns.</param>
+        public AUR_Aura GetAura(Actor actor, out int auraId, out bool glare)
+        {
+            auraId = 0;
+            glare = false;
+
+            if (CmnAuraFile == null || actor?.CharacterData?.CmsEntry == null) return null;
+
+            int charaId = actor.CharacterData.CmsEntry.ID;
+            AUR_Character chara = CmnAuraFile.CharacterAuras.FirstOrDefault(x => x.CharaID == charaId && x.Costume == actor.PartSet.ID)
+                ?? CmnAuraFile.CharacterAuras.FirstOrDefault(x => x.CharaID == charaId && x.Costume == 0);
+
+            glare = chara?.I_12 == true;
+            auraId = chara != null && chara.AuraID > 0 ? chara.AuraID : 0;
+
+            if (auraId >= CmnAuraFile.Auras.Count)
+            {
+                Log.Add($"Files.GetAura: aura {auraId} for character {charaId} is not in aura_setting.aur.", LogType.Warning);
+                return null;
+            }
+
+            return CmnAuraFile.Auras[auraId];
+        }
+
+        /// <summary>
+        /// The BPE body outline that shows while the aura is on, or null when the aura has none.
+        /// </summary>
+        public BPE_Entry GetAuraOutline(int auraId)
+        {
+            PreBakedAuraExtraData extra = CmnPrebakedFile?.AuraExtras?.FirstOrDefault(x => x.AuraID == auraId);
+            ushort bpeId;
+
+            if (extra != null)
+                bpeId = extra.BPE_ID;
+            else if (!AuraOutlineBpeIds.TryGetValue(auraId, out bpeId))
+                return null;
+
+            return GetBpeEntry(bpeId, true);
         }
 
         public BPE_Entry GetBpeEntry(ushort bpeIndex, bool logErrors)
@@ -73,7 +129,21 @@ namespace XenoKit.Editor
                 case BAC_Type0.EanTypeEnum.MCM_TTL:
                 case BAC_Type0.EanTypeEnum.MCM_TU6:
                 case BAC_Type0.EanTypeEnum.MCM_TU13_5:
+                case BAC_Type0.EanTypeEnum.MCM_LeftHand:
+                case BAC_Type0.EanTypeEnum.MCM_BothHands:
+                case BAC_Type0.EanTypeEnum.MCM_XV1:
+                case BAC_Type0.EanTypeEnum.MCM_CommonFull:
+                case BAC_Type0.EanTypeEnum.CM2_XAC:
+                case BAC_Type0.EanTypeEnum.CM2_XAN:
                     return Instance.GetCmnMove().Files.EanFile.FirstOrDefault(x => x.Costumes.Contains((int)eanType))?.File;
+                case BAC_Type0.EanTypeEnum.CommonTTL:
+                case BAC_Type0.EanTypeEnum.CM2_XVS:
+                    if (character == null) return null;
+                    var bcs = character.CharacterData.BcsFile.File;
+                    string race = System.IO.Path.GetFileNameWithoutExtension(Xv2CoreLib.BCS.BCS_File.GetBcsFilePath(bcs.Race, bcs.Gender));
+                    if (eanType == BAC_Type0.EanTypeEnum.CommonTTL && bcs.Race == Xv2CoreLib.BCS.Race.Saiyan)
+                        race = bcs.Gender == Xv2CoreLib.BCS.Gender.Male ? "SYM" : "SYF";
+                    return Instance.GetCmnMove().Files.EanFile.FirstOrDefault(x => x.Costumes.Contains((int)eanType) && x.CharaCode == race)?.File;
                 case BAC_Type0.EanTypeEnum.Character:
                     if (move == null) return character?.Moveset.Files.GetEanFile(character.ShortName, charaUnique);
                     return (move.MoveType == Move.Type.Moveset) ? move.Files.GetEanFile(character?.ShortName, charaUnique) : character?.Moveset.Files.GetEanFile(character.ShortName, charaUnique);
@@ -131,6 +201,7 @@ namespace XenoKit.Editor
             {
                 case BAC_Type10.EanTypeEnum.Common:
                 case BAC_Type10.EanTypeEnum.MCM:
+                case BAC_Type10.EanTypeEnum.CommonTTL:
                     return Instance.GetCmnMove().Files.CamEanFile.FirstOrDefault(x => x.Costumes.Contains((int)eanType))?.File;
                 case BAC_Type10.EanTypeEnum.Character:
                     if (move == null) return character.Moveset.Files.GetCamEanFile(character.ShortName, charaUnique);
@@ -341,6 +412,10 @@ namespace XenoKit.Editor
             {
                 case Xv2CoreLib.BAC.AcbType.Common_SE:
                     return GetCmnMove().Files.GetSeFile();
+                case Xv2CoreLib.BAC.AcbType.Footsteps:
+                    return CmnFootstepsAcbFile;
+                case Xv2CoreLib.BAC.AcbType.Mission_SE:
+                    return CmnMissionAcbFile;
                 case Xv2CoreLib.BAC.AcbType.Character_SE:
                     return (move.MoveType == Move.Type.Skill || move.MoveType == Move.Type.CMN) ? character?.Moveset.Files.GetSeFile() : move.Files.GetSeFile();
                 case Xv2CoreLib.BAC.AcbType.Skill_SE:

@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using MahApps.Metro.Controls.Dialogs;
+using Xv2CoreLib.ACB;
+using Xv2CoreLib.AUR;
 using Xv2CoreLib.BPE;
 using Xv2CoreLib.EffectContainer;
+using Xv2CoreLib.Eternity;
 using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.App;
 using xv2 = Xv2CoreLib.Xenoverse2;
@@ -43,6 +46,11 @@ namespace XenoKit.Editor
         private readonly HashSet<string> missingStageEepks = new HashSet<string>();
 
         private BPE_File CmnBpeFile;
+        private AUR_File CmnAuraFile;
+        //Only present when XV2Patcher is installed
+        private PrebakedFile CmnPrebakedFile;
+        private ACB_Wrapper CmnFootstepsAcbFile;
+        private ACB_Wrapper CmnMissionAcbFile;
 
         public AsyncObservableCollection<OutlinerItem> OutlinerItems { get; set; } = new AsyncObservableCollection<OutlinerItem>();
 
@@ -79,6 +87,10 @@ namespace XenoKit.Editor
                 {
                     DynamicTab tab = TabManager.GetSelectedDynamicTab();
                     return tab.Context.CanSave() ? $"_Save File ({tab.Context.GetSaveContextFileName()})" : "Save File (N/A)";
+                }
+                else if (SceneManager.CurrentSceneState == EditorTabs.PostEffects)
+                {
+                    return window?.PostEffectsEditor?.CanSave() == true ? $"_Save File ({window.PostEffectsEditor.GetSaveContextFileName()})" : "Save File (N/A)";
                 }
                 else if (SceneManager.CurrentSceneState == EditorTabs.FPF)
                 {
