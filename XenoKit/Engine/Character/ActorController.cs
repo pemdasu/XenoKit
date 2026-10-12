@@ -22,6 +22,7 @@ namespace XenoKit.Engine.Character
             set
             {
                 _state = value;
+                FreezeActionFrames = 0;
                 SetStateBacEntries(value);
             }
         }
@@ -59,6 +60,7 @@ namespace XenoKit.Engine.Character
 
             InvulnerabilityFrames = 0;
             FreezeActionFrames = 0;
+            Actor.ResetRandom();
         }
 
         public void SetBacEntries(params int[] bacEntries)
@@ -303,14 +305,17 @@ namespace XenoKit.Engine.Character
                 }
 
                 //On the first frame, activate the effects and sounds declared on the BDM entry and initialize any other settings
-                //The current animation will be frozen for 1 frame while this happens
                 if (DamageManager.CurrentFrame == 0 && (Actor.ViewportInstance.IsPlaying || simulate))
                 {
-                    FreezeActionFrames = DamageManager.BdmSubEntry.VictimStun + 1;
-                    DamageManager.Attacker.Controller.FreezeActionFrames = DamageManager.BdmSubEntry.UserStun + 1;
+                    //Hit stop never shortens a freeze that is already running. A stun of 0 adds no freeze.
+                    ActorController attacker = DamageManager.Attacker.Controller;
+                    if (DamageManager.BdmSubEntry.VictimStun > 0)
+                        FreezeActionFrames = Math.Max(FreezeActionFrames, DamageManager.BdmSubEntry.VictimStun + 1);
+                    if (DamageManager.BdmSubEntry.UserStun > 0)
+                        attacker.FreezeActionFrames = Math.Max(attacker.FreezeActionFrames, DamageManager.BdmSubEntry.UserStun + 1);
 
                     InvulnerabilityFrames = DamageManager.BdmSubEntry.VictimInvincibilityTime + FreezeActionFrames;
-                    DamageManager.Attacker.Controller.InvulnerabilityFrames = DamageManager.Attacker.Controller.FreezeActionFrames;
+                    attacker.InvulnerabilityFrames = attacker.FreezeActionFrames;
 
                     Actor.BdmTimeScale = DamageManager.BdmSubEntry.VictimAnimationSpeed;
                     Actor.BdmTimeScaleDuration = DamageManager.BdmSubEntry.VictimAnimationTime;

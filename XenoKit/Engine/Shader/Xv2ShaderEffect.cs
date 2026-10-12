@@ -117,7 +117,6 @@ namespace XenoKit.Engine.Shader
         private static Vector4 HC_Param12 = new Vector4(-0.55689f, 0.79556f, -0.23867f, 1.00f);
         private static Vector4 HC_Param13 = new Vector4(8.00f, 0.40f, 0.00f, 0.00f);
         private static Vector4 HC_UserFlag1 = new Vector4(7936f, 0, 0.00f, 0.00f);
-        private const float VanishShaderFlag = 115f;
         private static readonly Vector4 DefaultBackgroundGlareTone = new Vector4(0.5f, 0.5f, 0.5f, 3.75f);
         private static readonly Vector4 DefaultEffectGlareTone = new Vector4(0.9f, 0.9f, 0.9f, 0.95f);
 
@@ -140,6 +139,11 @@ namespace XenoKit.Engine.Shader
 
         private float[] TexScrl0, TexScrl1 = null;
         private float[] MatCol0, MatCol1, MatCol2, MatCol3 = null;
+        /// <summary>
+        /// Replaces the material MatScale0 values while it is set.
+        /// </summary>
+        public float[] MatScale0Override;
+        private bool matScale0Overridden;
 
 
         private BlendState _blendState;
@@ -898,6 +902,14 @@ namespace XenoKit.Engine.Shader
                 ApplyParameter(parameter);
             }
 
+            if (MatScale0Override != null || matScale0Overridden)
+            {
+                float[] matScale0 = MatScale0Override ?? MatParam.MatScale0.Values;
+                Parameters["g_MaterialScale0_VS"]?.SetVector4(matScale0);
+                Parameters["g_MaterialScale0_PS"]?.SetVector4(matScale0);
+                matScale0Overridden = MatScale0Override != null;
+            }
+
             Parameters["g_bOutputGlareMRT_PS"]?.SetValue(glareOutputAllowed && MatParam.Glare == 1);
             glareOutputAllowed = true;
 
@@ -940,12 +952,12 @@ namespace XenoKit.Engine.Shader
                             g_vUserFlag1_VS?.SetValue(Vector4.Zero);
                             break;
                         case ActorShaderPath.Vanish:
-                            g_mWV_VS_padding?.SetValue(new Vector4(VanishShaderFlag, 0, 0, 0));
-                            g_vUserFlag1_VS?.SetValue(new Vector4(VanishShaderFlag, actor.ShaderParameters.g_vUserFlag1_VS.Y, 0, 0));
+                            g_mWV_VS_padding?.SetValue(new Vector4(actor.ShaderParameters.g_vUserFlag1_VS.X, 0, 0, 0));
+                            g_vUserFlag1_VS?.SetValue(actor.ShaderParameters.g_vUserFlag1_VS);
                             g_vColor4_PS?.SetValue(actor.ShaderParameters.g_vColor4_PS);
-                            g_vParam8_PS?.SetValue(new Vector4(0f, 0f, 0.001f, 1f));
+                            g_vParam8_PS?.SetValue(actor.ShaderParameters.g_vParam8_PS);
                             g_vParam9_PS?.SetValue(actor.ShaderParameters.g_vParam9_PS);
-                            g_vParam10_PS?.SetValue(new Vector4(0f, 0f, 1f, 0f));
+                            g_vParam10_PS?.SetValue(actor.ShaderParameters.g_vParam10_PS);
                             break;
                         case ActorShaderPath.HC:
                             g_vUserFlag1_VS?.SetValue(HC_UserFlag1);
@@ -1129,73 +1141,32 @@ namespace XenoKit.Engine.Shader
             }
 
             //Default path; used for effects (PBIND, TBIND and EMO) and regular character shaders
-            switch (MatParam.AlphaBlendType)
+            //Without AlphaBlend, blending stays off. LowRez materials do not add their alpha for types 0 and 1.
+            bool lowRez = Material.DecompiledParameters.LowRez == 1 || Material.DecompiledParameters.LowRezSmoke == 1;
+
+            switch (MatParam.AlphaBlend == 1 ? MatParam.AlphaBlendType : -1)
             {
                 case 0: //Normal
-                    //BlendState 0
-                    blendState[0].ColorSourceBlend = Blend.SourceAlpha;
-                    blendState[0].ColorDestinationBlend = Blend.InverseSourceAlpha;
-                    blendState[0].ColorBlendFunction = BlendFunction.Add;
+                    blendState.ApplyAlphaBlend(0);
 
-                    blendState[0].AlphaSourceBlend = Blend.SourceAlpha;
-                    blendState[0].AlphaDestinationBlend = Blend.InverseSourceAlpha;
-                    blendState[0].AlphaBlendFunction = BlendFunction.Add;
+                    if (lowRez)
+                        blendState[0].AlphaSourceBlend = Blend.Zero;
 
-                    blendState[0].ColorWriteChannels = ColorWriteChannels.All;
-
-                    //BlendState 1
                     blendState.CopyState(0, 1);
                     break;
                 case 1: //Additive
-                    //Blend 0
-                    blendState.ColorSourceBlend = Blend.SourceAlpha;
-                    blendState.ColorDestinationBlend = Blend.One;
-                    blendState.ColorBlendFunction = BlendFunction.Add;
-
-                    blendState.AlphaSourceBlend = Blend.SourceAlpha;
-                    blendState.AlphaDestinationBlend = Blend.One;
-                    blendState.AlphaBlendFunction = BlendFunction.Add;
-
-                    blendState.ColorWriteChannels = ColorWriteChannels.All;
-
-                    //Blend 1
+                    blendState.ApplyAdditive(0);
                     blendState.CopyState(0, 1);
 
-                    blendState[0].AlphaSourceBlend = Blend.Zero;
-                    blendState[0].AlphaDestinationBlend = Blend.One;
-                    blendState[1].AlphaSourceBlend = Blend.Zero;
-                    blendState[1].AlphaDestinationBlend = Blend.One;
-
-                    if(Material.DecompiledParameters.LowRez == 1 || Material.DecompiledParameters.LowRezSmoke == 1)
+                    if (lowRez)
                     {
-                        blendState[1].ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue;
-                    }
-                    break;
-                case 2: //Subtractive
-                    //Blend 0
-                    blendState.AlphaBlendFunction = BlendFunction.ReverseSubtract;
-                    blendState.AlphaSourceBlend = Blend.SourceAlpha;
-                    blendState.AlphaDestinationBlend = Blend.One;
-
-                    blendState.ColorBlendFunction = BlendFunction.ReverseSubtract;
-                    blendState.ColorSourceBlend = Blend.SourceAlpha;
-                    blendState.ColorDestinationBlend = Blend.One;
-
-                    blendState.ColorWriteChannels = ColorWriteChannels.All;
-
-                    //Blend 1
-                    blendState.CopyState(0, 1);
-
-                    if (Material.DecompiledParameters.LowRez == 1 || Material.DecompiledParameters.LowRezSmoke == 1)
-                    {
-                        blendState[1].ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue;
-
-                        //Need to reconfirm this case.
-                        //When both AlphaBlendType 1 AND LowRez are set, AlphaSourceBlend is set to zero on both states
                         blendState[0].AlphaSourceBlend = Blend.Zero;
                         blendState[1].AlphaSourceBlend = Blend.Zero;
                     }
-
+                    break;
+                case 2: //Subtractive
+                    blendState.ApplySubtractive(0);
+                    blendState.CopyState(0, 1);
                     IsSubtractiveBlending = true;
                     break;
                 default:
@@ -1211,7 +1182,13 @@ namespace XenoKit.Engine.Shader
                     blendState.CopyState(0, 1);
                     break;
             }
-            
+
+            //LowRez keeps the second target's alpha for non-normal types, even without AlphaBlend. Otherwise Shimmer writes only that alpha.
+            if (lowRez && MatParam.AlphaBlendType > 0)
+                blendState[1].ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue;
+            else if (MatParam.Shimmer == 1)
+                blendState[1].ColorWriteChannels = ColorWriteChannels.Alpha;
+
             return blendState;
         }
 
@@ -1568,8 +1545,10 @@ namespace XenoKit.Engine.Shader
     public struct ActorShaderExtraParameters
     {
         public ActorShaderPath ShaderPath;
-        public SimdVector4 g_vColor4_PS; //Tint color (RGB used, A ignored).
+        public SimdVector4 g_vColor4_PS;
+        public SimdVector4 g_vParam8_PS;
         public SimdVector4 g_vParam9_PS; //X = horizontal line size, Y = vertical line size, Z = gap between horizontal lines, W = gap between vertical lines
+        public SimdVector4 g_vParam10_PS;
         public SimdVector4 g_vUserFlag1_VS; //X = Activate Path (115 = Vanish, 7936 = HC), Y = controls intensity of g_vColor4_PS (0 - 10 range, where 0 just tints the character, and 10 is fully opaque with no texture details) 
         public bool BodyOutlineActive;
         public SimdVector4 BodyOutlineColor;

@@ -6,6 +6,7 @@ using XenoKit.Engine.Scripting.BAC;
 using XenoKit.Engine.Scripting.BSA;
 using Xv2CoreLib.EAN;
 using Xv2CoreLib.BAC;
+using Xv2CoreLib.BPE;
 using XenoKit.Controls;
 using XenoKit.Engine.Character;
 using XenoKit.Engine.Collision;
@@ -24,10 +25,23 @@ namespace XenoKit.Engine
         public override EngineObjectTypeEnum EngineObjectType => EngineObjectTypeEnum.Actor;
 
         public int Team => ActorSlot == 1 ? 1 : 0;
+        //The victim only counts as an opponent while it is enabled.
+        public Actor Opponent => ActorSlot == 1 ? SceneManager.Actors[0] : (SceneManager.VictimEnabled ? SceneManager.Actors[1] : null);
         public int ActorSlot = 0;
+        public readonly EmRandom MobRandom = new EmRandom();
+        // Stands in for the C runtime rand() stream. The real seed is unknown, so values only repeat per reset.
+        public System.Random CrtRandom { get; private set; } = new System.Random(0);
         public CharaPartSet PartSet;
         public int ForceDytOverride = -1;
+        //Set by BAC DYT Blend rows. A main DYT of -1 uses the DYT of each part.
+        public int BacDytMain = -1;
+        public int BacDytBlend = -1;
+        public float BacDytRatio;
+        //Set by BAC Material Parameter rows, by part type and material index
+        public readonly System.Collections.Generic.Dictionary<(int part, int material), float[]> BacMatScale0 = new System.Collections.Generic.Dictionary<(int part, int material), float[]>();
         public bool IsVisible = true;
+        //Cleared by BAC Function 0x17 while it is active. Tracking skips actors that cannot be tracked.
+        public bool CanBeTracked = true;
         public FPF_File FpfPreviewFile = null;
         public string FpfPreviewPath = null;
         public FpfPoseMatrix FpfPreviewPoseMatrix = FpfPoseMatrix.AbsolutePoseTransform;
@@ -81,6 +95,13 @@ namespace XenoKit.Engine
 
         //Character Source Files:
         public Xv2Character CharacterData { get; private set; }
+
+        //The aura BPE body outline and its own frame. It does not follow the BAC entry.
+        private BacScreenEffectInstance[] auraOutline;
+        private float auraOutlineFrame;
+        private bool auraOutlineShown;
+        private BacScreenEffectEvaluator auraOutlineEvaluator;
+        private readonly BacScreenEffectState auraOutlineState = new BacScreenEffectState();
         public Move Moveset { get; private set; }
         public EAN_File FceEanFile
         {
@@ -125,6 +146,7 @@ namespace XenoKit.Engine
 
         public Actor(Xv2Character character, int initialPartSet = 0)
         {
+            ResetTransparencyValues();
             Skeleton = CompiledObjectManager.GetCompiledObject<Xv2Skeleton>(character.EskFile.File);
             Name = character.Name[0];
             ResetPosition();
@@ -166,6 +188,12 @@ namespace XenoKit.Engine
             BaseTransform *= Matrix4x4.CreateTranslation(translation);
         }
 
+        public void ResetRandom()
+        {
+            MobRandom.Seed((uint)ActorSlot);
+            CrtRandom = new System.Random(ActorSlot);
+        }
+
         public void ResetPosition()
         {
             SimdVector3 pos;
@@ -190,7 +218,8 @@ namespace XenoKit.Engine
 
         public void ResetState(bool keepAnimation = false)
         {
-            ShaderParameters.ShaderPath = ActorShaderPath.Default;
+            ResetTransparencyValues();
+            ResetBacMaterialValues();
             ClearBodyOutlineValues();
             BdmTimeScaleDuration = 0;
             BdmTimeScale = 1f;
@@ -203,11 +232,62 @@ namespace XenoKit.Engine
             //TODO: Check for a better place to put this. Dont want UI related stuff mixed in here
             if (!keepAnimation)
             {
+                PartSet.StopScdAnimations();
                 AnimationPlayer.ClearCurrentAnimation(true, !retainActionPosition);
             }
 
             if (!retainActionPosition)
                 ResetPosition();
+        }
+
+        public void ResetBacMaterialValues()
+        {
+            BacDytMain = -1;
+            BacDytBlend = -1;
+            BacDytRatio = 0f;
+            BacMatScale0.Clear();
+        }
+
+        public void ResetTransparencyValues()
+        {
+            ShaderParameters.ShaderPath = ActorShaderPath.Default;
+            ShaderParameters.g_vColor4_PS = SimdVector4.One;
+            ShaderParameters.g_vParam8_PS = new SimdVector4(0f, 0f, 1f, 1f);
+            ShaderParameters.g_vParam9_PS = SimdVector4.One;
+            ShaderParameters.g_vParam10_PS = new SimdVector4(0f, 0f, 1f, 0f);
+            ShaderParameters.g_vUserFlag1_VS = SimdVector4.Zero;
+        }
+
+        public void StartAuraOutline(BPE_Entry outline)
+        {
+            auraOutline = new[] { new BacScreenEffectInstance(outline, 0, 0) };
+            auraOutlineFrame = 0f;
+
+            if (auraOutlineEvaluator == null)
+                auraOutlineEvaluator = new BacScreenEffectEvaluator(this);
+        }
+
+        public void StopAuraOutline()
+        {
+            auraOutline = null;
+
+            if (auraOutlineShown)
+            {
+                ClearBodyOutlineValues();
+                auraOutlineShown = false;
+            }
+        }
+
+        //The aura outline loops until the aura stops. A BAC screen effect outline from this frame wins over it.
+        private void UpdateAuraOutline()
+        {
+            if (auraOutline == null || ShaderParameters.BodyOutlineActive) return;
+
+            auraOutlineEvaluator.Update(auraOutline, auraOutlineState, (int)auraOutlineFrame, bpeIndex => { }, () => { });
+            auraOutlineShown = ShaderParameters.BodyOutlineActive;
+
+            if (ViewportInstance.IsPlaying)
+                auraOutlineFrame += ActiveTimeScale;
         }
 
         public void ClearBodyOutlineValues()
@@ -245,8 +325,16 @@ namespace XenoKit.Engine
             if (ViewportInstance.IsPlaying)
                 UpdateBdmTimeScale();
 
+            //Clear the aura outline from the last frame, so a BAC outline set this frame can be told apart from it
+            if (auraOutlineShown)
+            {
+                ClearBodyOutlineValues();
+                auraOutlineShown = false;
+            }
+
             Controller.Update();
             ActionControl.Update();
+            UpdateAuraOutline();
 
             if (AnimationPlayer != null && Skeleton != null)
                 AnimationPlayer.Update(Matrix4x4.Identity);
@@ -268,7 +356,7 @@ namespace XenoKit.Engine
         /// <summary>
         /// Simulate a frame. 
         /// </summary>
-        public void Simulate(bool fullAnimUpdate, bool advance)
+        public void Simulate(bool fullAnimUpdate, bool advance, bool useTimeScale = false)
         {
 #if DEBUG
             if (Viewport.Instance.IsPlaying) throw new InvalidOperationException("invalid operation, cannot do this while Viewport.IsPlaying is true.");
@@ -291,7 +379,7 @@ namespace XenoKit.Engine
 
             if (AnimationPlayer != null && Skeleton != null)
             {
-                AnimationPlayer.Simulate(fullAnimUpdate, advance);
+                AnimationPlayer.Simulate(fullAnimUpdate || Animation.ScdPhysics.Enabled, advance, useTimeScale);
             }
 
             FpfPosePreview.Apply(this);
@@ -303,9 +391,6 @@ namespace XenoKit.Engine
         public override void Draw()
         {
             if (!ViewportInstance.RenderCharacters || !IsVisible) return;
-
-            if(RenderSystem.CurrentDrawPass == Rendering.DrawPass.Opaque)
-                ActionControl.Draw();
 
             PartSet.Draw();
 
@@ -323,6 +408,15 @@ namespace XenoKit.Engine
         {
             if (!ViewportInstance.RenderCharacters || !IsVisible) return;
             PartSet.DrawSimple(normalPass);
+        }
+
+        /// <summary>
+        /// Draw the BAC and projectile hitboxes. Call this after the scene renders, so that the hitboxes show over it.
+        /// </summary>
+        public void DrawHitboxes()
+        {
+            if (!ViewportInstance.RenderCharacters || !IsVisible) return;
+            ActionControl.Draw();
         }
 
         #endregion
@@ -350,7 +444,7 @@ namespace XenoKit.Engine
 
         public bool HitTest(BacHitbox hitbox)
         {
-            if (hitbox.IsSupported && hitbox.CanHit(this) && CanBeHit(hitbox.BoundingBox))
+            if (hitbox.IsSupported && hitbox.CanHit() && CanBeHit(hitbox.IntersectsSphere))
             {
                 Xv2CoreLib.BDM.BDM_File bdm = Files.Instance.GetBdmFile(hitbox.Hitbox.bdmFile, hitbox.BacEntry.SkillMove, hitbox.BacEntry.User, false);
 
@@ -359,7 +453,7 @@ namespace XenoKit.Engine
                     return false;
 
                 Controller.ApplyDamageState(entry, hitbox.GetRelativeDirection(Transform), hitbox);
-                hitbox.RecordHit(this);
+                hitbox.RecordHit();
                 return true;
             }
 
@@ -368,12 +462,17 @@ namespace XenoKit.Engine
 
         public bool CanBeHit(BoundingBox bounds, BsaHitboxPreview projectileHitbox = null)
         {
-            return !(ActorSlot == 1 && SceneManager.VictimInvulnerable) &&
-                HitboxEnabled && Controller.InvulnerabilityFrames <= 0 && Controller.FreezeActionFrames <= 0 &&
-                HurtboxIntersects(bounds, projectileHitbox);
+            return CanBeHit(sphere => sphere.Intersects(bounds) && (projectileHitbox == null || projectileHitbox.IntersectsSphere(sphere)));
         }
 
-        private bool HurtboxIntersects(BoundingBox bounds, BsaHitboxPreview projectileHitbox = null)
+        private bool CanBeHit(Func<BoundingSphere, bool> hurtboxHit)
+        {
+            return !(ActorSlot == 1 && SceneManager.VictimInvulnerable) &&
+                HitboxEnabled && Controller.InvulnerabilityFrames <= 0 && Controller.FreezeActionFrames <= 0 &&
+                HurtboxIntersects(hurtboxHit);
+        }
+
+        private bool HurtboxIntersects(Func<BoundingSphere, bool> hurtboxHit)
         {
             // The game checks these IDs directly; CMS I_16 = 4 also includes other characters.
             bool largeBody = ShortName == "BRL" || ShortName == "TM1";
@@ -392,12 +491,12 @@ namespace XenoKit.Engine
                     headRadius *= cbsEntry.F_16;
             }
 
-            return BoneSphereIntersects(BoneLinks.b_C_Pelvis, new SimdVector3(0f, pelvisOffset, 0f), pelvisRadius, bounds, projectileHitbox) ||
-                BoneSphereIntersects(BoneLinks.b_C_Head, SimdVector3.Zero, headRadius, bounds, projectileHitbox) ||
-                (largeBody && BoneSphereIntersects(BoneLinks.b_C_Chest, SimdVector3.Zero, 0.6f, bounds, projectileHitbox));
+            return BoneSphereIntersects(BoneLinks.b_C_Pelvis, new SimdVector3(0f, pelvisOffset, 0f), pelvisRadius, hurtboxHit) ||
+                BoneSphereIntersects(BoneLinks.b_C_Head, SimdVector3.Zero, headRadius, hurtboxHit) ||
+                (largeBody && BoneSphereIntersects(BoneLinks.b_C_Chest, SimdVector3.Zero, 0.6f, hurtboxHit));
         }
 
-        private bool BoneSphereIntersects(BoneLinks bone, SimdVector3 offset, float radius, BoundingBox bounds, BsaHitboxPreview projectileHitbox)
+        private bool BoneSphereIntersects(BoneLinks bone, SimdVector3 offset, float radius, Func<BoundingSphere, bool> hurtboxHit)
         {
             int boneIndex = Skeleton.BAC_BoneIndices[(int)bone];
             if (boneIndex < 0)
@@ -405,7 +504,7 @@ namespace XenoKit.Engine
 
             SimdVector3 center = SimdVector3.Transform(offset, GetAbsoluteBoneMatrix(boneIndex));
             BoundingSphere sphere = new BoundingSphere(Extensions.ToXna(center), radius);
-            return sphere.Intersects(bounds) && (projectileHitbox == null || projectileHitbox.IntersectsSphere(sphere));
+            return hurtboxHit(sphere);
         }
 
         public Matrix4x4 GetAbsoluteBoneMatrix(int index)
