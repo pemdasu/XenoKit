@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.IO;
 using System.Linq;
@@ -328,7 +328,16 @@ namespace XenoKit.Views
 
             Window window = null;
 
-            if (SelectedFile.FileType == Xv2PartSetFile.Type.DYT_EMB || SelectedFile.FileType == Xv2PartSetFile.Type.EMB)
+            if (SelectedFile.FileType == Xv2PartSetFile.Type.SCD)
+            {
+                window = Application.Current.Windows.OfType<Windows.ScdEditorWindow>().FirstOrDefault(editor => editor.Editor.File == SelectedFile);
+                if (window == null)
+                {
+                    window = new Windows.ScdEditorWindow(SelectedFile, Files.Instance.SelectedItem.character);
+                    window.Show();
+                }
+            }
+            else if (SelectedFile.FileType == Xv2PartSetFile.Type.DYT_EMB || SelectedFile.FileType == Xv2PartSetFile.Type.EMB)
             {
                 if(SelectedFile.File is EMB_TextureFile embFile)
                 {
@@ -419,7 +428,7 @@ namespace XenoKit.Views
         private bool CanEditFile()
         {
             if (!IsFileSelected()) return false;
-            return SelectedFile.FileType == Xv2PartSetFile.Type.EMB || SelectedFile.FileType == Xv2PartSetFile.Type.DYT_EMB || SelectedFile.FileType == Xv2PartSetFile.Type.EMM || SelectedFile.FileType == Xv2PartSetFile.Type.EMD;
+            return SelectedFile.FileType == Xv2PartSetFile.Type.SCD || SelectedFile.FileType == Xv2PartSetFile.Type.EMB || SelectedFile.FileType == Xv2PartSetFile.Type.DYT_EMB || SelectedFile.FileType == Xv2PartSetFile.Type.EMM || SelectedFile.FileType == Xv2PartSetFile.Type.EMD;
         }
         #endregion
 

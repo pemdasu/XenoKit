@@ -1,0 +1,539 @@
+<UserControl x:Class="XenoKit.Views.ScdView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+             xmlns:icons="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:lbUtils="clr-namespace:LB_Common.Utils;assembly=LB_Common" x:Name="View">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleWhenTrue"/>
+        <Style x:Key="Heading" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,12,0,6"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Width" Value="150"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="DockPanel.Dock" Value="Left"/>
+        </Style>
+        <Style x:Key="Number" TargetType="controls:NumericUpDown" BasedOn="{StaticResource {x:Type controls:NumericUpDown}}">
+            <Setter Property="StringFormat" Value="0.######"/>
+            <Setter Property="Interval" Value="0.01"/>
+            <Setter Property="Minimum" Value="-3.4028234663852886E+38"/>
+            <Setter Property="Maximum" Value="3.4028234663852886E+38"/>
+            <Setter Property="MinWidth" Value="80"/>
+        </Style>
+        <Style x:Key="Choice" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="DisplayMemberPath" Value="Value"/>
+            <Setter Property="SelectedValuePath" Value="Key"/>
+            <Setter Property="IsEditable" Value="False"/>
+                    </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="45"/>
+            <ColumnDefinition Width="220" MinWidth="180"/>
+            <ColumnDefinition Width="3"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Margin="5,35,5,0">
+            <Button Tag="{Binding ElementName=View}" lbUtils:ContextMenuLeftClickBehavior.IsLeftClickEnabled="True" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="30" Height="30" ToolTip="New block">
+                <icons:PackIconMaterial Kind="Plus" Width="15" Height="15"/>
+                <Button.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Header="New" ItemsSource="{Binding BlockTypes}">
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding Value}"/>
+                                <Setter Property="Command" Value="{Binding DataContext.AddBlockCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <Setter Property="CommandParameter" Value="{Binding Key}"/>
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+            <TextBlock Text="New" HorizontalAlignment="Center" FontSize="10"/>
+            <Button Command="{Binding RemoveBlockCommand, ElementName=View}" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="30" Height="30" Margin="0,8,0,0" ToolTip="Remove block">
+                <icons:PackIconMaterial Kind="Delete" Width="15" Height="15"/>
+            </Button>
+            <TextBlock Text="Remove" HorizontalAlignment="Center" FontSize="10" Margin="0,0,0,16"/>
+            <Button Click="Save_Click" Style="{DynamicResource MahApps.Styles.Button.Circle}" Width="30" Height="30" ToolTip="Save SCD">
+                <icons:PackIconMaterial Kind="ContentSave" Width="15" Height="15"/>
+            </Button>
+            <TextBlock Text="Save" HorizontalAlignment="Center" FontSize="10"/>
+        </StackPanel>
+        <DockPanel Grid.Column="1" Margin="3">
+            <TextBox DockPanel.Dock="Top" Margin="0,0,0,5" controls:TextBoxHelper.Watermark="Search" TextChanged="Search_TextChanged"/>
+            <DataGrid x:Name="blocks" Tag="{Binding ElementName=View}" SelectedValuePath="Key" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                      IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" controls:ControlsHelper.ContentCharacterCasing="Normal">
+                <DataGrid.InputBindings>
+                    <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding DuplicateBlockCommand, ElementName=View}"/>
+                    <KeyBinding Key="Delete" Command="{Binding RemoveBlockCommand, ElementName=View}"/>
+                </DataGrid.InputBindings>
+                <DataGrid.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Header="New" ItemsSource="{Binding BlockTypes}">
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding Value}"/>
+                                <Setter Property="Command" Value="{Binding DataContext.AddBlockCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <Setter Property="CommandParameter" Value="{Binding Key}"/>
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <MenuItem Header="Duplicate" Command="{Binding DuplicateBlockCommand}" InputGestureText="Ctrl+D"/>
+                    <MenuItem Header="Remove" Command="{Binding RemoveBlockCommand}" InputGestureText="Delete"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Block" Binding="{Binding Value}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+        <GridSplitter Grid.Column="2" HorizontalAlignment="Stretch" Background="{DynamicResource MahApps.Brushes.Accent}"/>
+        <ScrollViewer x:Name="details" Grid.Column="3" VerticalScrollBarVisibility="Auto" DataContext="{Binding BlockViewModel, ElementName=View}">
+            <StackPanel Margin="8">
+                <TextBlock Text="{Binding RawDescription}" TextWrapping="Wrap" Visibility="{Binding HasRaw, Converter={StaticResource VisibleWhenTrue}}"/>
+                <Expander Header="Physics speed" IsExpanded="True" Visibility="{Binding HasConfig0, Converter={StaticResource VisibleWhenTrue}}">
+                    <StackPanel Margin="8,0,0,6">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Maximum speed" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Maximum speed" Minimum="0"
+                                                Value="{Binding MaximumSpeed, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Physics motion" IsExpanded="True" Visibility="{Binding HasConfig1, Converter={StaticResource VisibleWhenTrue}}">
+                    <StackPanel Margin="8,0,0,6">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Maximum speed" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Maximum speed" Minimum="0"
+                                                Value="{Binding MaximumSpeed, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Root follow" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Root follow"
+                                                Value="{Binding RootFollow, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Body" IsExpanded="True" Visibility="{Binding HasBody, Converter={StaticResource VisibleWhenTrue}}">
+                    <StackPanel Margin="8,0,0,6">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Bone" Style="{StaticResource FieldLabel}"/>
+                        <TextBox AutomationProperties.Name="Bone" Text="{Binding Bone, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Motion" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Style="{StaticResource Choice}" AutomationProperties.Name="Motion" ItemsSource="{Binding MotionChoices}"
+                                  controls:TextBoxHelper.Watermark="{Binding MotionLabel}" SelectedValue="{Binding Motion, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Mass" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Mass" Minimum="0"
+                                                Value="{Binding Mass, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Movement drag" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Movement drag"
+                                                Value="{Binding MovementDrag, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <CheckBox Content="Keep animated offset" Margin="0,4" IsChecked="{Binding KeepAnimatedOffset, Mode=TwoWay}"/>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Twist limit" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Style="{StaticResource Choice}" AutomationProperties.Name="Twist limit" ItemsSource="{Binding TwistChoices}"
+                                  controls:TextBoxHelper.Watermark="{Binding TwistLabel}" SelectedValue="{Binding TwistLimit, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Twist axis" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Twist axis X"
+                                                    Value="{Binding TwistAxisX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Twist axis Y"
+                                                    Value="{Binding TwistAxisY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Twist axis Z"
+                                                    Value="{Binding TwistAxisZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First twist angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="First twist angle"
+                                                Value="{Binding FirstTwistAngle, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second twist angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Second twist angle"
+                                                Value="{Binding SecondTwistAngle, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <TextBlock Text="Collision shape" Style="{StaticResource Heading}"/>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Shape" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Style="{StaticResource Choice}" AutomationProperties.Name="Shape" ItemsSource="{Binding ShapeChoices}"
+                                  controls:TextBoxHelper.Watermark="{Binding ShapeLabel}" SelectedValue="{Binding Shape, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Shape position" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Shape position X"
+                                                    Value="{Binding ShapePositionX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Shape position Y"
+                                                    Value="{Binding ShapePositionY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Shape position Z"
+                                                    Value="{Binding ShapePositionZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Shape rotation (degrees)" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Shape rotation (degrees) X"
+                                                    Value="{Binding ShapeRotationX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Shape rotation (degrees) Y"
+                                                    Value="{Binding ShapeRotationY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Shape rotation (degrees) Z"
+                                                    Value="{Binding ShapeRotationZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 0" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 0"
+                                                Value="{Binding Dimension0, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 1" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 1"
+                                                Value="{Binding Dimension1, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 2" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 2"
+                                                Value="{Binding Dimension2, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 3" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 3"
+                                                Value="{Binding Dimension3, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 4" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 4"
+                                                Value="{Binding Dimension4, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 5" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 5"
+                                                Value="{Binding Dimension5, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Dimension 6" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dimension 6"
+                                                Value="{Binding Dimension6, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Center of mass" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Center of mass X"
+                                                    Value="{Binding CenterOfMassX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Center of mass Y"
+                                                    Value="{Binding CenterOfMassY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Center of mass Z"
+                                                    Value="{Binding CenterOfMassZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Inertia multipliers" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Inertia multipliers X"
+                                                    Value="{Binding InertiaX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Inertia multipliers Y"
+                                                    Value="{Binding InertiaY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Inertia multipliers Z"
+                                                    Value="{Binding InertiaZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <TextBlock Text="Material and damping" Style="{StaticResource Heading}"/>
+                    <StackPanel Visibility="{Binding HasConvexRadius, Converter={StaticResource VisibleWhenTrue}}">
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Convex radius" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Convex radius" Minimum="{Binding ConvexRadiusMinimum}"
+                                                    Value="{Binding ConvexRadius, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Idle damping" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Idle damping"
+                                                    Value="{Binding IdleDamping, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Linear damping" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Linear damping"
+                                                Value="{Binding LinearDamping, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Angular damping" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Angular damping"
+                                                Value="{Binding AngularDamping, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Gravity factor" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Gravity factor"
+                                                Value="{Binding GravityFactor, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Restitution" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Restitution"
+                                                Value="{Binding Restitution, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <StackPanel Visibility="{Binding HasLegacyMaterial, Converter={StaticResource VisibleWhenTrue}}">
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Friction" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Friction"
+                                                    Value="{Binding Friction, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding HasV2Material, Converter={StaticResource VisibleWhenTrue}}">
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Time factor" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Time factor"
+                                                    Value="{Binding TimeFactor, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Dynamic friction" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Dynamic friction"
+                                                    Value="{Binding DynamicFriction, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Static friction" Style="{StaticResource FieldLabel}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Static friction"
+                                                    Value="{Binding StaticFriction, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding HasBonePivot, Converter={StaticResource VisibleWhenTrue}}">
+                        <DockPanel Margin="0,2">
+                            <TextBlock Text="Bone pivot" Style="{StaticResource FieldLabel}"/>
+                            <UniformGrid Rows="1" Columns="3">
+                                <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Bone pivot X"
+                                                        Value="{Binding BonePivotX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                                <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Bone pivot Y"
+                                                        Value="{Binding BonePivotY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                                <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Bone pivot Z"
+                                                        Value="{Binding BonePivotZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            </UniformGrid>
+                        </DockPanel>
+                    </StackPanel>
+                    <TextBlock Text="Unknown" Style="{StaticResource Heading}"/>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="{Binding UnknownBodyLabel}" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown AutomationProperties.Name="{Binding UnknownBodyLabel}"
+                                                Value="{Binding UnknownBody, Mode=TwoWay, ValidatesOnExceptions=True}">
+                            <controls:NumericUpDown.Style>
+                                <Style TargetType="controls:NumericUpDown" BasedOn="{StaticResource Number}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasV2Material}" Value="True">
+                                            <Setter Property="StringFormat" Value="0"/>
+                                            <Setter Property="Interval" Value="1"/>
+                                            <Setter Property="Minimum" Value="-2147483648"/>
+                                            <Setter Property="Maximum" Value="2147483647"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:NumericUpDown.Style>
+                        </controls:NumericUpDown>
+                    </DockPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Joint" IsExpanded="True" Visibility="{Binding HasJoint, Converter={StaticResource VisibleWhenTrue}}">
+                    <StackPanel Margin="8,0,0,6">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First bone" Style="{StaticResource FieldLabel}"/>
+                        <TextBox AutomationProperties.Name="First bone" Text="{Binding FirstBone, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second bone" Style="{StaticResource FieldLabel}"/>
+                        <TextBox AutomationProperties.Name="Second bone" Text="{Binding SecondBone, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Joint type" Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Style="{StaticResource Choice}" ToolTip="Ball and socket lets the joint turn freely. Hinge turns around one axis. Limited hinge adds angle limits. Stiff spring keeps the pivot distance. Ragdoll limits swing and twist." AutomationProperties.Name="Joint type" ItemsSource="{Binding JointChoices}"
+                                  controls:TextBoxHelper.Watermark="{Binding JointLabel}" SelectedValue="{Binding JointType, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First pivot" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="First pivot X"
+                                                    Value="{Binding FirstPivotX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="First pivot Y"
+                                                    Value="{Binding FirstPivotY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="First pivot Z"
+                                                    Value="{Binding FirstPivotZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second pivot" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Second pivot X"
+                                                    Value="{Binding SecondPivotX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Second pivot Y"
+                                                    Value="{Binding SecondPivotY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Second pivot Z"
+                                                    Value="{Binding SecondPivotZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First axis" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="First axis X"
+                                                    Value="{Binding FirstAxisX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="First axis Y"
+                                                    Value="{Binding FirstAxisY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="First axis Z"
+                                                    Value="{Binding FirstAxisZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second axis" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Second axis X"
+                                                    Value="{Binding SecondAxisX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Second axis Y"
+                                                    Value="{Binding SecondAxisY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Second axis Z"
+                                                    Value="{Binding SecondAxisZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First side axis" Style="{StaticResource FieldLabel}" ToolTip="A direction at 90 degrees to the first axis. Sets the joint's starting angle."/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="First side axis X"
+                                                    Value="{Binding FirstPerpendicularX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="First side axis Y"
+                                                    Value="{Binding FirstPerpendicularY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="First side axis Z"
+                                                    Value="{Binding FirstPerpendicularZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second side axis" Style="{StaticResource FieldLabel}" ToolTip="A direction at 90 degrees to the second axis. Sets the joint's starting angle."/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Second side axis X"
+                                                    Value="{Binding SecondPerpendicularX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Second side axis Y"
+                                                    Value="{Binding SecondPerpendicularY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Second side axis Z"
+                                                    Value="{Binding SecondPerpendicularZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Breaking threshold" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Breaking threshold"
+                                                Value="{Binding BreakingThreshold, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="First angle"
+                                                Value="{Binding Angle1, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Second angle"
+                                                Value="{Binding Angle2, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Friction" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Friction"
+                                                Value="{Binding JointFriction, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Tau" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Tau"
+                                                Value="{Binding Tau, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First ragdoll angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="First ragdoll angle"
+                                                Value="{Binding RagdollAngle1, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second ragdoll angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Second ragdoll angle"
+                                                Value="{Binding RagdollAngle2, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Third ragdoll angle" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Third ragdoll angle"
+                                                Value="{Binding RagdollAngle3, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <TextBlock Text="Unknown" Style="{StaticResource Heading}"/>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="F_44" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="F_44"
+                                                Value="{Binding UnknownJoint, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    </StackPanel>
+                </Expander>
+                <Expander Header="Spring" IsExpanded="True" Visibility="{Binding HasSpring, Converter={StaticResource VisibleWhenTrue}}">
+                    <StackPanel Margin="8,0,0,6">
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First bone" Style="{StaticResource FieldLabel}"/>
+                        <TextBox AutomationProperties.Name="First bone" Text="{Binding FirstBone, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second bone" Style="{StaticResource FieldLabel}"/>
+                        <TextBox AutomationProperties.Name="Second bone" Text="{Binding SecondBone, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="First pivot" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="First pivot X"
+                                                    Value="{Binding FirstPivotX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="First pivot Y"
+                                                    Value="{Binding FirstPivotY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="First pivot Z"
+                                                    Value="{Binding FirstPivotZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Second pivot" Style="{StaticResource FieldLabel}"/>
+                        <UniformGrid Rows="1" Columns="3">
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="X" AutomationProperties.Name="Second pivot X"
+                                                    Value="{Binding SecondPivotX, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Y" AutomationProperties.Name="Second pivot Y"
+                                                    Value="{Binding SecondPivotY, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                            <controls:NumericUpDown Style="{StaticResource Number}" MinWidth="0" Margin="2" ToolTip="Z" AutomationProperties.Name="Second pivot Z"
+                                                    Value="{Binding SecondPivotZ, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                        </UniformGrid>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Rest length" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Rest length" Minimum="-1"
+                                                Value="{Binding RestLength, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Strength" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Strength" Minimum="0"
+                                                Value="{Binding Strength, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="Damping" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="Damping" Minimum="0"
+                                                Value="{Binding SpringDamping, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <CheckBox Content="Apply on compression" Margin="0,4" IsChecked="{Binding Compression, Mode=TwoWay}"/>
+                    <CheckBox Content="Apply on extension" Margin="0,4" IsChecked="{Binding Extension, Mode=TwoWay}"/>
+                    <TextBlock Text="Unknown" Style="{StaticResource Heading}"/>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="I_16" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="I_16" StringFormat="0" Interval="1" Minimum="-2147483648" Maximum="2147483647"
+                                                Value="{Binding UnknownSpring16, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    <DockPanel Margin="0,2">
+                        <TextBlock Text="I_60" Style="{StaticResource FieldLabel}"/>
+                        <controls:NumericUpDown Style="{StaticResource Number}" AutomationProperties.Name="I_60" StringFormat="0" Interval="1" Minimum="-2147483648" Maximum="2147483647"
+                                                Value="{Binding UnknownSpring60, Mode=TwoWay, ValidatesOnExceptions=True}"/>
+                    </DockPanel>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

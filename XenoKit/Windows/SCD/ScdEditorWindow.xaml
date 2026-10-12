@@ -1,0 +1,14 @@
+<controls:MetroWindow x:Class="XenoKit.Windows.ScdEditorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:undo="clr-namespace:Xv2CoreLib.Resource.UndoRedo;assembly=Xv2CoreLib"
+    Title="SCD Editor" Width="960" Height="680" MinWidth="750" MinHeight="450"
+    WindowStartupLocation="CenterOwner" WindowStyle="ToolWindow" ResizeMode="CanResizeWithGrip" TitleCharacterCasing="Normal">
+    <Window.InputBindings>
+        <KeyBinding Key="Z" Modifiers="Ctrl" Command="{Binding Source={x:Static undo:UndoManager.Instance}, Path=UndoCommand}"/>
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="{Binding Source={x:Static undo:UndoManager.Instance}, Path=RedoCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveCommand}"/>
+    </Window.InputBindings>
+    <ContentControl x:Name="editorContent" Margin="3" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+</controls:MetroWindow>

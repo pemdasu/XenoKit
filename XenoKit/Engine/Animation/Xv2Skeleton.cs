@@ -19,7 +19,7 @@ namespace XenoKit.Engine.Animation
         public const int b_C_Hand_Magic = 0xbcaaa;
 
         private readonly Dictionary<string, int> BoneIndexCache;
-        public int BaseBoneIndex { get; private set; }
+        public int BaseBoneIndex { get; private set; } = -1;
         public int PelvisBoneIndex { get; private set; }
         public int HandL_BoneIndex { get; private set; }
         public int HandR_BoneIndex { get; private set; }
@@ -27,7 +27,7 @@ namespace XenoKit.Engine.Animation
         /// <summary>
         /// Indices of the BAC bones. Cached here for better performance.
         /// </summary>
-        public int[] BAC_BoneIndices = new int[24];
+        public int[] BAC_BoneIndices = new int[(int)Xv2CoreLib.BAC.BoneLinks.h_R_Pinky3 + 1];
 
         public ESK_File EskFile { get; private set; }
         public Skeleton EmoSkeleton { get; private set; }
@@ -208,7 +208,7 @@ namespace XenoKit.Engine.Animation
 
         private void SetBacBoneIndices()
         {
-            for(int i = 0; i < 24; i++)
+            for(int i = 0; i < BAC_BoneIndices.Length; i++)
             {
                 BAC_BoneIndices[i] = GetBoneIndex(((Xv2CoreLib.BAC.BoneLinks)i).ToString());
             }
@@ -381,12 +381,9 @@ namespace XenoKit.Engine.Animation
         /// <summary>
         /// Create a index reference for matching bones in the parent skeleton. The resulting array is to be used in the <see cref="ScdUpdate(Xv2Skeleton, int[])"/> method.
         /// </summary>
-        public int[] ScdGetBoneIndices(Xv2Skeleton parentSkeleton)
+        public int[] ScdGetBoneIndices(Xv2Skeleton parentSkeleton, string attachBoneName = null)
         {
-            int[] boneIndices = new int[parentSkeleton.Bones.Length];
-
-            if (boneIndices?.Length != Bones.Length || boneIndices == null)
-                boneIndices = new int[Bones.Length];
+            int[] boneIndices = new int[Bones.Length];
 
             for (int i = 0; i < Bones.Length; i++)
                 boneIndices[i] = -1;
@@ -397,6 +394,9 @@ namespace XenoKit.Engine.Animation
                 {
                     boneIndices[i] = parentSkeleton.GetBoneIndex(Bones[i].Name);
                 }
+
+                if (attachBoneName != null && BaseBoneIndex >= 0)
+                    boneIndices[BaseBoneIndex] = parentSkeleton.GetBoneIndex(attachBoneName);
             }
 
             return boneIndices;
@@ -423,22 +423,18 @@ namespace XenoKit.Engine.Animation
                     ScdBoneCountMismatch = false;
                 }
 
-                //Create skinning matrix from animation data of parent skeleton
+                int rootIndex = BaseBoneIndex >= 0 ? boneIndices[BaseBoneIndex] : -1;
+                Matrix4x4 rootTransform = rootIndex >= 0 ? parentSkeleton.Bones[rootIndex].AbsoluteAnimationMatrix : Matrix4x4.Identity;
+
                 for (int i = 0; i < boneIndices.Length; i++)
                 {
                     if (boneIndices[i] != -1)
-                    {
-                        Bones[i].SkinningMatrix = Bones[i].InverseBindPoseMatrix * parentSkeleton.Bones[boneIndices[i]].AbsoluteAnimationMatrix;
-                    }
-                }
+                        Bones[i].AbsoluteAnimationMatrix = parentSkeleton.Bones[boneIndices[i]].AbsoluteAnimationMatrix;
+                    else
+                        Bones[i].AbsoluteAnimationMatrix = Bones[i].RelativeMatrix *
+                            (Bones[i].ParentIndex >= 0 ? Bones[Bones[i].ParentIndex].AbsoluteAnimationMatrix : rootTransform);
 
-                //Set SCD bones to use the parent bone skinning matrix. 
-                for (int i = 0; i < Bones.Length; i++)
-                {
-                    if (boneIndices[i] == -1 && Bones[i].Parent != null)
-                    {
-                        Bones[i].SkinningMatrix = Bones[i].Parent.SkinningMatrix;
-                    }
+                    Bones[i].SkinningMatrix = Bones[i].InverseBindPoseMatrix * Bones[i].AbsoluteAnimationMatrix;
                 }
             }
         }
