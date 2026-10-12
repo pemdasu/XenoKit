@@ -7,6 +7,9 @@ namespace XenoKit.Engine.Scripting.BAC
 {
     public class BacHitboxVisual : HitboxVisual
     {
+        private BAC_Type1 hitbox;
+        private float sizeScale;
+
         public BacHitboxVisual(Color fillColor, Color wireColor)
             : base(fillColor, wireColor)
         {
@@ -15,36 +18,46 @@ namespace XenoKit.Engine.Scripting.BAC
         public void Update(BAC_Type1 hitbox, float cbsScaling)
         {
             Clear();
+            this.hitbox = hitbox;
+            sizeScale = cbsScaling;
 
             if (hitbox == null)
                 return;
 
-            Vector3 position = new Vector3(hitbox.PositionX, hitbox.PositionY, hitbox.PositionZ);
+            Vector3 position = new Vector3(hitbox.PositionX, hitbox.PositionY, hitbox.PositionZ) * cbsScaling;
 
-            switch ((int)hitbox.BoundingBoxType)
+            switch (HitShapes.GetShapeType((int)hitbox.BoundingBoxType))
             {
-                case 0:
+                case HitShapeType.Sphere:
                     SetSphere(position, Math.Abs(hitbox.Size * cbsScaling));
                     break;
-                case 1:
+                case HitShapeType.Capsule:
                     Vector3 start = new Vector3(
-                        hitbox.PositionX + hitbox.MinX * cbsScaling,
-                        hitbox.PositionY + hitbox.MinY * cbsScaling,
-                        hitbox.PositionZ + hitbox.MinZ * cbsScaling);
+                        (hitbox.PositionX + hitbox.MinX) * cbsScaling,
+                        (hitbox.PositionY + hitbox.MinY) * cbsScaling,
+                        (hitbox.PositionZ + hitbox.MinZ) * cbsScaling);
                     Vector3 end = new Vector3(
-                        hitbox.PositionX + hitbox.MaxX * cbsScaling,
-                        hitbox.PositionY + hitbox.MaxY * cbsScaling,
-                        hitbox.PositionZ + hitbox.MaxZ * cbsScaling);
+                        (hitbox.PositionX + hitbox.MaxX) * cbsScaling,
+                        (hitbox.PositionY + hitbox.MaxY) * cbsScaling,
+                        (hitbox.PositionZ + hitbox.MaxZ) * cbsScaling);
                     SetCapsule(start, end, Math.Abs(hitbox.Size * cbsScaling));
                     break;
-                case 2:
+                case HitShapeType.Box:
                     Vector3 halfExtents = new Vector3(
                         hitbox.Size,
                         hitbox.MinX,
                         hitbox.MinY) * cbsScaling;
-                    SetBox(position, halfExtents);
+                    SetBox(Vector3.Zero, halfExtents);
                     break;
             }
+        }
+
+        public void Draw(Matrix boneWorld, Matrix actorWorld)
+        {
+            if (hitbox != null && HitShapes.GetShapeType((int)hitbox.BoundingBoxType) == HitShapeType.Box)
+                base.Draw(BacHitbox.GetBoxWorld(hitbox, boneWorld.ToNumerics(), actorWorld.ToNumerics(), sizeScale));
+            else
+                base.Draw(boneWorld);
         }
 
     }

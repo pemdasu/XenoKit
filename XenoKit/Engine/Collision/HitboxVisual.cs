@@ -11,29 +11,34 @@ namespace XenoKit.Engine.Collision
             None,
             Sphere,
             Capsule,
-            Box
+            Box,
+            Cylinder
         }
 
         private readonly Color fillColor;
-        private readonly Color wireColor;
-        private readonly Cube boxFill;
+        private Color wireColor;
+        public Color WireColor { get => wireColor; set => wireColor = value; }
+        private Shapes.Cylinder cylinder;
+        private float cylinderHeight;
+        private float cylinderRadius;
         private readonly Cube boxWireframe;
         private Sphere sphere;
         private Capsule capsule;
-        private Vector3 spherePosition;
         private Vector3 boxPosition;
         private float sphereRadius;
         private Vector3 capsuleStart;
         private Vector3 capsuleEnd;
         private float capsuleRadius;
         private ShapeType shapeType;
+        //The sphere, capsule or cylinder to draw, and its offset from the world that Draw gets.
+        private GeometricPrimitive primitive;
+        private Matrix primitiveLocal;
 
         public HitboxVisual(Color fillColor, Color wireColor)
         {
             this.fillColor = fillColor;
             this.wireColor = wireColor;
-            //boxFill = new Cube(Vector3.Zero, new Vector3(-1f), new Vector3(1f), 0f, fillColor, false);
-            boxWireframe = new Cube(Vector3.Zero, new Vector3(-1f), new Vector3(1f), 0f, wireColor, true, false);
+            boxWireframe = new Cube(Vector3.Zero, new Vector3(-1f), new Vector3(1f), 0f, wireColor, true, false, true);
         }
 
         public void Clear()
@@ -53,8 +58,9 @@ namespace XenoKit.Engine.Collision
                 sphereRadius = radius;
             }
 
-            spherePosition = position;
             shapeType = ShapeType.Sphere;
+            primitive = sphere;
+            primitiveLocal = Matrix.CreateTranslation(position);
         }
 
         public void SetCapsule(Vector3 start, Vector3 end, float radius)
@@ -81,6 +87,8 @@ namespace XenoKit.Engine.Collision
             }
 
             shapeType = ShapeType.Capsule;
+            primitive = capsule;
+            primitiveLocal = capsule.LocalTransform;
         }
 
         public void SetBox(Vector3 position, Vector3 halfExtents)
@@ -96,32 +104,61 @@ namespace XenoKit.Engine.Collision
             if (halfExtents.X <= 0f && halfExtents.Y <= 0f && halfExtents.Z <= 0f)
                 return;
 
-            //boxFill.SetBounds(-halfExtents, halfExtents, 0f, true);
             boxWireframe.SetBounds(-halfExtents, halfExtents, 0f, true);
             boxPosition = position;
             shapeType = ShapeType.Box;
         }
 
+        public void SetShape(BEPUphysics.CollisionShapes.ConvexShapes.ConvexShape shape)
+        {
+            switch (shape)
+            {
+                case BEPUphysics.CollisionShapes.ConvexShapes.BoxShape box:
+                    SetBox(Vector3.Zero, new Vector3(box.HalfWidth, box.HalfHeight, box.HalfLength));
+                    break;
+                case BEPUphysics.CollisionShapes.ConvexShapes.SphereShape sphereShape:
+                    SetSphere(Vector3.Zero, sphereShape.Radius);
+                    break;
+                case BEPUphysics.CollisionShapes.ConvexShapes.CapsuleShape capsuleShape:
+                    SetCapsule(new Vector3(0, -capsuleShape.Length * 0.5f, 0), new Vector3(0, capsuleShape.Length * 0.5f, 0), capsuleShape.Radius);
+                    break;
+                case BEPUphysics.CollisionShapes.ConvexShapes.CylinderShape cylinderShape:
+                    if (cylinder == null || !AreClose(cylinderHeight, cylinderShape.Height) || !AreClose(cylinderRadius, cylinderShape.Radius))
+                    {
+                        cylinder?.Dispose();
+                        cylinder = new Shapes.Cylinder(cylinderShape.Height, cylinderShape.Radius);
+                        cylinderHeight = cylinderShape.Height;
+                        cylinderRadius = cylinderShape.Radius;
+                    }
+                    shapeType = ShapeType.Cylinder;
+                    primitive = cylinder;
+                    primitiveLocal = Matrix.Identity;
+                    break;
+                default:
+                    Clear();
+                    break;
+            }
+        }
+
         public void Draw(Matrix world)
         {
-            switch (shapeType)
+            if (shapeType == ShapeType.None)
+                return;
+
+            bool isBox = shapeType == ShapeType.Box;
+            Matrix shapeWorld = isBox ? world : primitiveLocal * world;
+
+            if (isBox)
+                boxWireframe.SetPosition(boxPosition);
+            else if (fillColor.A != 0)
+                primitive.Draw(shapeWorld, Camera.ViewMatrix, Camera.ProjectionMatrix, fillColor);
+
+            foreach (Matrix projection in RenderSystem.GetLineProjections(Camera.ProjectionMatrix))
             {
-                case ShapeType.Sphere:
-                    Matrix sphereWorld = Matrix.CreateTranslation(spherePosition) * world;
-                    sphere.Draw(sphereWorld, Camera.ViewMatrix, Camera.ProjectionMatrix, fillColor);
-                    sphere.DrawWireframe(sphereWorld, Camera.ViewMatrix, Camera.ProjectionMatrix, wireColor);
-                    break;
-                case ShapeType.Capsule:
-                    Matrix capsuleWorld = capsule.LocalTransform * world;
-                    capsule.Draw(capsuleWorld, Camera.ViewMatrix, Camera.ProjectionMatrix, fillColor);
-                    capsule.DrawWireframe(capsuleWorld, Camera.ViewMatrix, Camera.ProjectionMatrix, wireColor);
-                    break;
-                case ShapeType.Box:
-                    //boxFill.SetPosition(boxPosition);
-                    boxWireframe.SetPosition(boxPosition);
-                    //boxFill.Draw(world);
-                    boxWireframe.Draw(world);
-                    break;
+                if (isBox)
+                    boxWireframe.Draw(world, projection);
+                else
+                    primitive.DrawWireframe(shapeWorld, Camera.ViewMatrix, projection, wireColor);
             }
         }
 
@@ -131,6 +168,9 @@ namespace XenoKit.Engine.Collision
             sphere = null;
             capsule?.Dispose();
             capsule = null;
+            boxWireframe.Dispose();
+            cylinder?.Dispose();
+            cylinder = null;
             shapeType = ShapeType.None;
         }
 

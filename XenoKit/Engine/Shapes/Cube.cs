@@ -52,8 +52,9 @@ namespace XenoKit.Engine.Shapes
         /// <summary>
         /// Initialize a cube as a bounding box. The parameters of the bounding box can be updated by calling the <see cref="SetBounds(Vector3, Vector3, float)"/> and <see cref="SetPosition(Vector3)"/> methods.
         /// </summary>
-        public Cube(Vector3 position, Vector3 minBounds, Vector3 maxBounds, float size, Color color, bool wireframe, bool wireframeUseQuadFaces = true)
+        public Cube(Vector3 position, Vector3 minBounds, Vector3 maxBounds, float size, Color color, bool wireframe, bool wireframeUseQuadFaces = true, bool alwaysVisible = false)
         {
+            AlwaysVisible = alwaysVisible;
             Wireframe = wireframe;
             UseQuadFaces = wireframe && wireframeUseQuadFaces;
             Color = color;
@@ -64,6 +65,14 @@ namespace XenoKit.Engine.Shapes
             SetPosition(position);
             ConstructCube();
             SetBounds(minBounds, maxBounds, size, true);
+        }
+
+        public void Dispose()
+        {
+            Material?.Dispose();
+
+            if (rasterState != null && rasterState != RasterizerState.CullNone)
+                rasterState.Dispose();
         }
 
         private void ConstructCube()
@@ -270,9 +279,11 @@ namespace XenoKit.Engine.Shapes
             DrawInternal();
         }
 
-        public void Draw(Matrix world)
+        public void Draw(Matrix world) => Draw(world, Camera.ProjectionMatrix);
+
+        public void Draw(Matrix world, Matrix projection)
         {
-            Material.Projection = Camera.ProjectionMatrix;
+            Material.Projection = projection;
             Material.View = Camera.ViewMatrix;
             Material.World = Transform * world;
 

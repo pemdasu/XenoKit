@@ -60,7 +60,7 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
         {
             if (IsContextValid() && actor != null)
             {
-                HitboxVisual.Draw(WorldMatrix);
+                HitboxVisual.Draw(WorldMatrix, actor.Transform);
             }
         }
 
@@ -69,45 +69,13 @@ namespace XenoKit.Engine.Scripting.BAC.Simulation
             if (Hitbox != null && SceneManager.Actors[0] != null)
             {
                 string boneName = Hitbox.BoneLink.ToString();
-                var spawnSource = Hitbox.GetSpawnSource();
-
-                switch (spawnSource)
-                {
-                    case BAC_Type1.HitboxFlagsEnum.SpawnSource_User:
-                        actor = SceneManager.Actors[0];
-                        break;
-                    case BAC_Type1.HitboxFlagsEnum.SpawnSource_Target:
-                        actor = SceneManager.Actors[1];
-                        break;
-                    default:
-                        actor = null;
-                        break;
-                }
+                actor = Collision.BacHitbox.GetSpawnActor(Hitbox, SceneManager.Actors[0]);
 
                 if(actor != null)
                 {
                     isBaseBone = boneName == Xv2CoreLib.ESK.ESK_File.BaseBone;
                     boneIdx = actor.Skeleton.GetBoneIndex(boneName);
-                    CBS_Entry cbsEntry = actor.CharacterData.CbsEntry.Find(x => x.BodyId == actor.Skeleton.GetActiveBoneScaleId());
-                    float cbsScaling = 1f;
-
-                    if (cbsEntry != null)
-                    {
-                        switch (ParentBacInstance.SkillMove.MoveType)
-                        {
-                            case Editor.Move.Type.Moveset:
-                                cbsScaling = cbsEntry.F_04;
-                                break;
-                            case Editor.Move.Type.Skill:
-                                cbsScaling = cbsEntry.F_12;
-                                break;
-                            default:
-                                cbsScaling = 1f;
-                                break;
-                        }
-                    }
-
-                    HitboxVisual.Update(Hitbox, cbsScaling);
+                    HitboxVisual.Update(Hitbox, Collision.BacHitbox.GetSizeScale(actor, Hitbox));
                 }
             }
         }
