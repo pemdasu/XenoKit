@@ -97,7 +97,7 @@ namespace XenoKit.Engine.Scripting.BSA
             }
 
             bool isPlaying = Viewport.Instance.IsPlaying;
-            projectile?.Update(isPlaying ? (SceneManager.Actors[0]?.ActiveTimeScale ?? 1f) : 0f);
+            projectile?.Update(isPlaying ? 1f : 0f);
             UpdateScreenEffects();
 
             if (!isPlaying)

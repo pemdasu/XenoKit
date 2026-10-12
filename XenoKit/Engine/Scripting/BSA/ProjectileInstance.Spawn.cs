@@ -1,7 +1,10 @@
+using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC;
 using Xv2CoreLib.BAC;
+using Xv2CoreLib.BSA;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using SimdVector3 = System.Numerics.Vector3;
 
@@ -9,6 +12,22 @@ namespace XenoKit.Engine.Scripting.BSA
 {
     public partial class ProjectileInstance
     {
+        private static SimdVector3 GetSpawnOffset(BSA_Entry entry)
+        {
+            if (entry.SpawnOffsetBits == null || entry.SpawnOffsetBits.Length != 3)
+                throw new InvalidDataException($"BSA entry {entry.SortID} must have three Spawn Offset values.");
+
+            return new SimdVector3(
+                BitConverter.ToSingle(BitConverter.GetBytes(entry.SpawnOffsetBits[0]), 0),
+                BitConverter.ToSingle(BitConverter.GetBytes(entry.SpawnOffsetBits[1]), 0),
+                BitConverter.ToSingle(BitConverter.GetBytes(entry.SpawnOffsetBits[2]), 0));
+        }
+
+        private Matrix4x4 GetOwnerTransform()
+        {
+            return projectileType != null ? GetProjectileAttachTransform(attachActor, projectileType) : attachActor?.Transform ?? Matrix4x4.Identity;
+        }
+
         internal static Actor GetSpawnActor(Actor user, BAC_Type9 projectileType)
         {
             if (projectileType?.SpawnSource == 1 && SceneManager.Actors[1] != null)
@@ -205,6 +224,7 @@ namespace XenoKit.Engine.Scripting.BSA
         private Matrix4x4 CreateWorldTransformFromMotion(Matrix4x4 localMotionTransform)
         {
             Matrix4x4 worldTransform = localMotionTransform * GetCurrentProjectileParentTransform();
+            worldTransform.Translation += spawnOffset;
             return ApplyUserDirection1(worldTransform, projectileType);
         }
 
