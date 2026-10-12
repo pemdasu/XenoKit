@@ -18,6 +18,8 @@ namespace XenoKit.Engine.View
         public Matrix4x4 ViewProjectionMatrix { get; private set; }
         public BoundingFrustum Frustum { get; protected set; } = new BoundingFrustum(Matrix.Identity);
         public virtual CameraState CameraState { get; protected set; } = new CameraState();
+        //The shot the matrices use when it differs from CameraState, such as a built-in BAC camera. Camera controls still change CameraState.
+        protected CameraState DrawnState;
 
         private bool IsReflectionView = false;
 
@@ -354,8 +356,10 @@ namespace XenoKit.Engine.View
 
         public void RecalculateMatrices()
         {
+            CameraState state = DrawnState ?? CameraState;
+
             //Projection Matrix
-            float fieldOfViewRadians = (float)(Math.PI / 180 * CameraState.FieldOfView);
+            float fieldOfViewRadians = (float)(Math.PI / 180 * state.FieldOfView);
             float nearClipPlane = ViewportInstance.CurrentStage.NearClip;
             float farClipPlane = ViewportInstance.CurrentStage.FarClip;
             float aspectRatio = RenderSystem.RenderWidth / (float)RenderSystem.RenderHeight;
@@ -367,15 +371,15 @@ namespace XenoKit.Engine.View
             if (IsReflectionView)
             {
                 //Dont think this is needed? Flipping the World matrix on the Y axis seems to do the trick
-                SimdVector3 pos = new SimdVector3(CameraState.Position.X, -CameraState.Position.Y, CameraState.Position.Z);
-                SimdVector3 target = new SimdVector3(CameraState.TargetPosition.X, -CameraState.TargetPosition.Y, CameraState.TargetPosition.Z);
-                //ViewMatrix = Matrix.CreateLookAt(pos, target, Vector3.Down) * Matrix.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
+                SimdVector3 pos = new SimdVector3(state.Position.X, -state.Position.Y, state.Position.Z);
+                SimdVector3 target = new SimdVector3(state.TargetPosition.X, -state.TargetPosition.Y, state.TargetPosition.Z);
+                //ViewMatrix = Matrix.CreateLookAt(pos, target, Vector3.Down) * Matrix.CreateRotationZ(MathHelper.ToRadians(state.Roll));
 
-                ViewMatrix = Matrix4x4.CreateLookAt(pos, target, MathHelpers.Up) * Matrix4x4.CreateScale(1f, -1f, 1f) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
+                ViewMatrix = Matrix4x4.CreateLookAt(pos, target, MathHelpers.Up) * Matrix4x4.CreateScale(1f, -1f, 1f) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(state.Roll));
             }
             else
             {
-                ViewMatrix = Matrix4x4.CreateLookAt(CameraState.Position, CameraState.TargetPosition, MathHelpers.Up) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(CameraState.Roll));
+                ViewMatrix = Matrix4x4.CreateLookAt(state.Position, state.TargetPosition, MathHelpers.Up) * Matrix4x4.CreateRotationZ(MathHelper.ToRadians(state.Roll));
             }
 
             ViewProjectionMatrix = ViewMatrix * ProjectionMatrix;

@@ -2,8 +2,10 @@
 using Microsoft.Xna.Framework;
 using System;
 using XenoKit.Editor;
+using XenoKit.Engine.Animation;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
+using Xv2CoreLib.Resource;
 using Xv2CoreLib.Resource.App;
 using Xv2CoreLib.Resource.UndoRedo;
 using Matrix4x4 = System.Numerics.Matrix4x4;
@@ -19,6 +21,10 @@ namespace XenoKit.Engine.View
 
         //Camera State:
         private CameraState BackupCameraState = null;
+        public readonly BuiltInCameras BuiltInCameras = new BuiltInCameras();
+
+        //During an EAN camera the game runs built-in cameras only in throw states. The preview has no actor states, so it skips them.
+        public bool CanRunBuiltInCameras => cameraInstance == null;
 
         //Animation properties
         private bool locked = false;
@@ -67,6 +73,15 @@ namespace XenoKit.Engine.View
                 ProcessCameraControl();
             }
 
+            //Built-in cameras change only the drawn shot, so the next frame starts from the normal camera again.
+            DrawnState = null;
+
+            if (BuiltInCameras.IsActive && CanRunBuiltInCameras && SceneManager.UseCameras && SceneManager.IsOnTab(EditorTabs.Action, EditorTabs.Camera))
+            {
+                DrawnState = CameraState.Copy();
+                BuiltInCameras.Update(DrawnState, SceneManager.Actors[0], BuiltInCameras.GetOpponent(), ViewportInstance.IsPlaying);
+            }
+
             RecalculateMatrices();
 
             locked = false;
@@ -75,7 +90,7 @@ namespace XenoKit.Engine.View
         /// <summary>
         /// Simulate a frame. 
         /// </summary>
-        public void Simulate(bool updateCamAnim, bool advance)
+        public void Simulate(bool updateCamAnim, bool advance, bool useTimeScale = false)
         {
 #if DEBUG
             if (ViewportInstance.IsPlaying) throw new InvalidOperationException("DONT CALL SIMULATE WHEN PLAYING!");
@@ -89,9 +104,16 @@ namespace XenoKit.Engine.View
 
                 if (advance)
                 {
-                    cameraInstance.CurrentFrame += 1;
+                    if (useTimeScale)
+                        AdvanceFrame();
+                    else
+                        cameraInstance.CurrentFrame += 1;
                 }
             }
+
+            //When you step frames, the built-in cameras move the same way as in play. Update draws them afterwards.
+            if (advance && BuiltInCameras.IsActive && CanRunBuiltInCameras)
+                BuiltInCameras.Update(CameraState.Copy(), SceneManager.Actors[0], BuiltInCameras.GetOpponent(), true);
             locked = false;
         }
 
@@ -173,6 +195,8 @@ namespace XenoKit.Engine.View
                 }
             }
 
+            SimdVector3 cameraUp = MathHelpers.Up;
+
             //Bone Focus
             if (SceneManager.CharacterExists(cameraInstance.cameraTarget.CharacterIndex) && !SceneManager.IsOnTab(EditorTabs.Camera))
             {
@@ -186,10 +210,14 @@ namespace XenoKit.Engine.View
                     //Root motion can carry scale on b_C_Base, and that scale resizes the shot, so only the facing and position apply here.
                     if (Matrix4x4.Decompose(targetActor.Transform, out _, out SimdQuaternion actorFacing, out SimdVector3 actorPosition))
                     {
+                        if (!cameraInstance.DontFitToBodySize && !cameraInstance.EanFile.IsCharaUnique)
+                            FitToBodySize(targetActor, boneIndex, ref CameraState.Position, ref CameraState.TargetPosition);
+
                         SimdVector3 boneOffset = targetActor.GetAbsoluteBoneMatrix(boneIndex).Translation - actorPosition;
 
                         CameraState.Position = SimdVector3.Transform(CameraState.Position, actorFacing) + actorPosition + boneOffset;
                         CameraState.TargetPosition = SimdVector3.Transform(CameraState.TargetPosition, actorFacing) + actorPosition + boneOffset;
+                        cameraUp = SimdVector3.Transform(SimdVector3.UnitY, actorFacing);
                     }
                 }
             }
@@ -197,16 +225,67 @@ namespace XenoKit.Engine.View
             //Bac modifers
             if (cameraInstance.bacCameraSettings.Enabled)
             {
-                CameraState.Roll += cameraInstance.bacCameraSettings.GetCurrentRoll();
-                CameraState.FieldOfView += cameraInstance.bacCameraSettings.GetCurrentFoV();
-                cameraInstance.bacCameraSettings.ApplyTo(ref CameraState.Position, ref CameraState.TargetPosition);
+                cameraInstance.bacCameraSettings.Apply(CameraState, cameraUp, CurrentFrame - cameraInstance.StartFrame);
             }
 
-            //Scale animations to fit current actor size
-            if (!cameraInstance.EanFile.IsCharaUnique && SceneManager.Actors[0] != null)
+            //The game blends from a frozen copy of the old view, linearly over 15 frames.
+            //The game counts raw frames. This uses the time-scaled camera frame so scrubbing gives the same result.
+            CameraState blendFrom = cameraInstance.BlendFrom;
+
+            if (blendFrom != null)
             {
-                CameraState.Position.Y += SceneManager.Actors[0].CharacterData.BcsFile.File.F_48[1] - 1f;
-                CameraState.TargetPosition.Y += SceneManager.Actors[0].CharacterData.BcsFile.File.F_48[1] - 1f;
+                float weight = MathHelper.Clamp(1f - (CurrentFrame - cameraInstance.BlendStartFrame) / CameraAnimInstance.BlendFrameCount, 0f, 1f);
+
+                CameraState.Position = SimdVector3.Lerp(CameraState.Position, blendFrom.Position, weight);
+                CameraState.TargetPosition = SimdVector3.Lerp(CameraState.TargetPosition, blendFrom.TargetPosition, weight);
+                CameraState.FieldOfView = MathHelper.Lerp(CameraState.FieldOfView, blendFrom.FieldOfView, weight);
+                CameraState.Roll = MathHelper.Lerp(CameraState.Roll, blendFrom.Roll, weight);
+            }
+        }
+
+        /// <summary>
+        /// Fits a camera animation to the actor's body, in the actor's own space.
+        /// </summary>
+        private static void FitToBodySize(Actor actor, int boneIndex, ref SimdVector3 eye, ref SimdVector3 target)
+        {
+            float[] bodyScale = actor.CharacterData.BcsFile.File.F_48;
+            string code = actor.ShortName;
+            int charaId = actor.CharacterData.CmsEntry.ID;
+            bool isCac = charaId >= 100 && charaId < 110;
+
+            Matrix4x4 bone = boneIndex == Xv2Skeleton.b_C_Hand_Magic ? actor.Skeleton.GetHandBarycenter() : actor.Skeleton.Bones[boneIndex].AbsoluteAnimationMatrix;
+            Matrix4x4.Decompose(bone, out SimdVector3 scale, out _, out _);
+            float heightScale = bodyScale[1];
+
+            //The game uses 0.7 for BUL, BUZ and MAM during some actions. The preview always uses the base value.
+            if (code == "BUL" || code == "BUZ" || code == "MAM")
+                heightScale = (bodyScale[0] + bodyScale[1]) * 0.403f;
+            else if (code == "GRD")
+                heightScale = (bodyScale[0] + bodyScale[1]) * 0.43f;
+            else if (code == "BRL" || code == "TM1")
+                heightScale = (bodyScale[0] + bodyScale[1]) * 0.45f;
+            else if (isCac)
+            {
+                scale.X = scale.Z = 2f - bodyScale[1];
+                heightScale = 1f;
+            }
+
+            int anchorIndex = actor.Skeleton.BAC_BoneIndices[(int)BoneLinks.g_x_CAM];
+            SimdVector3 anchor = anchorIndex != -1 ? actor.Skeleton.Bones[anchorIndex].AbsoluteAnimationMatrix.Translation * scale : SimdVector3.Zero;
+            SimdVector3 rawEye = eye;
+            SimdVector3 back = eye - target;
+
+            eye *= scale;
+            target *= scale;
+            eye.Y = (eye.Y - anchor.Y) * heightScale + anchor.Y;
+            target.Y = (target.Y - anchor.Y) * heightScale + anchor.Y;
+
+            //Taller bodies also move the shot back along the view line.
+            if (heightScale > 1f && back.LengthSquared() > 1e-6f)
+            {
+                SimdVector3 push = SimdVector3.Normalize(back) * (SimdVector3.Distance(rawEye, anchor) * (heightScale - 1f));
+                eye += push;
+                target += push;
             }
         }
 
@@ -253,6 +332,9 @@ namespace XenoKit.Engine.View
                 BackupCameraState = CameraState.Copy();
 
             cameraInstance = new CameraAnimInstance(eanFile, camAnim, bacCamEntry, autoTerminate, targetCharaIndex, actor);
+
+            if (cameraInstance.BlendsIn)
+                cameraInstance.BlendFrom = CameraState.Copy();
 
             //Render first frame if not auto playing
             if (!ViewportInstance.IsPlaying && alwaysShowFirstFrame)

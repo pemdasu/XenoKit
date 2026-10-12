@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Xv2CoreLib.BAC;
 using Xv2CoreLib.EAN;
 using static Xv2CoreLib.ValuesDictionary.BAC;
@@ -13,6 +14,11 @@ namespace XenoKit.Engine.View
         bool hasBacData;
 
         public readonly bool AutoTerminate;
+        public readonly bool DontFitToBodySize;
+        public const float BlendFrameCount = 15f;
+        public readonly bool BlendsIn;
+        public readonly int BlendStartFrame;
+        public CameraState BlendFrom;
         private float _currentFrame = 0;
         public int StartFrame = 0;
         public int EndFrame = 0;
@@ -49,21 +55,31 @@ namespace XenoKit.Engine.View
         {
             EanFile = eanFile;
             AutoTerminate = autoTerminate;
+            DontFitToBodySize = bacCamEntry?.DontFitToBodySize ?? false;
             Animation = anim;
             StartFrame = (bacCamEntry != null) ? bacCamEntry.StartFrame : 0;
-            EndFrame = (bacCamEntry != null) ? bacCamEntry.StartFrame + bacCamEntry.Duration - 1 : anim.FrameCount - 1;
+            //The game ends the camera once the row frame passes start + duration.
+            EndFrame = (bacCamEntry != null) ? bacCamEntry.StartFrame + bacCamEntry.Duration : anim.FrameCount - 1;
             _currentFrame = StartFrame;
             hasBacData = bacCamEntry != null;
             Actor = actor;
 
+            //A camera that focuses on the player cuts in. A camera that focuses on the target, or has the Move flag, blends in. The Snap flag always cuts.
             if (bacCamEntry != null)
             {
-                bacCameraSettings = new BacCameraSettings(this, bacCamEntry);
+                BAC_Type10.CameraFlags2 flags = bacCamEntry.cameraFlags2;
+                BlendsIn = !flags.HasFlag(BAC_Type10.CameraFlags2.Unk10) && (bacCamEntry.FocusOnTarget || flags.HasFlag(BAC_Type10.CameraFlags2.Unk11));
+                BlendStartFrame = StartFrame + (flags.HasFlag(BAC_Type10.CameraFlags2.Unk14) ? 1 : 0);
+            }
+
+            if (bacCamEntry != null)
+            {
+                bacCameraSettings = new BacCameraSettings(bacCamEntry);
                 cameraTarget = new CameraTarget(targetCharacterIndex, bacCamEntry.BoneLink);
             }
             else
             {
-                bacCameraSettings = new BacCameraSettings(this);
+                bacCameraSettings = default;
                 cameraTarget = new CameraTarget(targetCharacterIndex, 0);
             }
 
@@ -99,9 +115,6 @@ namespace XenoKit.Engine.View
 
     public struct BacCameraSettings
     {
-        private const float BacModifierHorizontalOffsetScale = 1f / 6f;
-
-        private readonly CameraAnimInstance ParentInstance;
         public bool Enabled;
         public ushort GlobalDuration;
         public ushort PosXDuration;
@@ -124,87 +137,8 @@ namespace XenoKit.Engine.View
         public float DispXZ;
         public float DispZY;
 
-        //Interpolated Values
-        public float CurrentFoV
+        public BacCameraSettings(BAC_Type10 bacCameraEntry)
         {
-            get
-            {
-                return FoV * GetFactor(FovDuration);
-            }
-        }
-        public float CurrentPosX
-        {
-            get
-            {
-                return PosX * GetFactor(PosXDuration);
-            }
-        }
-        public float CurrentPosY
-        {
-            get
-            {
-                return PosY * GetFactor(PosYDuration);
-            }
-        }
-        public float CurrentPosZ
-        {
-            get
-            {
-                return PosZ * GetFactor(PosZDuration);
-            }
-        }
-        public float CurrentDispXZ => DispXZ * GetFactor(DispXZDuration);
-        public float CurrentDispZY => DispZY * GetFactor(DispZYDuration);
-        public float CurrentRotX
-        {
-            get
-            {
-                return RotX * GetFactor(RotXDuration);
-            }
-        }
-        public float CurrentRotY
-        {
-            get
-            {
-                return RotY * GetFactor(RotYDuration);
-            }
-        }
-        public float CurrentRotZ
-        {
-            get
-            {
-                return RotZ * GetFactor(RotZDuration);
-            }
-        }
-
-        public BacCameraSettings(CameraAnimInstance camera)
-        {
-            ParentInstance = camera;
-            Enabled = false;
-            PosX = 0;
-            PosY = 0;
-            PosZ = 0;
-            RotX = 0;
-            RotY = 0;
-            RotZ = 0;
-            DispXZ = 0;
-            DispZY = 0;
-            FoV = 0;
-            GlobalDuration = 0;
-            PosXDuration = 0;
-            PosYDuration = 0;
-            PosZDuration = 0;
-            RotXDuration = 0;
-            RotYDuration = 0;
-            RotZDuration = 0;
-            FovDuration = 0;
-            DispXZDuration = 0;
-            DispZYDuration = 0;
-        }
-
-        public BacCameraSettings(CameraAnimInstance camera, BAC_Type10 bacCameraEntry)
-        {
-            ParentInstance = camera;
             Enabled = bacCameraEntry.EnableTransformModifiers;
             PosX = bacCameraEntry.PositionX;
             PosY = bacCameraEntry.PositionY;
@@ -227,92 +161,73 @@ namespace XenoKit.Engine.View
             DispZYDuration = bacCameraEntry.DisplacementZY_Duration;
         }
 
-        public void ApplyTo(ref SimdVector3 position, ref SimdVector3 targetPosition)
+        /// <param name="up">The camera's up axis. Rotations and the X and Y shifts use it.</param>
+        /// <param name="elapsed">Frames since the row started.</param>
+        public void Apply(CameraState state, SimdVector3 up, float elapsed)
+        {
+            float global = GetGlobalFactor(elapsed);
+            state.Roll += RotZ * GetAxisFactor(RotZDuration, elapsed) * global;
+            state.FieldOfView += FoV * GetAxisFactor(FovDuration, elapsed) * global;
+            ApplyTo(ref state.Position, ref state.TargetPosition, up, elapsed);
+        }
+
+        private void ApplyTo(ref SimdVector3 position, ref SimdVector3 targetPosition, SimdVector3 up, float elapsed)
         {
             SimdVector3 backward = position - targetPosition;
-            float originalDistance = backward.Length();
 
-            if (originalDistance <= float.Epsilon)
+            if (backward.LengthSquared() <= float.Epsilon)
                 return;
 
-            backward /= originalDistance;
+            backward = SimdVector3.Normalize(backward);
+            SimdVector3 right = GetCameraRight(up, backward);
 
-            float modifiedDistance = originalDistance + CurrentPosZ;
-            float currentDispXZ = CurrentDispXZ;
-            float currentDispZY = CurrentDispZY;
+            //Position Z moves the eye along the view line. Then the aim turns around the eye, and then the eye orbits the new target.
+            SimdVector3 modifiedPosition = position + backward * PosZ * GetAxisFactor(PosZDuration, elapsed);
+            float distance = (targetPosition - modifiedPosition).Length();
+            SimdVector3 modifiedTargetPosition = modifiedPosition + RotateCameraDirection(-backward, up, right, DispXZ * GetAxisFactor(DispXZDuration, elapsed), DispZY * GetAxisFactor(DispZYDuration, elapsed)) * distance;
+            modifiedPosition = modifiedTargetPosition + RotateCameraDirection(backward, up, right, RotY * GetAxisFactor(RotYDuration, elapsed), RotX * GetAxisFactor(RotXDuration, elapsed)) * distance;
 
-            SimdVector3 modifiedBackward = RotateCameraDirection(backward, CurrentRotY, CurrentRotX);
+            //Position X and Y shift the whole shot, so they move the target as well
+            SimdVector3 shift = right * PosX * GetAxisFactor(PosXDuration, elapsed) + up * PosY * GetAxisFactor(PosYDuration, elapsed);
+            modifiedPosition += shift;
+            modifiedTargetPosition += shift;
 
-            SimdVector3 modifiedPosition = targetPosition + modifiedBackward * modifiedDistance;
-            SimdVector3 modifiedTargetPosition = targetPosition;
-
-            SimdVector3 positionOffset = GetCameraRight(modifiedBackward) * (CurrentPosX * BacModifierHorizontalOffsetScale);
-            modifiedPosition += positionOffset;
-            modifiedTargetPosition += positionOffset;
-
-            if (currentDispXZ != 0f || currentDispZY != 0f)
-            {
-                SimdVector3 aim = RotateCameraDirection(-modifiedBackward, currentDispXZ, currentDispZY);
-                modifiedTargetPosition = modifiedPosition + aim * modifiedDistance;
-            }
-
-            //PosY raises the whole shot, so it moves the target as well
-            SimdVector3 heightOffset = MathHelpers.Up * CurrentPosY;
-            modifiedPosition += heightOffset;
-            modifiedTargetPosition += heightOffset;
-
-            float factor = CurrentGlobalFactor();
+            float factor = GetGlobalFactor(elapsed);
             position = SimdVector3.Lerp(position, modifiedPosition, factor);
             targetPosition = SimdVector3.Lerp(targetPosition, modifiedTargetPosition, factor);
-
         }
 
-        public float GetCurrentFoV()
+        private static SimdVector3 GetCameraRight(SimdVector3 up, SimdVector3 backward)
         {
-            return CurrentFoV * CurrentGlobalFactor();
-        }
-
-        public float GetCurrentRoll()
-        {
-            return CurrentRotZ * CurrentGlobalFactor();
-        }
-
-        private SimdVector3 GetCameraRight(SimdVector3 backward)
-        {
-            SimdVector3 right = SimdVector3.Cross(MathHelpers.Up, backward);
+            SimdVector3 right = SimdVector3.Cross(up, backward);
             float rightLength = right.Length();
 
             return rightLength > float.Epsilon ? right / rightLength : right;
         }
 
-        //Yaw comes first, because the pitch axis is the right vector that the yaw produces
-        private SimdVector3 RotateCameraDirection(SimdVector3 direction, float yawDegrees, float pitchDegrees)
+        //Pitch turns around the original right axis first, then yaw turns around the up axis.
+        private static SimdVector3 RotateCameraDirection(SimdVector3 direction, SimdVector3 up, SimdVector3 right, float yawDegrees, float pitchDegrees)
         {
-            SimdVector3 yawed = direction;
+            if (yawDegrees == 0f && pitchDegrees == 0f)
+                return direction;
 
-            if (yawDegrees != 0f)
-            {
-                SimdQuaternion yawRotation = SimdQuaternion.CreateFromAxisAngle(MathHelpers.Up, MathHelper.ToRadians(yawDegrees));
-                yawed = SimdVector3.Transform(yawed, yawRotation);
-            }
-
-            if (pitchDegrees == 0f)
-                return yawed;
-
-            SimdQuaternion pitchRotation = SimdQuaternion.CreateFromAxisAngle(GetCameraRight(yawed), MathHelper.ToRadians(pitchDegrees));
-
-            return SimdVector3.Normalize(SimdVector3.Transform(yawed, pitchRotation));
+            SimdQuaternion rotation = SimdQuaternion.CreateFromAxisAngle(up, MathHelper.ToRadians(yawDegrees)) * SimdQuaternion.CreateFromAxisAngle(right, MathHelper.ToRadians(pitchDegrees));
+            return SimdVector3.Normalize(SimdVector3.Transform(direction, rotation));
         }
 
-        private float CurrentGlobalFactor()
+        private float GetGlobalFactor(float elapsed)
         {
-            return GetFactor(GlobalDuration);
+            if (GlobalDuration == 0 || elapsed > GlobalDuration) return 1f;
+            return elapsed / GlobalDuration;
         }
 
-        private float GetFactor(float duration)
+        //Each axis waits for the global blend to finish before its own blend starts.
+        private float GetAxisFactor(float duration, float elapsed)
         {
-            if (ParentInstance.CurrentFrame - ParentInstance.StartFrame > duration || duration == 0) return 1f;
-            return (ParentInstance.CurrentFrame - ParentInstance.StartFrame) / duration;
+            elapsed -= GlobalDuration;
+
+            if (duration == 0 || elapsed >= duration) return 1f;
+            return Math.Max(0f, elapsed) / duration;
         }
     }
 

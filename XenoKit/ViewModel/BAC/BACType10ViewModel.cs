@@ -10,10 +10,12 @@ using static Xv2CoreLib.BAC.BAC_Type10;
 
 namespace XenoKit.ViewModel.BAC
 {
-    public class BACType10ViewModel : ObservableObject, IDisposable
+    public partial class BACType10ViewModel : ObservableObject, IDisposable
     {
 
         private BAC_Type10 bacType;
+
+        public string EanTypeLabel => Xv2CoreLib.ValuesDictionary.BAC.GetCameraEanTypeName(EanType);
 
         public ushort EanType
         {
@@ -23,9 +25,11 @@ namespace XenoKit.ViewModel.BAC
             }
             set
             {
+                if ((ushort)bacType.EanType == value) return;
                 UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.EanType), bacType, bacType.EanType, (BAC_Type10.EanTypeEnum)value, "Camera EanType"));
                 bacType.EanType = (BAC_Type10.EanTypeEnum)value;
                 RaisePropertyChanged(() => EanType);
+                RaisePropertyChanged(() => EanTypeLabel);
                 RaisePropertyChanged(() => SpecifiedEan);
                 RaisePropertyChanged(() => UseEanList);
                 RaisePropertyChanged(() => EanIndex);
@@ -425,290 +429,6 @@ namespace XenoKit.ViewModel.BAC
         }
 
 
-        //Flags
-        public bool EnableTransformModifers
-        {
-            get
-            {
-                return bacType.EnableTransformModifiers;
-            }
-            set
-            {
-                if (bacType.EnableTransformModifiers != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.EnableTransformModifiers), bacType, bacType.EnableTransformModifiers, value, "Camera EnableTransformModifers"));
-                    bacType.EnableTransformModifiers = value;
-                    RaisePropertyChanged(() => EnableTransformModifers);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool EnableCameraForAllPlayers
-        {
-            get
-            {
-                return bacType.EnableCameraForAllPlayers;
-            }
-            set
-            {
-                if (bacType.EnableCameraForAllPlayers != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.EnableCameraForAllPlayers), bacType, bacType.EnableCameraForAllPlayers, value, "Camera EnableCameraForAllPlayers"));
-                    bacType.EnableCameraForAllPlayers = value;
-                    RaisePropertyChanged(() => EnableCameraForAllPlayers);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool Flag_74_1
-        {
-            get
-            {
-                return bacType.I_74_1;
-            }
-            set
-            {
-                if (bacType.I_74_1 != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.I_74_1), bacType, bacType.I_74_1, value, "Camera Flag_74_1"));
-                    bacType.I_74_1 = value;
-                    RaisePropertyChanged(() => Flag_74_1);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool FocusOnTarget
-        {
-            get
-            {
-                return bacType.FocusOnTarget;
-            }
-            set
-            {
-                if (bacType.FocusOnTarget != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.FocusOnTarget), bacType, bacType.FocusOnTarget, value, "Camera FocusOnTarget"));
-                    bacType.FocusOnTarget = value;
-                    RaisePropertyChanged(() => FocusOnTarget);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool UseCharacterSpecificCameraEan
-        {
-            get
-            {
-                return bacType.UseCharacterSpecificCameraEan;
-            }
-            set
-            {
-                if (bacType.UseCharacterSpecificCameraEan != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.UseCharacterSpecificCameraEan), bacType, bacType.UseCharacterSpecificCameraEan, value, "Camera UseCharacterSpecificCameraEan"));
-                    bacType.UseCharacterSpecificCameraEan = value;
-                    RaisePropertyChanged(() => UseCharacterSpecificCameraEan);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool Flag_74_4
-        {
-            get
-            {
-                return bacType.I_74_4;
-            }
-            set
-            {
-                if (bacType.I_74_4 != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.I_74_4), bacType, bacType.I_74_4, value, "Camera Flag_74_4"));
-                    bacType.I_74_4 = value;
-                    RaisePropertyChanged(() => Flag_74_4);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool Flag_74_5
-        {
-            get
-            {
-                return bacType.I_74_5;
-            }
-            set
-            {
-                if (bacType.I_74_5 != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.I_74_5), bacType, bacType.I_74_5, value, "Camera Flag_74_5"));
-                    bacType.I_74_5 = value;
-                    RaisePropertyChanged(() => Flag_74_5);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-        public bool DontOverrideActiveCameras
-        {
-            get
-            {
-                return bacType.DontOverrideActiveCameras;
-            }
-            set
-            {
-                if (bacType.DontOverrideActiveCameras != value)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.DontOverrideActiveCameras), bacType, bacType.DontOverrideActiveCameras, value, "Camera DontOverrideActiveCameras"));
-                    bacType.DontOverrideActiveCameras = value;
-                    RaisePropertyChanged(() => DontOverrideActiveCameras);
-                    UpdateBacPlayer();
-                }
-            }
-        }
-
-        public bool CameraFlags_Unk9
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk9);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk9, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk9"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk9);
-                }
-            }
-        }
-        public bool CameraFlags_Unk10
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk10);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk10, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk10"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk10);
-                }
-            }
-        }
-        public bool CameraFlags_Unk11
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk11);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk11, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk11"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk11);
-                }
-            }
-        }
-        public bool CameraFlags_Unk12
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk12);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk12, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk12"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk12);
-                }
-            }
-        }
-        public bool CameraFlags_Unk13
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk13);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk13, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk13"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk13);
-                }
-            }
-        }
-        public bool CameraFlags_Unk14
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk14);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk14, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk14"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk14);
-                }
-            }
-        }
-        public bool CameraFlags_Unk15
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk15);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk15, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk15"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk15);
-                }
-            }
-        }
-        public bool CameraFlags_Unk16
-        {
-            get
-            {
-                return bacType.cameraFlags2.HasFlag(BAC_Type10.CameraFlags2.Unk16);
-            }
-            set
-            {
-                CameraFlags2 flags = bacType.cameraFlags2.SetFlag(BAC_Type10.CameraFlags2.Unk16, value);
-
-                if (flags != bacType.cameraFlags2)
-                {
-                    UndoManager.Instance.AddUndo(new UndoableProperty<BAC_Type10>(nameof(bacType.cameraFlags2), bacType, bacType.cameraFlags2, flags, "CameraFlags Unk16"));
-                    bacType.cameraFlags2 = flags;
-                    RaisePropertyChanged(() => CameraFlags_Unk16);
-                }
-            }
-        }
-
-
         //Ean
         public EAN_File SpecifiedEan
         {
@@ -743,12 +463,14 @@ namespace XenoKit.ViewModel.BAC
         private void BacType_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             RaisePropertyChanged(e.PropertyName);
+            if (e.PropertyName == nameof(bacType.EanType)) RaisePropertyChanged(() => EanTypeLabel);
         }
 
         private void UpdateProperties()
         {
             //Needed for updating properties when undo/redo is called
             RaisePropertyChanged(() => EanType);
+            RaisePropertyChanged(() => EanTypeLabel);
             RaisePropertyChanged(() => EanIndex);
             RaisePropertyChanged(() => StartFrame);
             RaisePropertyChanged(() => BoneToFocusOn);
@@ -773,23 +495,23 @@ namespace XenoKit.ViewModel.BAC
             RaisePropertyChanged(() => DisplacementDurationZY);
             RaisePropertyChanged(() => EnableTransformModifers);
             RaisePropertyChanged(() => EnableCameraForAllPlayers);
-            RaisePropertyChanged(() => Flag_74_1);
+            RaisePropertyChanged(() => ResetCameraAfterEnd);
             RaisePropertyChanged(() => FocusOnTarget);
-            RaisePropertyChanged(() => UseCharacterSpecificCameraEan);
+            RaisePropertyChanged(() => DontFitToBodySize);
             RaisePropertyChanged(() => Flag_74_4);
-            RaisePropertyChanged(() => Flag_74_5);
-            RaisePropertyChanged(() => DontOverrideActiveCameras);
+            RaisePropertyChanged(() => KeepWhileInputHeld);
+            RaisePropertyChanged(() => RequireTenHitCombo);
             RaisePropertyChanged(() => SpecifiedEan);
             RaisePropertyChanged(() => UseEanList);
 
-            RaisePropertyChanged(() => CameraFlags_Unk9);
+            RaisePropertyChanged(() => LockCameraPriority);
             RaisePropertyChanged(() => CameraFlags_Unk10);
             RaisePropertyChanged(() => CameraFlags_Unk11);
-            RaisePropertyChanged(() => CameraFlags_Unk12);
-            RaisePropertyChanged(() => CameraFlags_Unk13);
-            RaisePropertyChanged(() => CameraFlags_Unk14);
-            RaisePropertyChanged(() => CameraFlags_Unk15);
-            RaisePropertyChanged(() => CameraFlags_Unk16);
+            RaisePropertyChanged(() => CameraFlags_KeepAfterEnd);
+            RaisePropertyChanged(() => CameraFlags_UseType26Row);
+            RaisePropertyChanged(() => DelayCameraBlend);
+            RaisePropertyChanged(() => ReverseCameraDirection);
+            RaisePropertyChanged(() => ResumeFromEndView);
 
             UpdateBacPlayer();
         }
