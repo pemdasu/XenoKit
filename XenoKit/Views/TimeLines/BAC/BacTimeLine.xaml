@@ -113,7 +113,7 @@
                             <MenuItem Header="[9] Projectile" Command="{Binding AddTimelineLayerCommand}" CommandParameter="9" FontSize="10"/>
                             <MenuItem Header="[10] Camera" Command="{Binding AddTimelineLayerCommand}" CommandParameter="10" FontSize="10"/>
                             <MenuItem Header="[11] Sound" Command="{Binding AddTimelineLayerCommand}" CommandParameter="11" FontSize="10"/>
-                            <MenuItem Header="[12] Targeting Assistance" Command="{Binding AddTimelineLayerCommand}" CommandParameter="12" FontSize="10"/>
+                            <MenuItem Header="[12] Tracking Axis" Command="{Binding AddTimelineLayerCommand}" CommandParameter="12" FontSize="10"/>
                             <MenuItem Header="[13] BCS PartSet Invisibility" Command="{Binding AddTimelineLayerCommand}" CommandParameter="13" FontSize="10"/>
                             <MenuItem Header="[14] Bone Modification" Command="{Binding AddTimelineLayerCommand}" CommandParameter="14" FontSize="10"/>
                             <MenuItem Header="[15] Function" Command="{Binding AddTimelineLayerCommand}" CommandParameter="15" FontSize="10"/>
@@ -129,8 +129,8 @@
                             <MenuItem Header="[25] Extended Charge Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="25" FontSize="10"/>
                             <MenuItem Header="[26] Extended Camera Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="26" FontSize="10"/>
                             <MenuItem Header="[27] Effect Property Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="27" FontSize="10"/>
-                            <MenuItem Header="[28] BAC_Type28" Command="{Binding AddTimelineLayerCommand}" CommandParameter="28" FontSize="10"/>
-                            <MenuItem Header="[29] BAC_Type29" Command="{Binding AddTimelineLayerCommand}" CommandParameter="29" FontSize="10"/>
+                            <MenuItem Header="[28] DYT Blend" Command="{Binding AddTimelineLayerCommand}" CommandParameter="28" FontSize="10"/>
+                            <MenuItem Header="[29] Material Parameter" Command="{Binding AddTimelineLayerCommand}" CommandParameter="29" FontSize="10"/>
                             <MenuItem Header="[30] BAC_Type30" Command="{Binding AddTimelineLayerCommand}" CommandParameter="30" FontSize="10"/>
                             <MenuItem Header="[31] Projectile Callback" Command="{Binding AddTimelineLayerCommand}" CommandParameter="31" FontSize="10"/>
                         </ContextMenu>
@@ -212,7 +212,7 @@
                                     <MenuItem Header="[9] Projectile" Command="{Binding AddTimelineLayerCommand}" CommandParameter="9" FontSize="10"/>
                                     <MenuItem Header="[10] Camera" Command="{Binding AddTimelineLayerCommand}" CommandParameter="10" FontSize="10"/>
                                     <MenuItem Header="[11] Sound" Command="{Binding AddTimelineLayerCommand}" CommandParameter="11" FontSize="10"/>
-                                    <MenuItem Header="[12] Targeting Assistance" Command="{Binding AddTimelineLayerCommand}" CommandParameter="12" FontSize="10"/>
+                                    <MenuItem Header="[12] Tracking Axis" Command="{Binding AddTimelineLayerCommand}" CommandParameter="12" FontSize="10"/>
                                     <MenuItem Header="[13] BCS PartSet Invisibility" Command="{Binding AddTimelineLayerCommand}" CommandParameter="13" FontSize="10"/>
                                     <MenuItem Header="[14] Bone Modification" Command="{Binding AddTimelineLayerCommand}" CommandParameter="14" FontSize="10"/>
                                     <MenuItem Header="[15] Function" Command="{Binding AddTimelineLayerCommand}" CommandParameter="15" FontSize="10"/>
@@ -228,8 +228,8 @@
                                     <MenuItem Header="[25] Extended Charge Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="25" FontSize="10"/>
                                     <MenuItem Header="[26] Extended Camera Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="26" FontSize="10"/>
                                     <MenuItem Header="[27] Effect Property Control" Command="{Binding AddTimelineLayerCommand}" CommandParameter="27" FontSize="10"/>
-                                    <MenuItem Header="[28] BAC_Type28" Command="{Binding AddTimelineLayerCommand}" CommandParameter="28" FontSize="10"/>
-                                    <MenuItem Header="[29] BAC_Type29" Command="{Binding AddTimelineLayerCommand}" CommandParameter="29" FontSize="10"/>
+                                    <MenuItem Header="[28] DYT Blend" Command="{Binding AddTimelineLayerCommand}" CommandParameter="28" FontSize="10"/>
+                                    <MenuItem Header="[29] Material Parameter" Command="{Binding AddTimelineLayerCommand}" CommandParameter="29" FontSize="10"/>
                                     <MenuItem Header="[30] BAC_Type30" Command="{Binding AddTimelineLayerCommand}" CommandParameter="30" FontSize="10"/>
                                 </MenuItem>
                                 <MenuItem Header="{Binding ContextMenuNewLayerName}" Command="{Binding NewCurrentLayerCommand}"/>

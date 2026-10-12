@@ -1,21 +1,13 @@
-﻿using LB_Common.Numbers;
-using Microsoft.Xna.Framework;
 using System;
-using System.Linq;
 using XenoKit.Editor;
 using XenoKit.Engine.Scripting.BAC.Simulation;
 using XenoKit.Engine.View;
-using Xv2CoreLib;
 using Xv2CoreLib.BAC;
-using Xv2CoreLib.BSA;
-using Xv2CoreLib.EAN;
-using Xv2CoreLib.Resource.App;
 using Matrix4x4 = System.Numerics.Matrix4x4;
-using SimdVector4 = System.Numerics.Vector4;
 
 namespace XenoKit.Engine.Scripting.BAC
 {
-    public class BacPlayer : EngineObject
+    public partial class BacPlayer : EngineObject
     {
         //Parent character that this BacPlayer is for
         private readonly Actor character;
@@ -33,7 +25,7 @@ namespace XenoKit.Engine.Scripting.BAC
             get
             {
                 if (BacEntryInstance == null) return 0;
-                return (int)BacEntryInstance.CurrentFrame;
+                return (int)Math.Max(BacEntryInstance.CurrentFrame, 0f);
             }
             set
             {
@@ -57,6 +49,13 @@ namespace XenoKit.Engine.Scripting.BAC
         {
             get => BacEntryInstance != null ? BacEntryInstance.HasTimeScale : false;
         }
+
+        public static bool SimulateMovement { get; set; } = true;
+        public static bool SimulateTracking { get; set; } = true;
+
+        //Stops a seek or step when the BAC frame does not move, such as with a time scale of 0.
+        private const int MaxSeekTicks = 60 * 60 * 10;
+        private const int MaxStepTicks = 60;
 
         //Threading:
         /// <summary>
@@ -108,13 +107,30 @@ namespace XenoKit.Engine.Scripting.BAC
         {
             if (clearing || BacEntryInstance == null || character.Controller.FreezeActionFrames > 0) return;
 
-            UpdateBacLoop();
+            bool isPlaying = ViewportInstance.IsPlaying;
+
+            //A new entry runs its first frame even while paused, so the actor shows it right away.
+            if (isPlaying || BacEntryInstance.CurrentFrame < 0f)
+                BacEntryInstance.AdvanceFrame();
+
+            RunCurrentFrame(true, isPlaying ? character.ActiveTimeScale : 0f, isPlaying);
+        }
+
+        /// <param name="isTick">True when this call is one game tick. Paused redraws are not ticks.</param>
+        private void RunCurrentFrame(bool allowLoop, float frameStep, bool isTick)
+        {
+            if (allowLoop)
+                UpdateBacLoop();
+
             BacEntryInstance.ClearActiveBsaPassConditions();
+            character.CanBeTracked = true;
 
-            if (!BacEntryInstance.IsFinished)
-                UpdateBac(true, ref BacEntryInstance.CurrentFrame);
+            if (isTick)
+                character.PartSet.AdvanceScdAnimations(frameStep);
 
-            BacEntryInstance.Update();
+            UpdateBac(frameStep, isTick);
+
+            BacEntryInstance.Update(isTick ? character.BacTimeScale * character.BdmTimeScale : 0f);
         }
 
         public override void DelayedUpdate()
@@ -126,350 +142,6 @@ namespace XenoKit.Engine.Scripting.BAC
             }
         }
 
-        private void UpdateBac(bool allowTimeSkip, ref float _refFrame)
-        {
-            float frame = _refFrame;
-            bool timeSkip = false;
-            character.SetBacTimeScale(1f, true);
-            ushort typeFlag = (ushort)(character.CharacterData.IsCaC ? 1 : 2);
-
-            if (clearing) return;
-            IOrderedEnumerable<IBacType> validEntries = BacEntryInstance.BacEntry.IBacTypes.Where
-                (b => IsValidBacTypeTime(b) && (b.Flags == typeFlag || b.Flags == 0))
-                .OrderBy(x => x.GetType() == typeof(BAC_Type4)); //TimeScale must be resolved before animation/camera
-            var settings = SettingsManager.Instance.Settings;
-
-            //Read bac types
-            foreach (IBacType type in validEntries)
-            {
-                //Animation
-                if (type is BAC_Type0 animation)
-                {
-                    if (!ActivationCheck(type)) continue;
-                    if (BAC_Type0.IsFullBodyAnimation(animation.EanType) && animation.StartTime < BacEntryInstance.LoopStartFrame && type.TimesActivated > 0) continue; //Animations have special handling in loops
-
-                    EAN_File eanFile;
-
-                    if (animation.EanType == BAC_Type0.EanTypeEnum.FaceBase || animation.EanType == BAC_Type0.EanTypeEnum.FaceForehead)
-                    {
-                        //Face animations are always loaded from the character FCE EAN
-                        eanFile = Files.Instance.GetEanFile(animation.EanType, BacEntryInstance.SkillMove, character, true, true);
-                    }
-                    else
-                    {
-                        //For all other cases, the EANs should be from the user of the move.
-                        eanFile = Files.Instance.GetEanFile(animation.EanType, BacEntryInstance.SkillMove, BacEntryInstance.User, true, true);
-                    }
-
-                    if (eanFile != null && animation.EanIndex != ushort.MaxValue)
-                    {
-                        switch (animation.EanType)
-                        {
-                            case BAC_Type0.EanTypeEnum.Character:
-                            case BAC_Type0.EanTypeEnum.Common:
-                            case BAC_Type0.EanTypeEnum.MCM_DBA:
-                            case BAC_Type0.EanTypeEnum.MCM_TTL:
-                            case BAC_Type0.EanTypeEnum.MCM_TU6:
-                            case BAC_Type0.EanTypeEnum.MCM_TU13_5:
-                            case BAC_Type0.EanTypeEnum.Skill:
-                                character.AnimationPlayer.PlayPrimaryAnimation(eanFile, animation.EanIndex, animation.StartFrame, animation.EndFrame, animation.BlendWeight, animation.BlendWeightFrameStep, animation.AnimFlags, true, animation.TimeScale, false, true);
-                                character.AnimationTimeScale = Math.Abs(animation.TimeScale);
-
-                                if (animation.StartFrame != 0 && _refFrame == 0f) //On first frame, skipping to startFrame on animations is allowed
-                                {
-                                    SetLoop(animation.LoopStartFrame, character.AnimationPlayer.PrimaryAnimation.EndFrame, animation.StartTime, true, true);
-                                    _refFrame = animation.StartFrame;
-                                    timeSkip = true;
-                                }
-                                else
-                                {
-                                    SetLoop(animation.LoopStartFrame, character.AnimationPlayer.PrimaryAnimation.EndFrame, animation.StartTime, true, true);
-                                }
-                                break;
-                            case BAC_Type0.EanTypeEnum.FaceBase:
-                            case BAC_Type0.EanTypeEnum.FaceForehead:
-                                if (ShouldUsePrimaryFaceAnimation(animation, eanFile))
-                                {
-                                    BacEntryInstance.MainFaceAnimationEndTime = animation.StartTime + animation.Duration;
-                                }
-                                else
-                                {
-                                    character.AnimationPlayer.PlaySecondaryAnimation(eanFile, animation.EanIndex, animation.StartFrame, (ushort)(animation.Duration + 1), animation.BlendWeight, animation.BlendWeightFrameStep, animation.TimeScale, true);
-                                }
-
-                                break;
-                            case BAC_Type0.EanTypeEnum.CommonTail:
-                                character.AnimationPlayer.PlaySecondaryAnimation(eanFile, animation.EanIndex, animation.StartFrame, animation.EndFrame, animation.BlendWeight, animation.BlendWeightFrameStep, animation.TimeScale);
-                                break;
-                        }
-                    }
-                }
-
-                //Hitbox
-                if (type is BAC_Type1 hitbox)
-                {
-                    var impactType = hitbox.GetImpactType();
-                    var spawnSource = hitbox.GetSpawnSource();
-                    //var damageType = hitbox.GetDamageType();
-
-                    //Only allow hitbox looping when impact type is set to continuous
-                    if (!ActivationCheck(type) && impactType != BAC_Type1.HitboxFlagsEnum.ImpactType_Continuous) continue;
-
-                    //Determine the actor the hitbox should spawn on from the flags
-                    Actor spawnActor = null;
-
-                    switch (spawnSource)
-                    {
-                        case BAC_Type1.HitboxFlagsEnum.SpawnSource_User:
-                            spawnActor = BacEntryInstance.User;
-                            break;
-                        case BAC_Type1.HitboxFlagsEnum.SpawnSource_Target:
-                            spawnActor = SceneManager.Actors[1];
-                            break;
-                        default:
-                            continue;
-                    }
-
-                    BacEntryInstance.AddVisualObject(hitbox, ViewportInstance);
-
-                    if (ViewportInstance.Simulation.ActiveHitboxes.FirstOrDefault(x => x.Hitbox == hitbox && x.BacEntry == BacEntryInstance) == null)
-                    {
-                        ViewportInstance.Simulation.ActiveHitboxes.Add(new Collision.BacHitbox(BacEntryInstance, hitbox, spawnActor, BacEntryInstance.User, BacEntryInstance.User.Team));
-                    }
-                }
-
-                //TimeScale
-                if (type is BAC_Type4 timeScale)
-                {
-                    character.SetBacTimeScale(Math.Abs(timeScale.TimeScale), false);
-                }
-
-                //Effect
-                if (type is BAC_Type8 effect)
-                {
-                    if ((effect.EffectFlags & BAC_Type8.EffectFlagsEnum.Loop) != BAC_Type8.EffectFlagsEnum.Loop && type.TimesActivated > 0) continue;
-                    if (!ActivationCheck(type) ||
-                        !settings.XenoKit_VfxSimulation ||
-                        (effect.EepkType == BAC_Type8.EepkTypeEnum.StageBG && !settings.XenoKit_StageBgVfxSimulation)) continue;
-
-                    if ((effect.EffectFlags & BAC_Type8.EffectFlagsEnum.Off) == BAC_Type8.EffectFlagsEnum.Off)
-                    {
-                        VfxManager.StopEffect(effect, BacEntryInstance);
-                    }
-                    else
-                    {
-                        VfxManager.PlayEffect(effect, BacEntryInstance, character);
-                    }
-                }
-
-                //Screen effect
-                if (type is BAC_Type16 screenEffect)
-                {
-                    bool allowLoop = (screenEffect.ScreenEffectFlags & BAC_Type16.ScreenEffectFlagsEnum.AllowLoop) == BAC_Type16.ScreenEffectFlagsEnum.AllowLoop;
-
-                    if (!allowLoop && type.TimesActivated > 0) continue;
-                    if (!ActivationCheck(type)) continue;
-
-                    if ((screenEffect.ScreenEffectFlags & BAC_Type16.ScreenEffectFlagsEnum.DisableEffect) == BAC_Type16.ScreenEffectFlagsEnum.DisableEffect)
-                    {
-                        BacEntryInstance.ClearScreenEffect(screenEffect);
-                        continue;
-                    }
-
-                    Xv2CoreLib.BPE.BPE_Entry bpeEntry = Files.Instance.GetBpeEntry(screenEffect.BpeIndex, true);
-                    if (screenEffectEvaluator.HasData(bpeEntry))
-                        BacEntryInstance.StartScreenEffect(bpeEntry, screenEffect);
-                }
-
-                //Projectile
-                if (type is BAC_Type9 projectile)
-                {
-                    bool canLoop = (projectile.BsaFlags & BAC_Type9.BsaFlagsEnum.Loop) == BAC_Type9.BsaFlagsEnum.Loop ||
-                                   (projectile.BsaFlags & BAC_Type9.BsaFlagsEnum.AllowLoop) == BAC_Type9.BsaFlagsEnum.AllowLoop;
-
-                    if (!canLoop && type.TimesActivated > 0) continue;
-                    if (!ActivationCheck(type) || !settings.XenoKit_ProjectileSimulation) continue;
-
-                    BSA_File bsaFile = Files.Instance.GetBsaFile(projectile.BsaType, projectile.SkillID, BacEntryInstance.SkillMove, BacEntryInstance.User, true);
-                    BSA_Entry bsaEntry = bsaFile?.BSA_Entries?.FirstOrDefault(entry => entry.SortID == projectile.EntryID);
-
-                    if (bsaEntry != null)
-                    {
-                        //Only init when missing. Rebuilding discards unsaved edits, since IBsaTypes is derived from Type0-Type14.
-                        if (bsaEntry.IBsaTypes == null)
-                            bsaEntry.InitializeIBsaTypes();
-                        BacEntryInstance.AddProjectile(projectile, bsaEntry, bsaFile, canLoop);
-                    }
-                    else
-                    {
-                        Log.Add($"BacPlayer: Could not find BSA entry {projectile.EntryID} in {projectile.BsaType}.", LogType.Warning);
-                    }
-                }
-
-                //Camera
-                if (type is BAC_Type10 camera)
-                {
-                    if (!ActivationCheck(type) || character.ActorSlot != 0) continue;
-
-                    EAN_File ean = Files.Instance.GetCamEanFile(camera.EanType, BacEntryInstance.SkillMove, BacEntryInstance.User, true, camera.UseCharacterSpecificCameraEan);
-
-                    if (ean != null && camera.EanIndex != ushort.MaxValue && SceneManager.UseCameras)
-                    {
-                        EAN_Animation cam = ean.GetAnimation(camera.EanIndex, true);
-
-                        if (cam != null)
-                        {
-                            int actorFocusIdx = camera.FocusOnTarget ? 1 : character.ActorSlot;
-
-                            SceneManager.PlayCameraAnimation(ean, cam, camera, character, actorFocusIdx, true);
-                        }
-                        else
-                        {
-                            Log.Add(string.Format("BacPlayer: Could not find the camera animation with the ID {0} in the {1} cam.ean.", camera.EanIndex, camera.EanType), LogType.Error);
-                        }
-                    }
-                }
-
-                //Sound
-                if (type is BAC_Type11 sound)
-                {
-                    if (!ActivationCheck(type)) continue;
-
-                    Xv2CoreLib.ACB.ACB_Wrapper acb = Files.Instance.GetAcbFile(sound.AcbType, BacEntryInstance.SkillMove, character, true);
-
-                    //I've made it only play sounds if a primary animation is current playing - this prevents some audio crashes/errors
-                    if (acb != null && sound.CueId != ushort.MaxValue && ViewportInstance.IsPlaying && character.AnimationPlayer.PrimaryAnimation != null)
-                    {
-                        Viewport.Instance.AudioEngine.PlayCue(sound.CueId, acb, character, BacEntryInstance, (sound.SoundFlags & SoundFlags.StopWhenParentEnds) == SoundFlags.StopWhenParentEnds);
-                    }
-                }
-
-                //Functions
-                if (type is BAC_Type15 function)
-                {
-                    switch (function.FunctionType)
-                    {
-                        case 0x0: //BAC Loop. When conditions are no longer true, the loop will stop when the current loop cycle ends.
-                        case 0x22: //BAC Loop, but ends instantly when conditions are no longer true
-                            if (!ActivationCheck(type) || BacEntryInstance.CurrentLoop > 0) continue;
-                            SetLoop(type.StartTime, type.StartTime + type.Duration, 0, function.FunctionType == 0x22);
-                            break;
-                        case 0x13: //Sets BCS PartSet (temp).
-                        case 0x14: //Sets BCS PartSet (permanent).
-                            if (!ActivationCheck(type)) continue;
-                            character.PartSet.ApplyBacPartSetSwap((int)function.Param1, function.FunctionType == 0x14);
-                            break;
-                        case 0x10: //Pass BSA entry when a projectile BSA Type0 row has the matching BAC condition.
-                        case 0x26:
-                            BacEntryInstance.AddActiveBsaPassCondition(function.Param1);
-                            break;
-                        case 0x6: //Invisibility
-                            character.IsVisible = false;
-                            break;
-                        case 0x30: //Black Void
-                            ViewportInstance.IsBlackVoid = true;
-                            break;
-                    }
-                }
-
-                //Eye Movement
-                if (type is BAC_Type21 eyeMovement)
-                {
-                    if (!ActivationCheck(type)) continue;
-
-                    BacEntryInstance.ActiveEyeMovement = eyeMovement;
-                }
-
-                //Transparency Effect
-                if(type is BAC_Type23 transparency)
-                {
-                    //Shader path is activated, and values faded into over duration
-                    //Shader reverts to normal when BAC entry ends or overriden by another BAC_Type23
-
-                    switch (transparency.ShaderOptions)
-                    {
-                        case BAC_Type23.ShaderPathOptions.Vanish:
-                        case BAC_Type23.ShaderPathOptions.Vanish2:
-                        case BAC_Type23.ShaderPathOptions.Vanish3:
-                            character.ShaderParameters.ShaderPath = Shader.ActorShaderPath.Vanish;
-                            float fadeInFactor = (CurrentFrame - type.StartTime + 1) / (float)type.Duration;
-
-                            SimdVector4 color = new SimdVector4(transparency.Tint_R, transparency.Tint_G, transparency.Tint_B, transparency.Tint_A);
-                            //Vector4 startColor = color * 0.5f;
-                            SimdVector4 startColor = SimdVector4.One - color;
-
-                            character.ShaderParameters.g_vColor4_PS = SimdVector4.Lerp(startColor, color, fadeInFactor);
-                            //character.ShaderParameters.g_vColor4_PS = new Vector4(transparency.Tint_R, transparency.Tint_G, transparency.Tint_B, transparency.Tint_A) * fadeInFactor;
-                            character.ShaderParameters.g_vParam9_PS = new SimdVector4(
-                                MathHelper.Max((int)(transparency.HorizontalLineSize * fadeInFactor), transparency.HorizontalLineSize > 0 ? 1 : 0),
-                                MathHelper.Max((int)(transparency.VerticalLineSize * fadeInFactor), transparency.VerticalLineSize > 0 ? 1 : 0),
-                                MathHelper.Max((int)(transparency.HorizontalLineSpacing * fadeInFactor), transparency.HorizontalLineSpacing > 0 ? 1 : 0),
-                                MathHelper.Max((int)(transparency.VerticalLineSpacing * fadeInFactor), transparency.VerticalLineSpacing > 0 ? 1 : 0));
-                            break;
-                        case BAC_Type23.ShaderPathOptions.HC:
-                            character.ShaderParameters.ShaderPath = Shader.ActorShaderPath.HC;
-                            break;
-                        default:
-                            character.ShaderParameters.ShaderPath = Shader.ActorShaderPath.Default;
-                            break;
-                    }
-
-                    //character.ShaderParameters.g_vParam9_PS = new Vector4(0, 10, 0, 30);
-                }
-            }
-
-            screenEffectEvaluator.Update(BacEntryInstance, CurrentFrame);
-
-            //Update Eye Movements
-            if (BacEntryInstance.ActiveEyeMovement != null)
-            {
-                BAC_Type21 eyeMovement = BacEntryInstance.ActiveEyeMovement;
-
-                if (eyeMovement.StartTime + eyeMovement.EyeMovementDuration < CurrentFrame)
-                {
-                    BacEntryInstance.ActiveEyeMovement = null;
-                }
-                else
-                {
-                    CustomVector4 prevEyePosition = EyeMovementPositions.EyePositions[(int)eyeMovement.EyeDirectionPrev];
-                    CustomVector4 nextEyePosition = EyeMovementPositions.EyePositions[(int)eyeMovement.EyeDirectionNext];
-
-                    CustomVector4 leftEyePosition = nextEyePosition * eyeMovement.LeftEyeRotationPercent;
-                    CustomVector4 rightEyePosition = nextEyePosition * eyeMovement.RightEyeRotationPercent;
-
-
-                    if (eyeMovement.StartTime + eyeMovement.EyeRotationFrames >= CurrentFrame)
-                    {
-                        float factor = 1f / eyeMovement.EyeRotationFrames * (CurrentFrame - eyeMovement.StartTime);
-                        leftEyePosition = CustomVector4.Lerp(prevEyePosition, nextEyePosition, factor) * eyeMovement.LeftEyeRotationPercent;
-                        rightEyePosition = CustomVector4.Lerp(prevEyePosition, nextEyePosition, factor) * eyeMovement.RightEyeRotationPercent;
-                    }
-
-                    character.EyeIrisLeft_UV[0] = leftEyePosition.X;
-                    character.EyeIrisLeft_UV[1] = leftEyePosition.Y;
-                    character.EyeIrisRight_UV[0] = rightEyePosition.X;
-                    character.EyeIrisRight_UV[1] = rightEyePosition.Y;
-                    character.BacEyeMovementUsed = true;
-                }
-
-            }
-
-            //Update face animation
-            if (character.AnimationPlayer.PrimaryAnimation != null)
-                character.AnimationPlayer.PrimaryAnimation.EnableFaceBones = BacEntryInstance.MainFaceAnimationEndTime > CurrentFrame;
-
-            //If the frame was skipped to a latter frame by an animation, then process this later frame as well.
-            if (timeSkip && allowTimeSkip)
-            {
-                UpdateBac(false, ref _refFrame);
-            }
-        }
-
-        private bool ShouldUsePrimaryFaceAnimation(BAC_Type0 animation, EAN_File eanFile)
-        {
-            return animation.I_14 == 1 || eanFile?.IsCharaUnique == true;
-        }
-
         private void UpdateBacLoop()
         {
             if (BacEntryInstance.LoopIsDirty)
@@ -477,7 +149,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 bool wasPlaying = ViewportInstance.IsPlaying;
                 ViewportInstance.IsPlaying = false;
                 BacEntryInstance.LoopIsDirty = false;
-                Seek((int)BacEntryInstance.CurrentFrame);
+                Seek(BacEntryInstance.CurrentFrame);
                 ViewportInstance.IsPlaying = wasPlaying;
             }
             else if (BacEntryInstance.LoopEnabled && BacEntryInstance.CurrentFrame >= BacEntryInstance.LoopEndFrame && (!IsPreview || SceneManager.AllowBacLoop))
@@ -496,7 +168,7 @@ namespace XenoKit.Engine.Scripting.BAC
         /// <summary>
         /// Simulate the bac entry up to the specified frame. This will also simulate any animations, cameras, hitboxes, projectiles and so on.
         /// </summary>
-        public void Seek(int frame, bool clearAnimations = true)
+        public void Seek(float frame, bool clearAnimations = true)
         {
             if (clearing) return;
 
@@ -504,7 +176,7 @@ namespace XenoKit.Engine.Scripting.BAC
             CameraState originalCameraState = Viewport.Instance.Camera.CameraState.Copy();
 
             //Calculate the number of "blending" frames between animations. With this we dont need to calculate every single animation frame, just what is needed.
-            int numBlendingFrames = BAC_Type0.CalculateNumOfBlendingFrames(BacEntryInstance.BacEntry.IBacTypes, frame);
+            int numBlendingFrames = BAC_Type0.CalculateNumOfBlendingFrames(BacEntryInstance.BacEntry.IBacTypes, (int)frame);
 
             //Clean up
             SceneManager.Actors[1]?.ResetState(false);
@@ -517,53 +189,25 @@ namespace XenoKit.Engine.Scripting.BAC
             VfxManager.StopEffects();
             VfxManager.ForceEffectUpdate = false;
             Viewport.Instance.Camera.ClearCameraAnimation();
+            Viewport.Instance.Camera.BuiltInCameras.Clear();
             character.AnimationTimeScale = 1f;
-            BacEntryInstance.BacEntry.ResetTimesActivated();
             BacEntryInstance.ResetState();
 
-            for (int i = 0; i <= frame; i++)
+            //Replay ticks the same way live playback runs them, so seeking to a frame gives the same state as playing to it.
+            bool reachedFrame = false;
+
+            for (int tick = 0; tick < MaxSeekTicks && !reachedFrame; tick++)
             {
-                BacEntryInstance.CurrentFrame = i;
-                UpdateBac(true, ref BacEntryInstance.CurrentFrame);
+                bool bacRan = SimulateBacTick(false);
+                float framesLeft = frame - BacEntryInstance.CurrentFrame;
+                reachedFrame = bacRan && framesLeft <= 0f;
 
-                if(BacEntryInstance.CurrentFrame != i)
-                {
-                    i = (int)BacEntryInstance.CurrentFrame;
-                    continue;
-                }
-
-                if (i < frame)
-                    BacEntryInstance.Simulate(true);
-
-                if (BacEntryInstance.CurrentFrame > frame) //Frameskip shot us past the specified frame. End seek here.
-                {
-                    character.Simulate(true, true);
-                    SceneManager.Actors[1]?.Simulate(true, true);
-                    Viewport.Instance.Camera.Simulate(true, true);
-                    ViewportInstance.Simulation.Simulate();
-
-                    VfxManager.ForceEffectUpdate = true;
-                    VfxManager.Simulate();
-                    break;
-                }
-                else
-                {
-                    do
-                    {
-                        character.Simulate(frame - i < numBlendingFrames, true); //Fully update anim positions for as long as required for accurate blending
-                        SceneManager.Actors[1]?.Simulate(frame - i < 10, true);
-                        Viewport.Instance.Camera.Simulate(frame - i <= 1, true); //Only fully update camera on last frame
-                        ViewportInstance.Simulation.Simulate();
-
-                        //If this is the last seek frame, then set this to true so that effects fully update
-                        if (i == frame && character.Controller.FreezeActionFrames == 0)
-                            VfxManager.ForceEffectUpdate = true;
-
-                        VfxManager.Simulate();
-                    }
-                    while (character.Controller.FreezeActionFrames > 0);
-                }
+                //Fully update anim positions for as long as required for accurate blending
+                SimulateScene(framesLeft < numBlendingFrames, framesLeft < 10, framesLeft <= 1, reachedFrame);
             }
+
+            if (!reachedFrame)
+                Log.Add($"BacPlayer.Seek: frame {frame} was not reached after {MaxSeekTicks} ticks. The BAC frame is stuck at {BacEntryInstance.CurrentFrame}.", LogType.Warning);
 
             screenEffectEvaluator.Update(BacEntryInstance, CurrentFrame);
 
@@ -593,38 +237,6 @@ namespace XenoKit.Engine.Scripting.BAC
             }
         }
 
-        /// <summary>
-        /// Checks if a BAC Type can be activated on the current loop, and increments the activation count if it can.
-        /// </summary>
-        private bool ActivationCheck(IBacType type)
-        {
-            if (type.TimesActivated > BacEntryInstance.CurrentLoop) return false;
-                type.TimesActivated++;
-
-            return true;
-        }
-
-        private bool IsValidBacTypeTime(IBacType type)
-        {
-            return BacEntryInstance.IsValidTime(GetSimulationStartFrame(type), type.Duration);
-        }
-
-        private ushort GetSimulationStartFrame(IBacType type)
-        {
-            if (!ShouldDelaySimulationActivation(type))
-                return type.StartTime;
-
-            return (ushort)Math.Min(type.StartTime + 1, ushort.MaxValue);
-        }
-
-        private bool ShouldDelaySimulationActivation(IBacType type)
-        {
-            if (!BacEntryInstance.IsPreview)
-                return false;
-
-            return type is BAC_Type8 || type is BAC_Type9 || type is BAC_Type11;
-        }
-        
         #region Helpers
         private void RevertCharacterPosition(bool alwaysRevert)
         {
@@ -649,11 +261,20 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public void ResetBacPreviewState()
         {
+            Viewport.Instance.Camera.BuiltInCameras.Clear();
+
             if (!SceneManager.RetainActionMovement)
             {
                 RevertCharacterPosition(false);
                 character.PartSet.ResetBacPartSetSwap(false);
             }
+            else
+            {
+                character.MergeTransforms();
+            }
+
+            //The BAC frame follows the playing animation, so the last entry's animation must not carry into the next one.
+            character.AnimationPlayer.ClearCurrentAnimation(true);
 
             character.Controller.ResetState(SceneManager.RetainActionMovement);
             SceneManager.Actors[1]?.ResetState(SceneManager.RetainActionMovement);
@@ -665,7 +286,6 @@ namespace XenoKit.Engine.Scripting.BAC
             if(BacEntryInstance != null)
             {
                 CurrentFrame = 0;
-                BacEntryInstance.BacEntry.ResetTimesActivated();
                 BacEntryInstance.ResetState();
             }
         }
@@ -673,14 +293,17 @@ namespace XenoKit.Engine.Scripting.BAC
         public void ClearBacEntry()
         {
             clearing = true;
+            character.ResetTransparencyValues();
+            character.PartSet.StopScdAnimations();
 
             if (IsPreview)
             {
                 Viewport.Instance.Camera.ClearCameraAnimation();
+                Viewport.Instance.Camera.BuiltInCameras.Clear();
             }
 
             character.AnimationPlayer.SecondaryAnimations.Clear();
-            BacEntryInstance?.BacEntry.ResetTimesActivated();
+            character.CanBeTracked = true;
             BacEntryInstance?.Dispose();
             BacEntryInstance = null;
 
@@ -699,7 +322,7 @@ namespace XenoKit.Engine.Scripting.BAC
                 ViewportInstance.IsPlaying = false;
 
                 BacEntryInstance.CalculateEntryDuration();
-                Seek((int)BacEntryInstance.CurrentFrame, true);
+                Seek(BacEntryInstance.CurrentFrame, true);
 
                 ViewportInstance.IsPlaying = wasPlaying;
             }
@@ -722,13 +345,13 @@ namespace XenoKit.Engine.Scripting.BAC
 
             character.AnimationPlayer.ClearCurrentAnimation(true);
             BacEntryInstance.ResetState();
-            BacEntryInstance?.BacEntry.ResetTimesActivated();
             character.ResetPosition();
             character.PartSet.ResetBacPartSetSwap(false);
             SceneManager.Actors[1]?.ResetState();
             BacEntryInstance.CreateMatrixRestorePoint();
             character.AnimationTimeScale = 1f;
             ViewportInstance.IsPlaying = false;
+            Viewport.Instance.Camera.BuiltInCameras.Clear();
         }
 
         public void SeekPrevFrame()
@@ -755,27 +378,50 @@ namespace XenoKit.Engine.Scripting.BAC
                 Seek(0, true);
         }
 
+        /// <summary>
+        /// Runs live-playback ticks until the whole BAC frame changes.
+        /// </summary>
         private void StepNextFrameInPlace()
         {
             if (BacEntryInstance == null)
                 return;
 
-            UpdateBacLoop();
-            BacEntryInstance.ClearActiveBsaPassConditions();
+            double startFrame = Math.Floor(BacEntryInstance.CurrentFrame);
+            bool frameChanged = false;
 
-            if (!BacEntryInstance.IsFinished)
-                UpdateBac(true, ref BacEntryInstance.CurrentFrame);
+            for (int tick = 0; tick < MaxStepTicks && !frameChanged; tick++)
+            {
+                bool bacRan = SimulateBacTick(true);
+                frameChanged = bacRan && Math.Floor(BacEntryInstance.CurrentFrame) != startFrame;
+                SimulateScene(true, true, true, frameChanged);
+            }
 
-            BacEntryInstance.AdvancePreviewFrame(1f);
+            screenEffectEvaluator.Update(BacEntryInstance, CurrentFrame);
+        }
 
-            character.Simulate(true, true);
-            SceneManager.Actors[1]?.Simulate(true, true);
-            Viewport.Instance.Camera.Simulate(true, true);
+        /// <summary>
+        /// Runs the BAC part of one paused tick. Returns false while hit stop holds the BAC frame.
+        /// </summary>
+        private bool SimulateBacTick(bool allowLoop)
+        {
+            //Live playback counts hit stop down before the BAC update. Actor.Simulate counts it down later in the tick.
+            if (character.Controller.FreezeActionFrames > 1)
+                return false;
+
+            BacEntryInstance.AdvanceFrame();
+            RunCurrentFrame(allowLoop, character.ActiveTimeScale, true);
+            return true;
+        }
+
+        private void SimulateScene(bool fullCharacterUpdate, bool fullVictimUpdate, bool fullCameraUpdate, bool forceEffectUpdate)
+        {
+            character.Simulate(fullCharacterUpdate, true, true);
+            SceneManager.Actors[1]?.Simulate(fullVictimUpdate, true, true);
+            Viewport.Instance.Camera.Simulate(fullCameraUpdate, true, true);
             ViewportInstance.Simulation.Simulate();
 
-            VfxManager.ForceEffectUpdate = true;
+            VfxManager.ForceEffectUpdate = forceEffectUpdate;
             VfxManager.Simulate();
-            screenEffectEvaluator.Update(BacEntryInstance, CurrentFrame);
         }
         #endregion
 

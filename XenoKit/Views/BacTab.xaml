@@ -155,7 +155,7 @@
                                 <MenuItem Header="[9] Projectile" Command="{Binding AddBacTypeCommand}" CommandParameter="9"/>
                                 <MenuItem Header="[10] Camera" Command="{Binding AddBacTypeCommand}" CommandParameter="10"/>
                                 <MenuItem Header="[11] Sound" Command="{Binding AddBacTypeCommand}" CommandParameter="11"/>
-                                <MenuItem Header="[12] Targeting Assistance" Command="{Binding AddBacTypeCommand}" CommandParameter="12"/>
+                                <MenuItem Header="[12] Tracking Axis" Command="{Binding AddBacTypeCommand}" CommandParameter="12"/>
                                 <MenuItem Header="[13] BCS PartSet Invisibility" Command="{Binding AddBacTypeCommand}" CommandParameter="13"/>
                                 <MenuItem Header="[14] Bone Modification" Command="{Binding AddBacTypeCommand}" CommandParameter="14"/>
                                 <MenuItem Header="[15] Function" Command="{Binding AddBacTypeCommand}" CommandParameter="15"/>
@@ -171,8 +171,8 @@
                                 <MenuItem Header="[25] Extended Charge Control" Command="{Binding AddBacTypeCommand}" CommandParameter="25"/>
                                 <MenuItem Header="[26] Extended Camera Control" Command="{Binding AddBacTypeCommand}" CommandParameter="26"/>
                                 <MenuItem Header="[27] Effect Property Control" Command="{Binding AddBacTypeCommand}" CommandParameter="27"/>
-                                <MenuItem Header="[28] BAC_Type28" Command="{Binding AddBacTypeCommand}" CommandParameter="28"/>
-                                <MenuItem Header="[29] BAC_Type29" Command="{Binding AddBacTypeCommand}" CommandParameter="29"/>
+                                <MenuItem Header="[28] DYT Blend" Command="{Binding AddBacTypeCommand}" CommandParameter="28"/>
+                                <MenuItem Header="[29] Material Parameter" Command="{Binding AddBacTypeCommand}" CommandParameter="29"/>
                                 <MenuItem Header="[30] BAC_Type30" Command="{Binding AddBacTypeCommand}" CommandParameter="30"/>
                                 <MenuItem Header="[31] Projectile Callback" Command="{Binding AddBacTypeCommand}" CommandParameter="31"/>
                             </ContextMenu>
@@ -218,7 +218,7 @@
                             <MenuItem Header="[9] Projectile" Command="{Binding AddBacTypeCommand}" CommandParameter="9"/>
                             <MenuItem Header="[10] Camera" Command="{Binding AddBacTypeCommand}" CommandParameter="10"/>
                             <MenuItem Header="[11] Sound" Command="{Binding AddBacTypeCommand}" CommandParameter="11"/>
-                            <MenuItem Header="[12] Targeting Assistance" Command="{Binding AddBacTypeCommand}" CommandParameter="12"/>
+                            <MenuItem Header="[12] Tracking Axis" Command="{Binding AddBacTypeCommand}" CommandParameter="12"/>
                             <MenuItem Header="[13] BCS PartSet Invisibility" Command="{Binding AddBacTypeCommand}" CommandParameter="13"/>
                             <MenuItem Header="[14] Bone Modification" Command="{Binding AddBacTypeCommand}" CommandParameter="14"/>
                             <MenuItem Header="[15] Function" Command="{Binding AddBacTypeCommand}" CommandParameter="15"/>
@@ -234,8 +234,8 @@
                             <MenuItem Header="[25] Extended Charge Control" Command="{Binding AddBacTypeCommand}" CommandParameter="25"/>
                             <MenuItem Header="[26] Extended Camera Control" Command="{Binding AddBacTypeCommand}" CommandParameter="26"/>
                             <MenuItem Header="[27] Effect Property Control" Command="{Binding AddBacTypeCommand}" CommandParameter="27"/>
-                            <MenuItem Header="[28] BAC_Type28" Command="{Binding AddBacTypeCommand}" CommandParameter="28"/>
-                            <MenuItem Header="[29] BAC_Type29" Command="{Binding AddBacTypeCommand}" CommandParameter="29"/>
+                            <MenuItem Header="[28] DYT Blend" Command="{Binding AddBacTypeCommand}" CommandParameter="28"/>
+                            <MenuItem Header="[29] Material Parameter" Command="{Binding AddBacTypeCommand}" CommandParameter="29"/>
                             <MenuItem Header="[30] BAC_Type30" Command="{Binding AddBacTypeCommand}" CommandParameter="30"/>
                             <MenuItem Header="[31] Projectile Callback" Command="{Binding AddBacTypeCommand}" CommandParameter="31"/>
                         </MenuItem>

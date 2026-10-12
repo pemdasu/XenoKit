@@ -755,7 +755,7 @@ namespace XenoKit.Views.TimeLines
                     IBacType nextItem = GetNextItemInLayer(animation);
 
                     int maxGhostDuration = nextItem != null ? nextItem.StartTime - (animation.StartTime + animation.Duration) : 10000;
-                    int realAnimationDuration = BacEntryInstance.CalculateAnimationDuration(Files.Instance.SelectedMove, SceneManager.Actors[0], animation);
+                    int realAnimationDuration = BacEntryInstance.CalculateAnimationDuration(BacEntry, Files.Instance.SelectedMove, SceneManager.Actors[0], animation);
 
                     return Math.Min(maxGhostDuration, realAnimationDuration - animation.Duration);
                 }

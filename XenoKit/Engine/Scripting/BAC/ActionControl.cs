@@ -93,11 +93,12 @@ namespace XenoKit.Engine.Scripting.BAC
                     visualCue.Draw();
                 }
 
-                foreach (ProjectileInstance projectile in BacPlayer.BacEntryInstance.Projectiles)
-                {
-                    projectile.Draw();
-                }
             }
+
+            if (BacPlayer.BacEntryInstance == null) return;
+
+            foreach (ProjectileInstance projectile in BacPlayer.BacEntryInstance.Projectiles)
+                projectile.Draw();
         }
 
         public void PlayBacEntry(BAC_File bacFile, BAC_Entry bacEntry, Move move = null, Actor user = null)
@@ -130,6 +131,7 @@ namespace XenoKit.Engine.Scripting.BAC
             }
 
             if (BacPlayer.BacEntryInstance.LoopEnabled && SceneManager.AllowBacLoop) return ActionPreviewState.Looping;
+            if (BacPlayer.BacEntryInstance.Projectiles.Count > 0) return ActionPreviewState.WaitingProjectiles;
 
             return ActionPreviewState.Finished;
         }

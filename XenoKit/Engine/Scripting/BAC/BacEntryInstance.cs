@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using XenoKit.Editor;
+using XenoKit.Engine.Animation;
 using XenoKit.Engine.Scripting.BSA;
 using XenoKit.Engine.Scripting.BAC.Simulation;
 using Xv2CoreLib.BAC;
@@ -36,12 +37,31 @@ namespace XenoKit.Engine.Scripting.BAC
         public BAC_Entry BacEntry;
 
         //State:
-        public float PreviousFrame = 0;
-        public float CurrentFrame = 0;
+        public float PreviousFrame = BacTiming.NotStartedFrame;
+        public float CurrentFrame = BacTiming.NotStartedFrame;
+        /// <summary>
+        /// The Type0 entry whose animation drives the BAC frame.
+        /// </summary>
+        public BAC_Type0 DrivingAnimation;
+        public int PlaybackStartFrame { get; private set; }
         public int Duration { get; private set; }
         public float ScaledDuration { get; private set; }
         public bool HasTimeScale { get; private set; }
         public bool IsPreview { get; private set; }
+        private readonly Dictionary<IBacType, int> activationCounts = new Dictionary<IBacType, int>();
+
+        internal int GetActivationCount(IBacType row)
+        {
+            return activationCounts.TryGetValue(row, out int count) ? count : 0;
+        }
+
+        internal bool TryActivate(IBacType row)
+        {
+            int count = GetActivationCount(row);
+            if (count > CurrentLoop) return false;
+            activationCounts[row] = count + 1;
+            return true;
+        }
 
         //Loop:
         public int CurrentLoop { get; set; } //0 = Initial, 1+ loops
@@ -62,7 +82,7 @@ namespace XenoKit.Engine.Scripting.BAC
         //Visual objects that render on screen as the entry plays. Currently only covers hitbox previews.
         //These have no actual logic and dont interact with anything. They are purely visual helpers.
         public List<BacVisualCueObject> VisualSimulationCues;
-        public List<ProjectileInstance> Projectiles;
+        public readonly List<ProjectileInstance> Projectiles = new List<ProjectileInstance>();
         private readonly HashSet<BAC_Type9> spawnedProjectileTypes = new HashSet<BAC_Type9>();
         private readonly Dictionary<BAC_Type9, float> loopProjectileSpawnFrames = new Dictionary<BAC_Type9, float>();
         private readonly List<float> activeBsaPassConditions = new List<float>();
@@ -101,14 +121,12 @@ namespace XenoKit.Engine.Scripting.BAC
             if (IsPreview)
             {
                 VisualSimulationCues = new List<BacVisualCueObject>(16);
-                Projectiles = new List<ProjectileInstance>(8);
                 OriginalMatrix = new Matrix4x4[3];
                 CreateMatrixRestorePoint();
             }
             else
             {
                 VisualSimulationCues = null;
-                Projectiles = null;
                 OriginalMatrix = null;
             }
 
@@ -129,14 +147,22 @@ namespace XenoKit.Engine.Scripting.BAC
         {
             if (BacEntry == null) return;
 
+            PlaybackStartFrame = BacEntry.IBacTypes.OfType<BAC_Type0>()
+                .FirstOrDefault(animation => BAC_Type0.IsFullBodyAnimation(animation.EanType))?.StartFrame ?? 0;
             int duration = 0;
             float scaledDuration = 0;
             bool hasTimeScale = false;
-            CalculateEntryDuration(BacEntry, SkillMove, User, true, ref duration, ref scaledDuration, ref hasTimeScale);
+            CalculateEntryDuration(BacEntry, SkillMove, User, Actor, true, ref duration, ref scaledDuration, ref hasTimeScale);
 
             Duration = duration;
             ScaledDuration = scaledDuration;
             HasTimeScale = hasTimeScale;
+        }
+
+        public static Actor GetAnimationActor(BAC_Type0.EanTypeEnum source, Actor user, Actor actor)
+        {
+            return source == BAC_Type0.EanTypeEnum.FaceBase || source == BAC_Type0.EanTypeEnum.FaceForehead
+                || source == BAC_Type0.EanTypeEnum.CommonTTL || source == BAC_Type0.EanTypeEnum.CM2_XVS ? actor : user;
         }
 
         public static int CalculateEntryDuration(BAC_Entry bacEntry, Move files, Actor user)
@@ -144,12 +170,12 @@ namespace XenoKit.Engine.Scripting.BAC
             int duration = 0;
             float scaled = 0;
             bool hasScale = false;
-            CalculateEntryDuration(bacEntry, files, user, false, ref duration, ref scaled, ref hasScale);
+            CalculateEntryDuration(bacEntry, files, user, user, false, ref duration, ref scaled, ref hasScale);
 
             return duration;
         }
 
-        public static void CalculateEntryDuration(BAC_Entry bacEntry, Move files, Actor user, bool calculateScaledDuration, ref int duration, ref float scaledDuration, ref bool hasTimeScale)
+        public static void CalculateEntryDuration(BAC_Entry bacEntry, Move files, Actor user, Actor actor, bool calculateScaledDuration, ref int duration, ref float scaledDuration, ref bool hasTimeScale)
         {
             int currentStartTime = 0;
             int currentAnimDuration = 0;
@@ -164,7 +190,7 @@ namespace XenoKit.Engine.Scripting.BAC
                     if (!BAC_Type0.IsFullBodyAnimation(animation.EanType))
                         continue;
 
-                    int animTypeDuration = CalculateAnimationDuration(files, user, animation);
+                    int animTypeDuration = CalculateAnimationDuration(bacEntry, files, GetAnimationActor(animation.EanType, user, actor), animation);
 
                     currentStartTime = animation.StartTime;
                     currentAnimDuration = animTypeDuration;
@@ -207,16 +233,32 @@ namespace XenoKit.Engine.Scripting.BAC
             duration = currentStartTime + currentAnimDuration;
         }
 
-        public static int CalculateAnimationDuration(Move files, Actor user, BAC_Type0 animationBacType)
+        /// <summary>
+        /// The first full-body Type0 keeps its StartFrame in the BAC clock. Later full-body rows subtract their StartFrame.
+        /// </summary>
+        public static int GetAnimationFrameOffset(BAC_Entry bacEntry, BAC_Type0 animation)
+        {
+            foreach (IBacType type in bacEntry.IBacTypes)
+            {
+                if (type is BAC_Type0 firstAnimation && BAC_Type0.IsFullBodyAnimation(firstAnimation.EanType))
+                    return firstAnimation == animation ? 0 : animation.StartFrame;
+            }
+
+            return animation.StartFrame;
+        }
+
+        /// <summary>
+        /// The number of BAC frames from the Type0 StartTime to the end of its animation.
+        /// </summary>
+        public static int CalculateAnimationDuration(BAC_Entry bacEntry, Move files, Actor user, BAC_Type0 animationBacType)
         {
             int animTypeDuration = 0;
+            int frameOffset = GetAnimationFrameOffset(bacEntry, animationBacType);
 
-            //Check for hard coded duration set in bac type (endFrame - startFrame).
             //If endFrame is 0xffff, then get duration from the ean
             if (animationBacType.EndFrame != ushort.MaxValue)
             {
-                //animTypeDuration = (type0.EndFrame - type0.StartFrame) + ((type.StartTime == 0) ? type0.StartFrame : (ushort)type.StartTime);
-                animTypeDuration = animationBacType.StartTime == 0 ? animationBacType.EndFrame : animationBacType.EndFrame - animationBacType.StartFrame;
+                animTypeDuration = animationBacType.EndFrame - frameOffset;
             }
             else
             {
@@ -228,16 +270,14 @@ namespace XenoKit.Engine.Scripting.BAC
 
                     if (anim != null && BAC_Type0.IsFullBodyAnimation(animationBacType.EanType))
                     {
-                        animTypeDuration = animationBacType.StartTime == 0
-                            ? anim.FrameCount
-                            : anim.FrameCount - animationBacType.StartFrame;
+                        animTypeDuration = anim.FrameCount - 1 - frameOffset;
                     }
                 }
             }
 
             return animTypeDuration;
         }
-        
+
         public static void CalculateLoop(BAC_Entry bacEntry, Move files, Actor user, out int loopStart, out int loopEnd)
         {
             foreach(IBacType type in bacEntry.IBacTypes.Where(x => x.TypeID == 0 || x.TypeID == 15).OrderBy(x => x.StartTime))
@@ -246,16 +286,8 @@ namespace XenoKit.Engine.Scripting.BAC
                 {
                     if(anim.LoopStartFrame != ushort.MaxValue && BAC_Type0.IsFullBodyAnimation(anim.EanType))
                     {
-                        if(anim.StartTime == 0)
-                        {
-                            loopStart = anim.StartFrame + anim.LoopStartFrame;
-                            loopEnd = anim.StartFrame + CalculateAnimationDuration(files, user, anim);
-                        }
-                        else
-                        {
-                            loopStart = anim.StartTime + anim.LoopStartFrame;
-                            loopEnd = anim.StartTime + CalculateAnimationDuration(files, user, anim);
-                        }
+                        loopStart = anim.StartTime + anim.LoopStartFrame - GetAnimationFrameOffset(bacEntry, anim);
+                        loopEnd = anim.StartTime + CalculateAnimationDuration(bacEntry, files, user, anim);
                         return;
                     }
                 }
@@ -275,58 +307,43 @@ namespace XenoKit.Engine.Scripting.BAC
         }
         #endregion
 
-        public void Update()
-        {
-            InScope = CurrentFrame < Duration;
-
-            UpdateVisualObjects();
-            UpdateProjectiles(User.ViewportInstance.IsPlaying ? Actor.ActiveTimeScale : 0f);
-
-            //Advance current frame
-            if (User.ViewportInstance.IsPlaying)
-            {
-                PreviousFrame = CurrentFrame;
-                CurrentFrame += Actor.ActiveTimeScale;
-            }
-
-            IsFinished = CurrentFrame >= Duration;
-        }
-
-        public void Simulate(bool advance = true)
-        {
-            InScope = CurrentFrame < Duration;
-            PreviousFrame = CurrentFrame;
-
-            //Simulate only goes forward in whole frames (no Time Scale)
-            if (advance)
-            {
-                CurrentFrame = (int)CurrentFrame + 1;
-            }
-
-            IsFinished = CurrentFrame >= Duration;
-        }
-
-        internal void AdvancePreviewFrame(float frameStep)
+        public void Update(float frameStep)
         {
             InScope = CurrentFrame < Duration;
 
             UpdateVisualObjects();
             UpdateProjectiles(frameStep);
+        }
+
+        /// <summary>
+        /// Moves to the next BAC frame, which follows the actor's primary animation.
+        /// </summary>
+        public void AdvanceFrame()
+        {
+            AnimationInstance animation = Actor.AnimationPlayer.PrimaryAnimation;
+            bool hasAnimation = animation != null;
+            bool hasDrivingAnimation = DrivingAnimation != null;
 
             PreviousFrame = CurrentFrame;
-            CurrentFrame = (int)CurrentFrame + 1;
+            CurrentFrame = BacTiming.GetNextFrame(
+                CurrentFrame,
+                hasAnimation,
+                hasAnimation ? animation.CurrentFrame : 0f,
+                hasAnimation && animation.CurrentFrame >= animation.EndFrame,
+                hasDrivingAnimation,
+                hasDrivingAnimation ? DrivingAnimation.StartTime : 0,
+                hasDrivingAnimation ? GetAnimationFrameOffset(BacEntry, DrivingAnimation) : 0,
+                PlaybackStartFrame);
 
             IsFinished = CurrentFrame >= Duration;
         }
 
         /// <summary>
-        /// Checks if a StartTime is valid within the current context. 
+        /// Checks if a StartTime is valid within the current context.
         /// </summary>
         public bool IsValidTime(ushort startFrame, ushort duration)
         {
-            //If TimeScale skips a frame then still play any bac types that were missed.
-            if (PreviousFrame < startFrame && CurrentFrame > startFrame && duration > 0) return true;
-            return ((startFrame <= PreviousFrame && startFrame >= CurrentFrame) || startFrame <= CurrentFrame) && startFrame + duration > CurrentFrame;
+            return BacTiming.IsActive(startFrame, duration, PreviousFrame, CurrentFrame);
         }
 
         public void RefreshDetails()
@@ -336,6 +353,9 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public void ResetState()
         {
+            Actor?.ResetTransparencyValues();
+            Actor?.ResetBacMaterialValues();
+            activationCounts.Clear();
             ClearVisualObjects();
             ClearProjectiles();
             ClearScreenEffect();
@@ -343,14 +363,16 @@ namespace XenoKit.Engine.Scripting.BAC
             IsFinished = false;
             ActiveEyeMovement = null;
             MainFaceAnimationEndTime = -1;
-            CurrentFrame = 0;
-            PreviousFrame = 0;
+            CurrentFrame = BacTiming.NotStartedFrame;
+            PreviousFrame = BacTiming.NotStartedFrame;
+            DrivingAnimation = null;
             CurrentLoop = 0;
             LoopEnabled = false;
             LoopStartFrame = 0;
             LoopEndFrame = 0;
             LoopIsDirty = false;
             ClearActiveBsaPassConditions();
+            User?.ResetRandom();
 
             if (SceneManager.RetainActionMovement && IsPreview)
             {
@@ -452,7 +474,7 @@ namespace XenoKit.Engine.Scripting.BAC
 
         public bool AddProjectile(BAC_Type9 projectileType, BSA_Entry bsaEntry, BSA_File bsaFile, bool canLoop)
         {
-            if (!IsPreview || bsaEntry == null) return false;
+            if (bsaEntry == null) return false;
 
             if (canLoop)
             {
@@ -499,8 +521,6 @@ namespace XenoKit.Engine.Scripting.BAC
 
         private void UpdateProjectiles(float frameStep)
         {
-            if (!IsPreview) return;
-
             for (int i = Projectiles.Count - 1; i >= 0; i--)
             {
                 if (Projectiles[i].IsFinished)
@@ -516,8 +536,6 @@ namespace XenoKit.Engine.Scripting.BAC
 
         private void ClearProjectiles()
         {
-            if (!IsPreview) return;
-
             foreach (ProjectileInstance projectile in Projectiles)
                 projectile.Dispose();
 
@@ -553,6 +571,9 @@ namespace XenoKit.Engine.Scripting.BAC
         public System.Numerics.Vector4 HueColor;
         public float HueStrength = 1f;
         public bool HasHue;
+        //Color filter layers do not combine. The last active one is used.
+        public System.Numerics.Matrix4x4 ColorFilter = System.Numerics.Matrix4x4.Identity;
+        public bool HasColorFilter;
         public float ZoomLevel;
 
         public void Clear()
@@ -567,6 +588,8 @@ namespace XenoKit.Engine.Scripting.BAC
             HueColor = SimdVector4.Zero;
             HueStrength = 1f;
             HasHue = false;
+            ColorFilter = System.Numerics.Matrix4x4.Identity;
+            HasColorFilter = false;
             ZoomLevel = 0f;
         }
     }
